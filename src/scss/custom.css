@@ -1,0 +1,63 @@
+.pos-page {
+    width: 100vw;
+    height: 100vh;
+    margin: 0;
+    padding: 0;
+  }
+  
+  .sidebar-hidden .sidebar {
+    display: none !important;
+  }
+  
+  .sidebar-hidden .wrapper,
+  .sidebar-hidden .body {
+    margin-left: 0 !important;
+    width: 100% !important;
+  }
+
+  @media print {
+    body {
+      width: 80mm;
+    }
+  
+    .modal-footer {
+      display: none;
+    }
+  }
+  .excel-table {
+    border-collapse: collapse;
+    width: 100%;
+    font-family: 'Calibri', Arial, sans-serif;
+    font-size: 14px;
+    background-color: #ffffff;
+  }
+  
+  .excel-table th,
+  .excel-table td {
+    border: 1px solid #d0d7de; /* Light gray borders for grid */
+    padding: 8px;
+    text-align: left;
+  }
+  
+  .excel-table thead {
+    background-color: #f3f3f3; /* Light gray header background */
+    font-weight: bold;
+  }
+  
+  .excel-table tbody tr:nth-child(even) {
+    background-color: #f9f9f9; /* Alternating row colors */
+  }
+  
+  .excel-table tbody tr:hover {
+    background-color: #eaf3ff; /* Light blue hover effect */
+  }
+  
+  .excel-table td:nth-child(3), /* Amount column */
+  .excel-table td:nth-child(2) {
+    text-align: right; /* Align numbers to the right */
+  }
+  
+  .excel-table th {
+    text-align: center;
+    text-transform: uppercase;
+  }
