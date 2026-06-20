@@ -16,7 +16,7 @@ import {
 
 export default function NewCustomerModal({ show, onHide, onSuccess }) {
   const [loading, setLoading] = useState(false)
-
+  const API_URL = import.meta.env.VITE_BACKEND_URL
   const [error, setError] = useState('')
 
   const [formData, setFormData] = useState({
@@ -39,7 +39,7 @@ export default function NewCustomerModal({ show, onHide, onSuccess }) {
 
       const token = localStorage.getItem('token')
 
-      const response = await axios.post('http://localhost:9000/api/v1/customers', formData, {
+      const response = await axios.post(`${API_URL}api/v1/customers`, formData, {
         headers: {
           Authorization: `Bearer ${token}`,
         },
