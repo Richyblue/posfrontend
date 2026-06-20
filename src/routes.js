@@ -141,7 +141,7 @@ export const routes = [
     element: viewService,
     roles: ['admin', 'manager'],
   },
-  { path: '/service', name: 'Services', element: Service, roles: ['admin', 'manager'] },
+  { path: '/service', name: 'Services', element: Service, roles: ['admin', 'manager', 'cashier'] },
   { path: '/viewStaff', name: 'View Staff', element: vStaff, roles: ['admin'] },
   { path: '/staff', name: 'Staff', element: Staff, roles: ['admin'] },
   { path: '/viewExpense', name: 'View Expense', element: viewExpense, roles: ['admin', 'manager'] },
@@ -151,9 +151,14 @@ export const routes = [
     path: '/viewProduct',
     name: 'View Products',
     element: viewProduct,
-    roles: ['admin', 'manager'],
+    roles: ['admin', 'manager', 'cashier'],
   },
-  { path: '/products', name: 'Products', element: Products, roles: ['admin', 'manager'] },
+  {
+    path: '/products',
+    name: 'Products',
+    element: Products,
+    roles: ['admin', 'manager', 'cashier'],
+  },
   // { path: '/pos', name: 'Pos', element: Pos },
 ]
 
