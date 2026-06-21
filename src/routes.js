@@ -103,7 +103,12 @@ export const routes = [
   { path: '/forms/select', name: 'Select', element: Select },
   { path: '/setting', name: 'Settings', element: Settings, roles: ['admin'] },
   { path: '/report', name: 'Report', element: Reports, roles: ['admin', 'manager'] },
-  { path: '/commission', name: 'Commission', element: Commission, roles: ['admin', 'manager'] },
+  {
+    path: '/commission',
+    name: 'Commission',
+    element: Commission,
+    roles: ['admin', 'manager', 'staff'],
+  },
   {
     path: '/loyaltycard',
     name: 'Loyalty Card',
@@ -141,7 +146,12 @@ export const routes = [
     element: viewService,
     roles: ['admin', 'manager'],
   },
-  { path: '/service', name: 'Services', element: Service, roles: ['admin', 'manager', 'cashier'] },
+  {
+    path: '/service',
+    name: 'Services',
+    element: Service,
+    roles: ['admin', 'manager', 'cashier', 'staff'],
+  },
   { path: '/viewStaff', name: 'View Staff', element: vStaff, roles: ['admin'] },
   { path: '/staff', name: 'Staff', element: Staff, roles: ['admin'] },
   { path: '/viewExpense', name: 'View Expense', element: viewExpense, roles: ['admin', 'manager'] },
@@ -157,7 +167,7 @@ export const routes = [
     path: '/products',
     name: 'Products',
     element: Products,
-    roles: ['admin', 'manager', 'cashier'],
+    roles: ['admin', 'manager', 'cashier', 'staff'],
   },
   // { path: '/pos', name: 'Pos', element: Pos },
 ]

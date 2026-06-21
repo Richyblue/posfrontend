@@ -760,7 +760,12 @@ const POSPage = () => {
             </CButton>
           </CCol>
           <CCol>
-            <CButton color="secondary" title="Reprint Receipt" variant="outline" className="rounded-pil">
+            <CButton
+              color="secondary"
+              title="Reprint Receipt"
+              variant="outline"
+              className="rounded-pil"
+            >
               <CIcon icon={cilPrint} className="" /> Reprint
               {/* Reprint Receipt */}
             </CButton>
@@ -839,6 +844,7 @@ const POSPage = () => {
                                   onClick={() =>
                                     addToCart({
                                       ...service,
+                                      price: service.price,
                                       type: 'service',
                                     })
                                   }
@@ -916,6 +922,7 @@ const POSPage = () => {
                                       onClick={() =>
                                         addToCart({
                                           ...product,
+                                          price: product.sellingPrice,
                                           type: 'product',
                                         })
                                       }

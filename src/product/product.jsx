@@ -22,6 +22,7 @@ import {
 
 const AddProduct = () => {
   const [loading, setLoading] = useState(false)
+  const API_URL = import.meta.env.VITE_BACKEND_URL
 
   const [formData, setFormData] = useState({
     name: '',
@@ -70,7 +71,7 @@ const AddProduct = () => {
         payload.append(key, formData[key])
       })
 
-      const response = await axios.post('http://localhost:9000/api/v1/products', payload, {
+      const response = await axios.post(`${API_URL}api/v1/products`, payload, {
         headers: {
           Authorization: `Bearer ${token}`,
           'Content-Type': 'multipart/form-data',
