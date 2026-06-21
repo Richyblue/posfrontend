@@ -8,8 +8,6 @@ import {
   CCardBody,
   CButton,
 } from '@coreui/react'
-import axios from 'axios'
-
 const ReceiptModal = ({ show, onHide, sale }) => {
   const receiptRef = useRef()
   const API_URL = import.meta.env.VITE_BACKEND_URL
@@ -17,12 +15,43 @@ const ReceiptModal = ({ show, onHide, sale }) => {
   // Thermal printer setup
   const handlePrint = async () => {
     try {
-      const html = receiptRef.current.innerHTML
-
       if (!window.electronAPI) {
         alert('Electron printing not available')
         return
       }
+
+      const html = `
+      <html>
+      <head>
+        <style>
+          @page {
+            size: 80mm auto;
+            margin: 0;
+          }
+
+          body {
+            width: 80mm;
+            margin: 0;
+            padding: 5px;
+            font-family: monospace;
+            font-size: 12px;
+          }
+
+          table {
+            width: 100%;
+            border-collapse: collapse;
+          }
+
+          th, td {
+            padding: 2px;
+          }
+        </style>
+      </head>
+      <body>
+        ${receiptRef.current.innerHTML}
+      </body>
+      </html>
+    `
 
       await window.electronAPI.printReceipt(html)
 
@@ -49,38 +78,133 @@ const ReceiptModal = ({ show, onHide, sale }) => {
               style={{
                 width: '80mm',
                 margin: '0 auto',
+                padding: '5px',
                 fontSize: '12px',
                 fontFamily: 'monospace',
+                color: '#000',
               }}
             >
-              <h4 style={{ textAlign: 'center' }}>Store Name</h4>
-              <hr />
-              <p>Customer: {sale.customer || 'N/A'}</p>
-              <p>Date: {new Date(sale.createdAt).toLocaleString()}</p>
-              <hr />
-              <table style={{ width: '100%' }}>
+              <div style={{ textAlign: 'center' }}>
+                <h3 style={{ margin: '2px 0' }}>PRINCESS SALON</h3>
+
+                <p style={{ margin: '2px 0' }}>Beauty & Wellness Center</p>
+
+                <p style={{ margin: '2px 0' }}>Tel: +234 XXX XXX XXXX</p>
+              </div>
+
+              <hr
+                style={{
+                  borderTop: '1px dashed #000',
+                }}
+              />
+
+              <p>
+                <strong>Receipt No:</strong> {sale.receiptNumber || sale.id}
+              </p>
+
+              <p>
+                <strong>Customer:</strong> {sale.customer || 'Walk-in Customer'}
+              </p>
+
+              <p>
+                <strong>Date:</strong> {new Date(sale.createdAt).toLocaleString()}
+              </p>
+
+              <p>
+                <strong>Cashier:</strong> {sale.recordedBy || 'Admin'}
+              </p>
+
+              <hr
+                style={{
+                  borderTop: '1px dashed #000',
+                }}
+              />
+
+              <table
+                style={{
+                  width: '100%',
+                  fontSize: '11px',
+                }}
+              >
                 <thead>
                   <tr>
-                    <th style={{ textAlign: 'left' }}>Item</th>
-                    <th style={{ textAlign: 'center' }}>Qty</th>
-                    <th style={{ textAlign: 'right' }}>Price</th>
+                    <th align="left">Item</th>
+                    <th align="center">Qty</th>
+                    <th align="right">Amt</th>
                   </tr>
                 </thead>
+
                 <tbody>
-                  {sale.items.map((item, index) => (
+                  {sale.items?.map((item, index) => (
                     <tr key={index}>
                       <td>{item.name}</td>
-                      <td style={{ textAlign: 'center' }}>{item.qty}</td>
-                      <td style={{ textAlign: 'right' }}>
-                        ₦{Number(item.subtotal || 0).toLocaleString()}
-                      </td>
+
+                      <td align="center">{item.quantity || item.qty || 1}</td>
+
+                      <td align="right">₦{Number(item.subtotal || 0).toLocaleString()}</td>
                     </tr>
                   ))}
                 </tbody>
               </table>
-              <hr />
-              <h5 style={{ textAlign: 'right' }}>Total: ₦{sale.totalAmount.toFixed(2)}</h5>
-              <p style={{ textAlign: 'center' }}>Thank you for shopping!</p>
+
+              <hr
+                style={{
+                  borderTop: '1px dashed #000',
+                }}
+              />
+
+              <div>
+                <p
+                  style={{
+                    display: 'flex',
+                    justifyContent: 'space-between',
+                  }}
+                >
+                  <span>Subtotal:</span>
+
+                  <strong>₦{Number(sale.subtotal || sale.totalAmount).toLocaleString()}</strong>
+                </p>
+
+                <p
+                  style={{
+                    display: 'flex',
+                    justifyContent: 'space-between',
+                  }}
+                >
+                  <span>Discount:</span>
+
+                  <strong>₦{Number(sale.discount || 0).toLocaleString()}</strong>
+                </p>
+
+                <p
+                  style={{
+                    display: 'flex',
+                    justifyContent: 'space-between',
+                    fontSize: '15px',
+                  }}
+                >
+                  <span>TOTAL:</span>
+
+                  <strong>₦{Number(sale.totalAmount || 0).toLocaleString()}</strong>
+                </p>
+              </div>
+
+              <hr
+                style={{
+                  borderTop: '1px dashed #000',
+                }}
+              />
+
+              <div
+                style={{
+                  textAlign: 'center',
+                  marginTop: '10px',
+                }}
+              >
+                <p>Thank You For Your Patronage</p>
+
+                <p>Please Visit Again</p>
+              </div>
             </div>
           </CCardBody>
         </CCard>

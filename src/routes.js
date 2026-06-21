@@ -90,7 +90,7 @@ export const routes = [
     path: '/dashboard',
     name: 'Dashboard',
     element: Dashboard,
-    roles: ['admin', 'manager', 'cashier'],
+    roles: ['admin', 'manager', 'cashier', 'staff'],
   },
   { path: '/base/tooltips', name: 'Tooltips', element: Tooltips },
   { path: '/buttons', name: 'Buttons', element: Buttons, exact: true },
@@ -102,7 +102,7 @@ export const routes = [
   { path: '/forms/form-control', name: 'Form Control', element: FormControl },
   { path: '/forms/select', name: 'Select', element: Select },
   { path: '/setting', name: 'Settings', element: Settings, roles: ['admin'] },
-  { path: '/report', name: 'Report', element: Reports, roles: ['admin', 'manager'] },
+  { path: '/report', name: 'Report', element: Reports, roles: ['admin', 'manager', 'staff'] },
   {
     path: '/commission',
     name: 'Commission',
