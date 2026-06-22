@@ -1225,134 +1225,141 @@ const POSPage = () => {
           </CCard>
         </CCol>
       </CRow>
-
-      <CCard className="shadow-sm border-0 mt-4  p-2">
+      <CCard className="border-0 shadow-sm mt-3">
         <CCardBody>
-          <h5 className="mb-3">Summary</h5>
-          <CRow className="shadow-sm mb-2 alert alert-info p-3">
-            <CCol md={2}>
-              <CButton
-                color="warning"
-                className="w-100 rounded-pill mb-3"
-                onClick={() => setShowHoldModal(true)}
-              >
-                Hold Sale
-              </CButton>
-            </CCol>
-            <CCol md={2}>
-              <CButton color="info" variant="outline" onClick={openHeldSalesModal}>
-                Restore Sale
-              </CButton>
-            </CCol>
-            <CCol md={2}>
-              <div className="mb-2">
-                <small className="text-medium-emphasis">Subtotal</small>
+          <CRow>
+            {/* Actions */}
+            <CCol md={3}>
+              <div className="h-100 p-3 border rounded" style={{ background: '#f8fafc' }}>
+                <h6 className="fw-bold mb-3">Actions</h6>
 
-                <h6>₦{Number(subtotal).toLocaleString()}</h6>
+                <CButton
+                  color="warning"
+                  className="w-100 mb-2"
+                  onClick={() => setShowHoldModal(true)}
+                >
+                  Hold Sale
+                </CButton>
+
+                <CButton
+                  color="info"
+                  variant="outline"
+                  className="w-100"
+                  onClick={openHeldSalesModal}
+                >
+                  Restore Sale
+                </CButton>
               </div>
             </CCol>
-            <CCol md={2}>
-              <CFormInput
-                type="number"
-                placeholder="Discount"
-                value={discount}
-                onChange={(e) => setDiscount(Number(e.target.value))}
-              />
 
-              {/* Loyalty Section */}
-            </CCol>
+            {/* Loyalty */}
             <CCol md={4}>
-              {selectedCustomer && (
-                <>
-                  <CRow>
-                    <CCol>
-                      <span className="mb-1">Points: {selectedCustomer.loyaltyPoints || 0}</span>
-                    </CCol>
+              <div className="h-100 p-3 border rounded" style={{ background: '#f8fafc' }}>
+                <h6 className="fw-bold mb-3">Loyalty & Wallet</h6>
 
-                    <CCol>
-                      <span className="mb-2">
-                        Wallet: ₦{Number(selectedCustomer.walletBalance || 0).toLocaleString()}
-                      </span>
-                    </CCol>
-                  </CRow>
-                  <CRow>
-                    <CCol>
-                      <CFormCheck
-                        label={`Use Points (${selectedCustomer.loyaltyPoints || 0})`}
-                        checked={usePoints}
-                        onChange={(e) => setUsePoints(e.target.checked)}
-                      />
-                    </CCol>
-                    <CCol>
-                      <CFormCheck
-                        label={`Use Wallet`}
-                        checked={useWallet}
-                        onChange={(e) => setUseWallet(e.target.checked)}
-                      />
-                    </CCol>
-                  </CRow>
-                </>
-              )}
+                {selectedCustomer ? (
+                  <>
+                    <div className="d-flex justify-content-between mb-2">
+                      <span>Points</span>
+
+                      <strong>{selectedCustomer.loyaltyPoints}</strong>
+                    </div>
+
+                    <div className="d-flex justify-content-between mb-3">
+                      <span>Wallet</span>
+
+                      <strong>
+                        ₦{Number(selectedCustomer.walletBalance || 0).toLocaleString()}
+                      </strong>
+                    </div>
+
+                    <CFormCheck
+                      className="mb-2"
+                      label="Use Loyalty Points"
+                      checked={usePoints}
+                      onChange={(e) => setUsePoints(e.target.checked)}
+                    />
+
+                    <CFormCheck
+                      className="mb-3"
+                      label="Use Wallet Balance"
+                      checked={useWallet}
+                      onChange={(e) => setUseWallet(e.target.checked)}
+                    />
+
+                    <CFormInput
+                      type="number"
+                      label="Redeem Points"
+                      value={redeemPoints}
+                      min={0}
+                      max={selectedCustomer?.loyaltyPoints || 0}
+                      onChange={(e) => setRedeemPoints(Number(e.target.value))}
+                    />
+                  </>
+                ) : (
+                  <small className="text-muted">No customer selected</small>
+                )}
+              </div>
+            </CCol>
+
+            {/* Summary */}
+            <CCol md={5}>
+              <div className="h-100 p-3 border rounded" style={{ background: '#fff' }}>
+                <h6 className="fw-bold mb-3">Order Summary</h6>
+
+                <div className="d-flex justify-content-between mb-2">
+                  <span>Subtotal</span>
+
+                  <strong>₦{Number(subtotal).toLocaleString()}</strong>
+                </div>
+
+                <div className="mb-2">
+                  <CFormInput
+                    type="number"
+                    label="Discount"
+                    value={discount}
+                    onChange={(e) => setDiscount(Number(e.target.value))}
+                  />
+                </div>
+
+                {usePoints && (
+                  <div className="d-flex justify-content-between text-success mb-2">
+                    <span>Points Discount</span>
+
+                    <strong>- ₦{Number(pointsDiscount || 0).toLocaleString()}</strong>
+                  </div>
+                )}
+
+                {useWallet && (
+                  <div className="d-flex justify-content-between text-success mb-2">
+                    <span>Wallet Used</span>
+
+                    <strong>- ₦{Number(walletUsed || 0).toLocaleString()}</strong>
+                  </div>
+                )}
+
+                <hr />
+
+                <div className="d-flex justify-content-between align-items-center">
+                  <h5 className="mb-0">Grand Total</h5>
+
+                  <h4 className="mb-0 text-primary fw-bold">₦{Number(total).toLocaleString()}</h4>
+                </div>
+
+                <div className="mt-2 text-muted">
+                  Earn Points:
+                  <strong className="ms-2">{Math.floor(total / 1000)}</strong>
+                </div>
+              </div>
             </CCol>
           </CRow>
-          <CRow className="shadow-sm mt-3 alert alert-warning p-3">
-            <CCol>
-              {usePoints && (
-                <div className="d-flex justify-content-between">
-                  <small>Points Discount</small>
 
-                  <strong>- ₦{Number(pointsDiscount || 0).toLocaleString()}</strong>
-                </div>
-              )}
-            </CCol>
-            <CCol>
-              {useWallet && (
-                <div className="d-flex justify-content-between">
-                  <small>Wallet Used</small>
+          <hr />
 
-                  <strong>- ₦{Number(walletUsed || 0).toLocaleString()}</strong>
-                </div>
-              )}
-            </CCol>
-            <CCol>
-              <div className="d-flex justify-content-between mt-3">
-                <h5>Total</h5>
-
-                <h5>₦{Number(total).toLocaleString()}</h5>
-              </div>
-            </CCol>
-            <CCol>
-              <div className="mt-3">
-                <small>Points To Earn:</small>
-
-                <strong className="ms-2">{Math.floor(total / 1000)}</strong>
-              </div>
-            </CCol>
-            {/* <CCol>
-              {selectedCustomer && (
-                <div className="alert alert-info mt-2">
-                  <strong>{selectedCustomer.fullname}</strong>
-                  <br />
-                  Available Points: {selectedCustomer.loyaltyPoints || 0}
-                </div>
-              )}
-            </CCol> */}
-            <CCol>
-              <CFormInput
-                type="number"
-                label="Redeem Points"
-                value={redeemPoints}
-                min={0}
-                max={selectedCustomer?.loyaltyPoints || 0}
-                onChange={(e) => setRedeemPoints(Number(e.target.value))}
-              />
-            </CCol>
-            <CCol>
-              <CFormSelect
-                className="mt-3"
-                value={paymentMethod}
-                onChange={(e) => setPaymentMethod(e.target.value)}
-              >
+          {/* Payment Footer */}
+          <CRow className="align-items-end">
+            <CCol md={4}>
+              <CFormSelect value={paymentMethod} onChange={(e) => setPaymentMethod(e.target.value)}>
                 <option value="cash">Cash</option>
 
                 <option value="transfer">Transfer</option>
@@ -1362,15 +1369,15 @@ const POSPage = () => {
                 <option value="mixed">Mixed</option>
               </CFormSelect>
             </CCol>
-            <CCol>
+
+            <CCol md={8}>
               <CButton
-                color="primary"
-                size="sm"
-                className="w-100 mt-3 "
+                color="success"
+                size="lg"
+                className="w-100 fw-bold"
                 onClick={() => setShowPaymentModal(true)}
               >
-                <CIcon icon={cilCart} className="" />
-                Payment
+                Complete Payment • ₦{Number(total).toLocaleString()}
               </CButton>
             </CCol>
           </CRow>
