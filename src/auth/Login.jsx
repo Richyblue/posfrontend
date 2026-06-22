@@ -53,50 +53,81 @@ const Login = () => {
   return (
     <div className="bg-body-tertiary min-vh-100 d-flex flex-row align-items-center">
       <CContainer>
-        <CRow className="justify-content-center">
-          <CCol md={8}>
-            <CCardGroup>
-              <CCard className="p-4">
-                <CCardBody>
-                  <CForm onSubmit={handleLogin}>
-                    <h1>Login</h1>
-                    <p className="text-body-secondary">Sign In to your account</p>
-                    {error && <p className="text-danger">{error}</p>}
-                    <CInputGroup className="mb-3">
-                      <CInputGroupText>
-                        <CIcon icon={cilUser} />
-                      </CInputGroupText>
-                      <CFormInput
-                        type="email"
-                        placeholder="Email"
-                        autoComplete="email"
-                        value={email}
-                        onChange={(e) => setEmail(e.target.value)}
-                      />
-                    </CInputGroup>
-                    <CInputGroup className="mb-4">
-                      <CInputGroupText>
-                        <CIcon icon={cilLockLocked} />
-                      </CInputGroupText>
-                      <CFormInput
-                        type="password"
-                        placeholder="Password"
-                        autoComplete="current-password"
-                        value={password}
-                        onChange={(e) => setPassword(e.target.value)}
-                      />
-                    </CInputGroup>
-                    <CRow>
-                      <CCol xs={6}>
-                        <button type="submit" className="btn btn-primary px-4">
-                          Login
-                        </button>
-                      </CCol>
-                    </CRow>
-                  </CForm>
-                </CCardBody>
-              </CCard>
-            </CCardGroup>
+        <CRow className="justify-content-center align-items-center" style={{ minHeight: '100vh' }}>
+          <CCol md={5} lg={4}>
+            <CCard
+              className="border-0 shadow-lg"
+              style={{
+                borderRadius: '20px',
+                overflow: 'hidden',
+              }}
+            >
+              <div
+                style={{
+                  background: 'linear-gradient(135deg,#2563eb,#1e40af)',
+                  color: '#fff',
+                  padding: '30px',
+                  textAlign: 'center',
+                }}
+              >
+                <h2 className="fw-bold mb-2">Princess Salon POS</h2>
+
+                <p className="mb-0">Salon Management System</p>
+              </div>
+
+              <CCardBody className="p-4">
+                <CForm onSubmit={handleLogin}>
+                  <h4 className="fw-bold mb-1">Welcome Back</h4>
+
+                  <p className="text-medium-emphasis mb-4">Sign in to continue</p>
+
+                  {error && <div className="alert alert-danger">{error}</div>}
+
+                  <CInputGroup className="mb-3">
+                    <CInputGroupText>
+                      <CIcon icon={cilUser} />
+                    </CInputGroupText>
+
+                    <CFormInput
+                      type="email"
+                      placeholder="Email Address"
+                      autoComplete="email"
+                      value={email}
+                      onChange={(e) => setEmail(e.target.value)}
+                    />
+                  </CInputGroup>
+
+                  <CInputGroup className="mb-4">
+                    <CInputGroupText>
+                      <CIcon icon={cilLockLocked} />
+                    </CInputGroupText>
+
+                    <CFormInput
+                      type="password"
+                      placeholder="Password"
+                      autoComplete="current-password"
+                      value={password}
+                      onChange={(e) => setPassword(e.target.value)}
+                    />
+                  </CInputGroup>
+
+                  <CButton
+                    type="submit"
+                    color="primary"
+                    className="w-100 py-2 fw-bold"
+                    style={{
+                      borderRadius: '10px',
+                    }}
+                  >
+                    Sign In
+                  </CButton>
+
+                  <div className="text-center mt-4">
+                    <small className="text-medium-emphasis">Secure ERP/POS Login</small>
+                  </div>
+                </CForm>
+              </CCardBody>
+            </CCard>
           </CCol>
         </CRow>
       </CContainer>
