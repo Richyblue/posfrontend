@@ -25,6 +25,7 @@ import { CContainer, CSpinner } from '@coreui/react'
 // routes config
 import { routes } from '../routes'
 import ProtectedRoute from './ProtectedRoute'
+import SessionManager from './SessionManager'
 /**
  * AppContent functional component
  *
@@ -40,6 +41,7 @@ import ProtectedRoute from './ProtectedRoute'
 const AppContent = () => {
   return (
     <CContainer className="px-4" lg>
+      <SessionManager />
       <Suspense fallback={<CSpinner color="primary" />}>
         <Routes>
           {routes.map((route, idx) => {

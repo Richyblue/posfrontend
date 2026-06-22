@@ -28,6 +28,7 @@ import {
   cilUserPlus,
   cilCreditCard,
   cilSettings,
+  cilAccountLogout,
 } from '@coreui/icons'
 import { CNavGroup, CNavItem, CNavTitle } from '@coreui/react'
 
@@ -227,6 +228,12 @@ const _nav = [
     name: 'Settings',
     to: '/setting',
     icon: <CIcon icon={cilSettings} customClassName="nav-icon" />,
+  },
+  {
+    component: CNavItem,
+    name: 'Signout',
+    to: '/logout',
+    icon: <CIcon icon={cilAccountLogout} customClassName="nav-icon" />,
   },
 ]
 
