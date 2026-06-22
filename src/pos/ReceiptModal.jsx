@@ -25,12 +25,12 @@ const ReceiptModal = ({ show, onHide, sale }) => {
       <head>
         <style>
           @page {
-            size: 80mm auto;
+            size: 70mm auto;
             margin: 0;
           }
 
           body {
-            width: 80mm;
+            width: 70mm;
             margin: 0;
             padding: 5px;
             font-family: monospace;
@@ -76,10 +76,10 @@ const ReceiptModal = ({ show, onHide, sale }) => {
             <div
               ref={receiptRef}
               style={{
-                width: '80mm',
+                width: '70mm',
                 margin: '0 auto',
                 padding: '5px',
-                fontSize: '8px',
+                fontSize: '9px',
                 fontFamily: 'monospace',
                 color: '#000',
               }}
