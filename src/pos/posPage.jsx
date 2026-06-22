@@ -14,6 +14,7 @@ import {
   cilNotes,
   cilUser,
   cilCart,
+  cilSpeedometer,
 } from '@coreui/icons'
 import axios from 'axios'
 import {
@@ -860,9 +861,15 @@ const POSPage = () => {
             </CButton>
           </CCol>
           <CCol md={2}>
-            <CNavLink to="/dashboard" as={NavLink}>
-              Dashboard
-            </CNavLink>
+            <CButton color="secondary" className="w-100 shadow-sm" style={posButtonStyle}>
+              <CIcon icon={cilSpeedometer} size="lg" />
+              <small>Dashboard</small>
+            </CButton>
+          </CCol>
+          <CCol md={2}>
+            <CNavItem>
+              <LogoutButton />
+            </CNavItem>
           </CCol>
         </CRow>
       </CCard>
