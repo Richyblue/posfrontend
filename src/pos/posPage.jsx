@@ -233,7 +233,7 @@ const POSPage = () => {
 
       const token = localStorage.getItem('token')
 
-      const response = await axios.get(`${API_URL}api/v1/dashboard`, {
+      const response = await axios.get(`${API_URL}api/v1/my-daily-report`, {
         headers: {
           Authorization: `Bearer ${token}`,
         },
@@ -564,6 +564,67 @@ const POSPage = () => {
     ? products.filter((product) => product?.name?.toLowerCase().includes(search.toLowerCase()))
     : []
 
+  const handleReprint = async (saleId) => {
+    try {
+      const token = localStorage.getItem('token')
+
+      const response = await axios.get(`${API_URL}api/v1/sales/${saleId}/reprint`, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      })
+
+      const sale = response.data.sale
+
+      const html = `
+          <html>
+          <body>
+            <h3>PRINCESS SALON</h3>
+    
+            <p>
+              Receipt No:
+              ${sale.receiptNumber}
+            </p>
+    
+            <p>
+              Customer:
+              ${sale.customer}
+            </p>
+    
+            <hr>
+    
+            ${sale.SaleItems.map(
+              (item) => `
+              <div>
+                ${item.name}
+                x ${item.quantity}
+                =
+                ₦${item.subtotal}
+              </div>
+            `,
+            ).join('')}
+    
+            <hr>
+    
+            <h4>
+              Total:
+              ₦${sale.totalAmount}
+            </h4>
+    
+            <p>
+              *** REPRINT ***
+            </p>
+          </body>
+          </html>
+        `
+
+      await window.electronAPI.printReceipt(html)
+    } catch (error) {
+      console.error(error)
+
+      alert('Failed to reprint receipt')
+    }
+  }
   // hold sales
 
   const holdSale = async (note) => {
@@ -765,6 +826,7 @@ const POSPage = () => {
               title="Reprint Receipt"
               variant="outline"
               className="rounded-pil"
+              onClick={() => handleReprint(sale.id)}
             >
               <CIcon icon={cilPrint} className="" /> Reprint
               {/* Reprint Receipt */}

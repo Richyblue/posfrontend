@@ -34,11 +34,11 @@ const ReceiptModal = ({ show, onHide, sale }) => {
             margin: 0;
             padding: 5px;
             font-family: monospace;
-            font-size: 12px;
+            font-size: 8px;
           }
 
           table {
-            width: 100%;
+            width: 70%;
             border-collapse: collapse;
           }
 
@@ -79,7 +79,7 @@ const ReceiptModal = ({ show, onHide, sale }) => {
                 width: '80mm',
                 margin: '0 auto',
                 padding: '5px',
-                fontSize: '12px',
+                fontSize: '8px',
                 fontFamily: 'monospace',
                 color: '#000',
               }}
@@ -122,8 +122,8 @@ const ReceiptModal = ({ show, onHide, sale }) => {
 
               <table
                 style={{
-                  width: '100%',
-                  fontSize: '11px',
+                  width: '70%',
+                  fontSize: '10px',
                 }}
               >
                 <thead>
@@ -180,7 +180,7 @@ const ReceiptModal = ({ show, onHide, sale }) => {
                   style={{
                     display: 'flex',
                     justifyContent: 'space-between',
-                    fontSize: '15px',
+                    fontSize: '11px',
                   }}
                 >
                   <span>TOTAL:</span>
