@@ -1088,67 +1088,139 @@ const POSPage = () => {
             </CCardBody>
           </CCard>
         </CCol>
-
         <CCol md={6}>
-          <CCard className="flex min-vh-100 shadow-sm border-0 ">
-            <CCardBody>
+          <CCard
+            className="shadow-sm border-0 h-100"
+            style={{
+              borderRadius: '12px',
+            }}
+          >
+            <CCardBody className="p-0">
+              {/* Customer Header */}
               {selectedCustomer && (
-                <CCard className="mb-3">
-                  <CCardBody className="alert alert-info">
-                    <h6>Customer</h6>
+                <div
+                  className="p-3 border-bottom"
+                  style={{
+                    background: '#f8fafc',
+                  }}
+                >
+                  <div className="d-flex justify-content-between align-items-center">
+                    <div>
+                      <h6 className="mb-1 fw-bold">{selectedCustomer.fullname}</h6>
 
-                    <p>
-                      {selectedCustomer.fullname} {selectedCustomer.phone}.{' '}
-                      <strong>
-                        Loyalty Points:
-                        {selectedCustomer.loyaltyPoints}
-                      </strong>
-                    </p>
-                  </CCardBody>
-                </CCard>
+                      <small className="text-muted">{selectedCustomer.phone}</small>
+                    </div>
+
+                    <div>
+                      <span className="badge bg-success">
+                        {selectedCustomer.loyaltyPoints || 0} Points
+                      </span>
+                    </div>
+                  </div>
+                </div>
               )}
-              <hr />
-              <h5>Current Sale</h5>
 
-              <CTable hover className="">
-                <thead>
-                  <tr>
-                    <th>Item</th>
-
-                    <th>Qty</th>
-
-                    <th>Amount</th>
-
-                    <th></th>
-                  </tr>
-                </thead>
-
-                <tbody>
-                  {cart.map((item) => (
-                    <tr key={`${item.type}-${item.id}`}>
-                      <td>{item.name}</td>
-
-                      <td>
-                        <CButton size="sm" onClick={() => decreaseQty(item.id)}>
-                          -
-                        </CButton>{' '}
-                        {item.quantity}{' '}
-                        <CButton size="sm" onClick={() => increaseQty(item.id)}>
-                          +
-                        </CButton>
-                      </td>
-
-                      <td>₦{(item.price || item.sellingPrice) * item.quantity}</td>
-
-                      <td>
-                        <CButton size="sm" color="danger" onClick={() => removeItem(item.id)}>
-                          <CIcon icon={cilTrash} />
-                        </CButton>
-                      </td>
+              {/* POS Grid */}
+              <div
+                style={{
+                  maxHeight: '450px',
+                  overflowY: 'auto',
+                }}
+              >
+                <CTable hover responsive borderless className="mb-0">
+                  <thead
+                    style={{
+                      position: 'sticky',
+                      top: 0,
+                      background: '#fff',
+                      zIndex: 1,
+                    }}
+                  >
+                    <tr>
+                      <th>Item</th>
+                      <th width="120">Qty</th>
+                      <th width="120">Unit Price</th>
+                      <th width="120">Total</th>
+                      <th width="50"></th>
                     </tr>
-                  ))}
-                </tbody>
-              </CTable>
+                  </thead>
+
+                  <tbody>
+                    {cart.map((item) => (
+                      <tr key={`${item.type}-${item.id}`}>
+                        <td>
+                          <div>
+                            <strong>{item.name}</strong>
+
+                            <br />
+
+                            <small className="text-muted">{item.type}</small>
+                          </div>
+                        </td>
+
+                        <td>
+                          <div className="d-flex align-items-center gap-1">
+                            <CButton size="sm" color="light" onClick={() => decreaseQty(item.id)}>
+                              −
+                            </CButton>
+
+                            <span className="px-2">{item.quantity}</span>
+
+                            <CButton size="sm" color="light" onClick={() => increaseQty(item.id)}>
+                              +
+                            </CButton>
+                          </div>
+                        </td>
+
+                        <td>₦{Number(item.price || item.sellingPrice).toLocaleString()}</td>
+
+                        <td>
+                          <strong>
+                            ₦
+                            {Number(
+                              (item.price || item.sellingPrice) * item.quantity,
+                            ).toLocaleString()}
+                          </strong>
+                        </td>
+
+                        <td>
+                          <CButton size="sm" color="light" onClick={() => removeItem(item.id)}>
+                            <CIcon icon={cilTrash} />
+                          </CButton>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </CTable>
+              </div>
+
+              {/* Summary Footer */}
+              <div
+                className="border-top p-3"
+                style={{
+                  background: '#f8fafc',
+                }}
+              >
+                <div className="d-flex justify-content-between">
+                  <span>Items</span>
+
+                  <strong>{cart.reduce((sum, item) => sum + item.quantity, 0)}</strong>
+                </div>
+
+                <div className="d-flex justify-content-between mt-2">
+                  <span>Subtotal</span>
+
+                  <strong>
+                    ₦
+                    {cart
+                      .reduce(
+                        (total, item) => total + (item.price || item.sellingPrice) * item.quantity,
+                        0,
+                      )
+                      .toLocaleString()}
+                  </strong>
+                </div>
+              </div>
             </CCardBody>
           </CCard>
         </CCol>
