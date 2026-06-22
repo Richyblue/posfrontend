@@ -1006,7 +1006,7 @@ const POSPage = () => {
                                   position: 'relative',
                                 }}
                               >
-                                <img
+                                {/* <img
                                   src={product.image || '/placeholder.png'}
                                   alt={product.name}
                                   style={{
@@ -1014,7 +1014,7 @@ const POSPage = () => {
                                     width: '100%',
                                     objectFit: 'cover',
                                   }}
-                                />
+                                /> */}
 
                                 <div
                                   style={{
