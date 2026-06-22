@@ -47,6 +47,7 @@ import ClearCartModal from '../pos/ClearCartModal'
 import DailyReportModal from '../pos/DailyReport'
 import { DocsComponents, DocsExample } from 'src/components'
 import ShowHeldSalesModal from './ShowHeldSalesModal'
+import { NavLink } from 'react-router-dom'
 const POSPage = () => {
   const [activeTab, setActiveTab] = useState('services')
 
@@ -857,6 +858,11 @@ const POSPage = () => {
               <CIcon icon={cilTrash} size="lg" />
               <small>Clear Cart</small>
             </CButton>
+          </CCol>
+          <CCol md={2}>
+            <CNavLink to="/dashboard" as={NavLink}>
+              Dashboard
+            </CNavLink>
           </CCol>
         </CRow>
       </CCard>
