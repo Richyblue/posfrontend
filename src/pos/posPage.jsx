@@ -754,111 +754,108 @@ const POSPage = () => {
   const indexOfFirstProduct = indexOfLastProduct - itemsPerPage
   const currentProducts = filteredProducts.slice(indexOfFirstProduct, indexOfLastProduct)
   const totalProductPages = Math.ceil(filteredProducts.length / itemsPerPage)
-
+  const posButtonStyle = {
+    height: '70px',
+    borderRadius: '12px',
+    fontWeight: '600',
+    display: 'flex',
+    flexDirection: 'column',
+    justifyContent: 'center',
+    alignItems: 'center',
+    gap: '4px',
+  }
   return (
     <CContainer fluid className="py-3 p-3">
       <CCard className=" mb-1 shadow-sm border-0 p-3">
-        <CRow>
-          <CCol>
-            <CButton
-              color="primary"
-              variant="outline"
-              className="rounded-pil"
-              title="New Customer"
-              onClick={() => setShowNewCustomerModal(true)}
-            >
-              <CIcon icon={cilUserPlus} className="" /> Customers
-              {/* New Customer */}
-            </CButton>
-          </CCol>
+        <CRow className="g-2 mb-3">
           <CCol md={2}>
             <CButton
               color="primary"
-              variant="outline"
-              className="rounded-pil w-100 "
-              title="Search Customer"
+              className="w-100 shadow-sm"
+              style={posButtonStyle}
+              onClick={() => setShowNewCustomerModal(true)}
+            >
+              <CIcon icon={cilUserPlus} size="lg" />
+              <small>New Customer</small>
+            </CButton>
+          </CCol>
+
+          <CCol md={2}>
+            <CButton
+              color="info"
+              className="w-100 shadow-sm"
+              style={posButtonStyle}
               onClick={() => setShowCustomerModal(true)}
             >
-              <CIcon icon={cilPeople} className="" /> Search Customers
-              {/* Search Customer */}
+              <CIcon icon={cilPeople} size="lg" />
+              <small>Customers</small>
             </CButton>
           </CCol>
-          {/* <CButton color="warning" shape="rounded-pill" title="Discount">
-          <CIcon icon={cilPrint} /> 
-        </CButton> */}
 
-          {/* <CButton color="info" shape="rounded-pill" title="Add Note">
-          <CIcon icon={cilNotes} />
-        </CButton> */}
-          <CCol>
-            <CButton color="primary" shape="rounded-pil" variant="outline" title="Change Staff">
-              <CIcon icon={cilUser} />
-              Staff
+          <CCol md={2}>
+            <CButton color="secondary" className="w-100 shadow-sm" style={posButtonStyle}>
+              <CIcon icon={cilUser} size="lg" />
+              <small>Staff</small>
             </CButton>
           </CCol>
-          <CCol>
+
+          <CCol md={2}>
             <CButton
               color="success"
-              title="Daily Report"
-              variant="outline"
+              className="w-100 shadow-sm"
+              style={posButtonStyle}
               onClick={getDailyReport}
-              className="rounded-pil"
             >
-              <CIcon icon={cilChart} className="" /> Report
-              {/* Daily Report */}
+              <CIcon icon={cilChart} size="lg" />
+              <small>Reports</small>
             </CButton>
           </CCol>
-          <CCol>
+
+          <CCol md={2}>
             <CButton
-              color="danger"
-              title="Clear Cart"
-              variant="outline"
-              onClick={() => setShowClearCartModal(true)}
-              className="rounded-pil"
+              color="warning"
+              className="w-100 shadow-sm"
+              style={posButtonStyle}
+              onClick={() => setShowLoyaltyModal(true)}
             >
-              <CIcon icon={cilTrash} className="" /> Clear Cart
-              {/* Clear Cart */}
+              <CIcon icon={cilCreditCard} size="lg" />
+              <small>Loyalty</small>
             </CButton>
           </CCol>
-          <CCol>
+
+          <CCol md={2}>
+            <CButton
+              color="dark"
+              className="w-100 shadow-sm"
+              style={posButtonStyle}
+              onClick={() => setShowBarcodeModal(true)}
+            >
+              <CIcon icon={cilBarcode} size="lg" />
+              <small>Barcode</small>
+            </CButton>
+          </CCol>
+
+          <CCol md={2}>
             <CButton
               color="secondary"
-              title="Reprint Receipt"
-              variant="outline"
-              className="rounded-pil"
-              onClick={() => handleReprint(sale.id)}
+              className="w-100 shadow-sm"
+              style={posButtonStyle}
+              onClick={() => handleReprint(sale?.id)}
             >
-              <CIcon icon={cilPrint} className="" /> Reprint
-              {/* Reprint Receipt */}
+              <CIcon icon={cilPrint} size="lg" />
+              <small>Reprint</small>
             </CButton>
           </CCol>
-          <CCol>
+
+          <CCol md={2}>
             <CButton
-              color="primary"
-              title="Loyalty Card"
-              onClick={() => setShowLoyaltyModal(true)}
-              className="rounded-pil"
-              cardNumber={cardNumber}
-              variant="outline"
-              setCardNumber={setCardNumber}
-              onSearch={searchLoyaltyCard}
-              cardResult={cardResult}
+              color="danger"
+              className="w-100 shadow-sm"
+              style={posButtonStyle}
+              onClick={() => setShowClearCartModal(true)}
             >
-              <CIcon icon={cilCreditCard} className="" />
-              Card
-              {/* Loyalty Card */}
-            </CButton>
-          </CCol>
-          <CCol>
-            <CButton
-              color="primary"
-              title="Scan Barcode"
-              variant="outline"
-              onClick={() => setShowBarcodeModal(true)}
-              className="rounded-pil"
-            >
-              <CIcon icon={cilBarcode} className="" /> Barcode
-              {/* Scan Barcode */}
+              <CIcon icon={cilTrash} size="lg" />
+              <small>Clear Cart</small>
             </CButton>
           </CCol>
         </CRow>
