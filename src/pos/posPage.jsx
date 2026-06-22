@@ -983,46 +983,75 @@ const POSPage = () => {
                     <>
                       <CRow>
                         {currentProducts.map((product) => (
-                          <CCol xs={6} md={4} key={product.id} className="mb-2">
-                            <CCard className=" shadow-sm">
-                              {product.image && (
+                          <CCol xs={6} md={4} lg={3} key={product.id} className="mb-3">
+                            <CCard
+                              className="border-0 shadow-sm h-100"
+                              style={{
+                                cursor: 'pointer',
+                                borderRadius: '16px',
+                                overflow: 'hidden',
+                                transition: 'all .2s ease',
+                                background: 'linear-gradient(135deg,#ffffff,#f8fafc)',
+                              }}
+                              onClick={() =>
+                                addToCart({
+                                  ...product,
+                                  price: product.sellingPrice,
+                                  type: 'product',
+                                })
+                              }
+                            >
+                              <div
+                                style={{
+                                  position: 'relative',
+                                }}
+                              >
                                 <img
-                                  src={product.image}
+                                  src={product.image || '/placeholder.png'}
                                   alt={product.name}
                                   style={{
-                                    height: '120px',
-                                    objectFit: 'cover',
+                                    height: '150px',
                                     width: '100%',
+                                    objectFit: 'cover',
                                   }}
                                 />
-                              )}
+
+                                <div
+                                  style={{
+                                    position: 'absolute',
+                                    top: '10px',
+                                    right: '10px',
+                                    background: product.quantity > 10 ? '#198754' : '#dc3545',
+                                    color: '#fff',
+                                    padding: '4px 10px',
+                                    borderRadius: '20px',
+                                    fontSize: '11px',
+                                    fontWeight: 'bold',
+                                  }}
+                                >
+                                  {product.quantity}
+                                </div>
+                              </div>
+
                               <CCardBody>
-                                <div className="d-flex flex-column">
+                                <div className="d-flex flex-column justify-content-between h-100">
                                   <div>
-                                    <h6>{product.name}</h6>
-                                    <small>Stock: {product.quantity}</small>
-                                    <br />
-                                    <strong>
-                                      ₦{Number(product.sellingPrice).toLocaleString()}
-                                    </strong>
-                                  </div>
-                                  <br />
-                                  <div className="pt-0">
-                                    <CButton
-                                      color="success"
-                                      shape="rounded-pill"
-                                      size="sm"
-                                      className="w-100"
-                                      onClick={() =>
-                                        addToCart({
-                                          ...product,
-                                          price: product.sellingPrice,
-                                          type: 'product',
-                                        })
-                                      }
+                                    <h6
+                                      className="fw-bold mb-1"
+                                      style={{
+                                        minHeight: '40px',
+                                      }}
                                     >
-                                      <CIcon icon={cilCart} />
-                                    </CButton>
+                                      {product.name}
+                                    </h6>
+
+                                    <small className="text-medium-emphasis">Product</small>
+                                  </div>
+
+                                  <div className="mt-3">
+                                    <h5 className="fw-bold text-success mb-0">
+                                      ₦{Number(product.sellingPrice).toLocaleString()}
+                                    </h5>
                                   </div>
                                 </div>
                               </CCardBody>
