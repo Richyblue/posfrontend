@@ -52,7 +52,9 @@ const ViewCustomer = () => {
   const filteredCustomers = customers.filter(
     (customer) =>
       customer.fullname?.toLowerCase().includes(search.toLowerCase()) ||
-      customer.phone?.includes(search),
+      customer.phone?.includes(search) ||
+      customer.email?.toLowerCase().includes(search.toLowerCase()) ||
+      customer.LoyaltyCard?.cardNumber?.toLowerCase().includes(search.toLowerCase()),
   )
 
   const exportExcel = () => {
@@ -126,13 +128,12 @@ const ViewCustomer = () => {
             <CTableHead>
               <CTableRow>
                 <CTableHeaderCell>Name</CTableHeaderCell>
-
                 <CTableHeaderCell>Phone</CTableHeaderCell>
-
                 <CTableHeaderCell>Email</CTableHeaderCell>
-
-                <CTableHeaderCell>Loyalty</CTableHeaderCell>
-
+                <CTableHeaderCell>Type</CTableHeaderCell>
+                <CTableHeaderCell>Points</CTableHeaderCell>
+                <CTableHeaderCell>Card Number</CTableHeaderCell>
+                <CTableHeaderCell>Status</CTableHeaderCell>
                 <CTableHeaderCell>Action</CTableHeaderCell>
               </CTableRow>
             </CTableHead>
@@ -146,7 +147,33 @@ const ViewCustomer = () => {
 
                   <CTableDataCell>{customer.email}</CTableDataCell>
 
-                  <CTableDataCell>{customer.loyaltyPoints}</CTableDataCell>
+                  <CTableDataCell>
+                    <span
+                      className={`badge ${
+                        customer.customerType === 'vip'
+                          ? 'bg-warning'
+                          : customer.customerType === 'corporate'
+                            ? 'bg-info'
+                            : 'bg-secondary'
+                      }`}
+                    >
+                      {customer.customerType}
+                    </span>
+                  </CTableDataCell>
+
+                  <CTableDataCell>{customer.loyaltyPoints || 0}</CTableDataCell>
+
+                  <CTableDataCell>{customer.LoyaltyCard?.cardNumber || '-'}</CTableDataCell>
+
+                  <CTableDataCell>
+                    <span
+                      className={`badge ${
+                        customer.LoyaltyCard?.status === 'active' ? 'bg-success' : 'bg-danger'
+                      }`}
+                    >
+                      {customer.LoyaltyCard?.status || '-'}
+                    </span>
+                  </CTableDataCell>
 
                   <CTableDataCell>
                     <Link to={`/editCustomer/${customer.id}`}>
