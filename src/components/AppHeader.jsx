@@ -47,6 +47,7 @@ import {
 
 import { AppBreadcrumb } from './index'
 import { AppHeaderDropdown } from './header/index'
+import LogoutButton from '../auth/logout'
 
 /**
  * AppHeader functional component
@@ -96,6 +97,9 @@ const AppHeader = () => {
           </CNavItem>
           <CNavItem>
             <CNavLink href="#">Settings</CNavLink>
+          </CNavItem>
+          <CNavItem>
+            <LogoutButton />
           </CNavItem>
         </CHeaderNav>
         <CHeaderNav className="ms-auto">
