@@ -894,25 +894,57 @@ const POSPage = () => {
                     <>
                       <CRow>
                         {currentServices.map((service) => (
-                          <CCol xs={4} md={4} key={service.id} className="mb-2">
-                            <CCard className="h-100 shadow-sm">
-                              <CCardBody>
-                                <h6>{service.name}</h6>
-                                <small>₦{service.price}</small>
-                                <CButton
-                                  color="primary"
-                                  className="w-100 mt-0"
-                                  size="sm"
-                                  onClick={() =>
-                                    addToCart({
-                                      ...service,
-                                      price: service.price,
-                                      type: 'service',
-                                    })
-                                  }
-                                >
-                                  Add
-                                </CButton>
+                          <CCol xs={6} md={4} lg={3} key={service.id} className="mb-3">
+                            <CCard
+                              className="border-0 shadow-sm h-100 cursor-pointer"
+                              style={{
+                                borderRadius: '12px',
+                                transition: 'all 0.2s ease',
+                                cursor: 'pointer',
+                              }}
+                              onClick={() =>
+                                addToCart({
+                                  ...service,
+                                  price: service.price,
+                                  type: 'service',
+                                })
+                              }
+                            >
+                              <CCardBody className="d-flex flex-column justify-content-between">
+                                <div>
+                                  <div
+                                    className="mb-2"
+                                    style={{
+                                      width: '40px',
+                                      height: '40px',
+                                      borderRadius: '10px',
+                                      background: '#f3f4f6',
+                                      display: 'flex',
+                                      alignItems: 'center',
+                                      justifyContent: 'center',
+                                      fontSize: '18px',
+                                    }}
+                                  >
+                                    ✂️
+                                  </div>
+
+                                  <h6
+                                    className="mb-1 fw-bold"
+                                    style={{
+                                      fontSize: '14px',
+                                    }}
+                                  >
+                                    {service.name}
+                                  </h6>
+
+                                  <small className="text-medium-emphasis">Service</small>
+                                </div>
+
+                                <div className="mt-3">
+                                  <h5 className="mb-0 text-primary fw-bold">
+                                    ₦{Number(service.price).toLocaleString()}
+                                  </h5>
+                                </div>
                               </CCardBody>
                             </CCard>
                           </CCol>
