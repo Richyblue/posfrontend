@@ -49,6 +49,7 @@ import DailyReportModal from '../pos/DailyReport'
 import { DocsComponents, DocsExample } from 'src/components'
 import ShowHeldSalesModal from './ShowHeldSalesModal'
 import { NavLink } from 'react-router-dom'
+import LogoutButton from '../auth/logout'
 const POSPage = () => {
   const [activeTab, setActiveTab] = useState('services')
 
