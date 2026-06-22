@@ -767,6 +767,18 @@ const POSPage = () => {
     alignItems: 'center',
     gap: '4px',
   }
+
+  useEffect(() => {
+    if (window.electronAPI?.updateCustomerDisplay) {
+      window.electronAPI.updateCustomerDisplay({
+        cart,
+        subtotal,
+        total,
+        customer: selectedCustomer,
+      })
+    }
+  }, [cart, subtotal, total, selectedCustomer])
+
   return (
     <CContainer fluid className="py-3 p-3">
       <CCard className=" mb-1 shadow-sm border-0 p-3">
