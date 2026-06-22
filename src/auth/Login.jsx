@@ -125,9 +125,7 @@ const Login = () => {
 
                   <div className="text-center mt-4">
                     <small className="text-medium-emphasis">Secure ERP/POS Login</small>
-                    <small className="text-medium-emphasis">
-                      Powered by Bluesplash IT Solution
-                    </small>
+                    <p className="text-medium-emphasis">Powered by Bluesplash IT Solution</p>
                   </div>
                 </CForm>
               </CCardBody>
