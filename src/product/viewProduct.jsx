@@ -321,7 +321,7 @@ const ProductList = () => {
                     </CTableDataCell>
 
                     <CTableDataCell>
-                      <Link to={`/editProduct/${service.id}`}>
+                      <Link to={`/editProduct/${product.id}`}>
                         <CButton size="sm" color="warning" className="me-2">
                           <CIcon icon={cilPencil} />
                         </CButton>
