@@ -41,7 +41,7 @@ const Logout = React.lazy(() => import('./auth/logout'))
 
 // Buttons
 const editProduct = React.lazy(() => import('./product/editProduct'))
-const ButtonGroups = React.lazy(() => import('./views/buttons/button-groups/ButtonGroups'))
+const salesReport = React.lazy(() => import('./pos/salesReport'))
 const Dropdowns = React.lazy(() => import('./views/buttons/dropdowns/Dropdowns'))
 
 //Forms
@@ -94,7 +94,6 @@ export const routes = [
   },
 
   { path: '/buttons/dropdowns', name: 'Dropdowns', element: Dropdowns },
-  { path: '/buttons/button-groups', name: 'Button Groups', element: ButtonGroups },
   { path: '/charts', name: 'Charts', element: Charts },
   { path: '/forms', name: 'Forms', element: FormControl, exact: true },
   { path: '/forms/form-control', name: 'Form Control', element: FormControl },
@@ -168,7 +167,19 @@ export const routes = [
     roles: ['admin', 'manager', 'cashier', 'staff'],
   },
   { path: '/logout', name: 'Logout', element: Logout },
-  { path: '/editProduct/:id', name: 'Edit Product', element: editProduct },
+  {
+    path: '/editProduct/:id',
+    name: 'Edit Product',
+    element: editProduct,
+    roles: ['admin', 'manager', 'cashier'],
+  },
+
+  {
+    path: '/salesReport',
+    name: 'Sales Report',
+    element: salesReport,
+    roles: ['admin', 'manager', 'cashier'],
+  },
   // { path: '/pos', name: 'Pos', element: Pos },
 ]
 

@@ -48,7 +48,7 @@ import ClearCartModal from '../pos/ClearCartModal'
 import DailyReportModal from '../pos/DailyReport'
 import { DocsComponents, DocsExample } from 'src/components'
 import ShowHeldSalesModal from './ShowHeldSalesModal'
-import { NavLink } from 'react-router-dom'
+import { Link, NavLink } from 'react-router-dom'
 import LogoutButton from '../auth/logout'
 const POSPage = () => {
   const [activeTab, setActiveTab] = useState('services')
@@ -815,15 +815,12 @@ const POSPage = () => {
           </CCol>
 
           <CCol md={2}>
-            <CButton
-              color="success"
-              className="w-100 shadow-sm"
-              style={posButtonStyle}
-              onClick={getDailyReport}
-            >
-              <CIcon icon={cilChart} size="lg" />
-              <small>Reports</small>
-            </CButton>
+            <Link to={`/salesReport`}>
+              <CButton size="sm" color="warning" className="me-2">
+                <CIcon icon={cilChart} />
+                <small>Sales Report</small>
+              </CButton>
+            </Link>
           </CCol>
 
           <CCol md={2}>
