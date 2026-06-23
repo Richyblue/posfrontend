@@ -593,7 +593,7 @@ const POSPage = () => {
     
             <p>
               Customer:
-              ${sale.customer}
+              ${sale.customer?.fullname || 'Walk-in Customer'}
             </p>
     
             <hr>
@@ -601,10 +601,10 @@ const POSPage = () => {
             ${sale.SaleItems.map(
               (item) => `
               <div>
-                ${item.name}
+                ${item.Product?.name || item.Service?.name || 'Unknown Item'}
                 x ${item.quantity}
                 =
-                ₦${item.subtotal}
+                 ₦${Number(sale.subtotal).toLocaleString()}
               </div>
             `,
             ).join('')}
