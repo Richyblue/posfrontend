@@ -816,7 +816,7 @@ const POSPage = () => {
 
           <CCol md={2}>
             <Link to={`/salesReport`}>
-              <CButton size="sm" color="success" className="me-2">
+              <CButton size="sm" color="success" className="w-100 shadow-sm">
                 <CIcon icon={cilChart} />
                 <small>Sales Report</small>
               </CButton>
