@@ -111,6 +111,7 @@ const POSPage = () => {
 
   const [cardResult, setCardResult] = useState(null)
   const [usePoints, setUsePoints] = useState(false)
+  const [lastSale, setLastSale] = useState(null)
 
   const [useWallet, setUseWallet] = useState(false)
 
@@ -527,6 +528,7 @@ const POSPage = () => {
       /*
      Receipt
     */
+      setLastSale(response.data.sale)
 
       setSale(completedSale)
 
@@ -852,7 +854,7 @@ const POSPage = () => {
               color="secondary"
               className="w-100 shadow-sm"
               style={posButtonStyle}
-              onClick={() => handleReprint(sale?.id)}
+              onClick={() => handleReprint(lastSale?.id)}
             >
               <CIcon icon={cilPrint} size="lg" />
               <small>Reprint</small>
