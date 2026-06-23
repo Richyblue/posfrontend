@@ -168,7 +168,7 @@ export const routes = [
     roles: ['admin', 'manager', 'cashier', 'staff'],
   },
   { path: '/logout', name: 'Logout', element: Logout },
-  { path: '/editProduct', name: 'Edit Product', element: editProduct },
+  { path: '/editProduct/:id', name: 'Edit Product', element: editProduct },
   // { path: '/pos', name: 'Pos', element: Pos },
 ]
 
