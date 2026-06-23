@@ -40,7 +40,7 @@ const Settings = React.lazy(() => import('./Settings'))
 const Logout = React.lazy(() => import('./auth/logout'))
 
 // Buttons
-const Buttons = React.lazy(() => import('./views/buttons/buttons/Buttons'))
+const editProduct = React.lazy(() => import('./product/editProduct'))
 const ButtonGroups = React.lazy(() => import('./views/buttons/button-groups/ButtonGroups'))
 const Dropdowns = React.lazy(() => import('./views/buttons/dropdowns/Dropdowns'))
 
@@ -92,7 +92,6 @@ export const routes = [
     element: Dashboard,
     roles: ['admin', 'manager', 'cashier', 'staff'],
   },
-  { path: '/buttons', name: 'Buttons', element: Buttons, exact: true },
   { path: '/buttons/buttons', name: 'Buttons', element: Buttons },
   { path: '/buttons/dropdowns', name: 'Dropdowns', element: Dropdowns },
   { path: '/buttons/button-groups', name: 'Button Groups', element: ButtonGroups },
@@ -169,6 +168,7 @@ export const routes = [
     roles: ['admin', 'manager', 'cashier', 'staff'],
   },
   { path: '/logout', name: 'Logout', element: Logout },
+  { path: '/editProduct', name: 'Edit Product', element: editProduct },
   // { path: '/pos', name: 'Pos', element: Pos },
 ]
 

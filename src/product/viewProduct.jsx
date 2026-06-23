@@ -34,6 +34,7 @@ import {
   CInputGroupText,
   CSpinner,
 } from '@coreui/react'
+import { Link } from 'react-router-dom'
 
 const ProductList = () => {
   const [products, setProducts] = useState([])
@@ -320,9 +321,11 @@ const ProductList = () => {
                     </CTableDataCell>
 
                     <CTableDataCell>
-                      <CButton size="sm" color="info" className="me-2">
-                        <CIcon icon={cilPencil} />
-                      </CButton>
+                      <Link to={`/editProduct/${service.id}`}>
+                        <CButton size="sm" color="warning" className="me-2">
+                          <CIcon icon={cilPencil} />
+                        </CButton>
+                      </Link>
 
                       <CButton
                         size="sm"
