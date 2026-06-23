@@ -242,7 +242,7 @@ const POSPage = () => {
         },
       })
 
-      setReport(response.data.dashboard)
+      setReport(response.data)
 
       setShowDailyReportModal(true)
     } catch (error) {
