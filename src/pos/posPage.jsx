@@ -567,11 +567,11 @@ const POSPage = () => {
     ? products.filter((product) => product?.name?.toLowerCase().includes(search.toLowerCase()))
     : []
 
-  const handleReprint = async (saleId) => {
+  const handleReprint = async (id) => {
     try {
       const token = localStorage.getItem('token')
 
-      const response = await axios.get(`${API_URL}api/v1/sales/${saleId}/reprint`, {
+      const response = await axios.get(`${API_URL}api/v1/sales/${id}/reprints`, {
         headers: {
           Authorization: `Bearer ${token}`,
         },
@@ -817,7 +817,7 @@ const POSPage = () => {
           <CCol md={2}>
             <Link to={`/salesReport`}>
               <CButton size="sm" color="success" className="w-100 shadow-sm">
-                <CIcon icon={cilChart} />
+                <CIcon icon={cilChart} size="lg" />
                 <small>Sales Report</small>
               </CButton>
             </Link>
