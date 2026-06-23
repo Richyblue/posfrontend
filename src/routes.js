@@ -92,7 +92,7 @@ export const routes = [
     element: Dashboard,
     roles: ['admin', 'manager', 'cashier', 'staff'],
   },
-  { path: '/buttons/buttons', name: 'Buttons', element: Buttons },
+
   { path: '/buttons/dropdowns', name: 'Dropdowns', element: Dropdowns },
   { path: '/buttons/button-groups', name: 'Button Groups', element: ButtonGroups },
   { path: '/charts', name: 'Charts', element: Charts },
