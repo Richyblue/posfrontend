@@ -46,9 +46,9 @@ const EditProduct = () => {
     image: null,
   })
 
-  useEffect(() => {
-    getProduct()
-  }, [])
+  //   useEffect(() => {
+  //     getProduct()
+  //   }, [])
 
   const getProduct = async () => {
     try {
@@ -79,6 +79,12 @@ const EditProduct = () => {
       setFetching(false)
     }
   }
+  useEffect(() => {
+    const fetchData = async () => {
+      await getProduct()
+    }
+    fetchData()
+  }, [])
 
   const handleChange = (e) => {
     const { name, value } = e.target
