@@ -36,18 +36,13 @@ const MySales = () => {
 
   const [endDate, setEndDate] = useState('')
 
-  const getReport = async () => {
+  const getSalesReport = async () => {
     try {
       setLoading(true)
 
       const token = localStorage.getItem('token')
 
       const response = await axios.get(`${API_URL}api/v1/reports/my-sales`, {
-        params: {
-          period,
-          startDate,
-          endDate,
-        },
         headers: {
           Authorization: `Bearer ${token}`,
         },
@@ -64,7 +59,7 @@ const MySales = () => {
   }
   useEffect(() => {
     const fetchData = async () => {
-      await getReport()
+      await getSalesReport()
     }
     fetchData()
   }, [])
