@@ -110,7 +110,7 @@ const MySales = () => {
             </CCol>
 
             <CCol md={3}>
-              <CButton color="primary" className="w-100" onClick={getReport}>
+              <CButton color="primary" className="w-100" onClick={getSalesReport}>
                 Filter Report
               </CButton>
             </CCol>
