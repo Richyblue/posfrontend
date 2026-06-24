@@ -114,7 +114,8 @@ const POSPage = () => {
   const [lastSale, setLastSale] = useState(null)
 
   const [useWallet, setUseWallet] = useState(false)
-  const addSoundRef = useRef(new Audio('/sounds/pim.wav'))
+  const addSoundRef = useRef(new Audio('/sounds/beep.wav'))
+
   // const pointsDiscount = usePoints ? Math.min(selectedCustomer?.loyaltyPoints || 0, subtotal) : 0
   const [showHeldSalesModal, setShowHeldSalesModal] = useState(false)
   const [heldSales, setHeldSales] = useState([])
