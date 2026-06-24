@@ -114,7 +114,7 @@ const POSPage = () => {
   const [lastSale, setLastSale] = useState(null)
 
   const [useWallet, setUseWallet] = useState(false)
-
+  const addSoundRef = useRef(new Audio('/sounds/snd.wav'))
   // const pointsDiscount = usePoints ? Math.min(selectedCustomer?.loyaltyPoints || 0, subtotal) : 0
   const [showHeldSalesModal, setShowHeldSalesModal] = useState(false)
   const [heldSales, setHeldSales] = useState([])
@@ -157,6 +157,14 @@ const POSPage = () => {
   //     })
   //   }
   // }, [])
+  const playAddSound = () => {
+    try {
+      addSoundRef.current.currentTime = 0
+      addSoundRef.current.play()
+    } catch (error) {
+      console.log(error)
+    }
+  }
 
   const getStaff = async () => {
     try {
@@ -651,6 +659,8 @@ const POSPage = () => {
   }
 
   const addToCart = (item) => {
+    playAddSound()
+
     const existing = cart.find((cartItem) => cartItem.id === item.id && cartItem.type === item.type)
 
     if (existing) {
@@ -676,7 +686,6 @@ const POSPage = () => {
       },
     ])
   }
-
   const increaseQty = (id) => {
     setCart(
       cart.map((item) =>
@@ -825,7 +834,7 @@ const POSPage = () => {
   return (
     <CContainer fluid className="py-3 p-3">
       <CCard
-        className="border-0 shadow mb-2"
+        className="border-0 shadow-sm mb-2"
         style={{
           borderRadius: '20px',
           background: '#fff',
@@ -1468,7 +1477,7 @@ const POSPage = () => {
           </CCard>
         </CCol>
       </CRow>
-      <CCard className="border-0 shadow-sm mt-3">
+      <CCard className="border-0 shadow-sm mt-4">
         <CCardBody>
           <CRow>
             {/* Actions */}
