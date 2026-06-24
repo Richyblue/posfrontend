@@ -795,6 +795,19 @@ const POSPage = () => {
   const getServiceColor = (id) => {
     return serviceColors[id % serviceColors.length]
   }
+
+  const productColors = [
+    'linear-gradient(135deg, #00b09b 0%, #96c93d 100%)',
+    'linear-gradient(135deg, #4facfe 0%, #00f2fe 100%)',
+    'linear-gradient(135deg, #fa709a 0%, #fee140 100%)',
+    'linear-gradient(135deg, #43e97b 0%, #38f9d7 100%)',
+    'linear-gradient(135deg, #30cfd0 0%, #330867 100%)',
+    'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+  ]
+
+  const getProductColor = (id) => {
+    return productColors[id % productColors.length]
+  }
   return (
     <CContainer fluid className="py-3 p-3">
       <CCard className=" mb-1 shadow-sm border-0 p-3">
@@ -987,13 +1000,13 @@ const POSPage = () => {
                                     {service.name}
                                   </h6>
 
-                                  <small
+                                  {/* <small
                                     style={{
                                       opacity: 0.9,
                                     }}
                                   >
                                     Professional Service
-                                  </small>
+                                  </small> */}
                                 </div>
 
                                 <div className="mt-3">
@@ -1055,13 +1068,21 @@ const POSPage = () => {
                         {currentProducts.map((product) => (
                           <CCol xs={6} md={4} lg={3} key={product.id} className="mb-3">
                             <CCard
-                              className="border-0 shadow-sm h-100"
+                              className="border-0 shadow h-100"
                               style={{
                                 cursor: 'pointer',
-                                borderRadius: '16px',
+                                borderRadius: '18px',
                                 overflow: 'hidden',
-                                transition: 'all .2s ease',
-                                background: 'linear-gradient(135deg,#ffffff,#f8fafc)',
+                                transition: 'all .3s ease',
+                                background: '#fff',
+                              }}
+                              onMouseEnter={(e) => {
+                                e.currentTarget.style.transform = 'translateY(-5px)'
+                                e.currentTarget.style.boxShadow = '0 12px 25px rgba(0,0,0,0.15)'
+                              }}
+                              onMouseLeave={(e) => {
+                                e.currentTarget.style.transform = 'translateY(0px)'
+                                e.currentTarget.style.boxShadow = ''
                               }}
                               onClick={() =>
                                 addToCart({
@@ -1073,55 +1094,109 @@ const POSPage = () => {
                             >
                               <div
                                 style={{
+                                  height: '90px',
+                                  background: getProductColor(product.id),
+                                  display: 'flex',
+                                  alignItems: 'center',
+                                  justifyContent: 'center',
                                   position: 'relative',
                                 }}
                               >
-                                {/* <img
-                                  src={product.image || '/placeholder.png'}
-                                  alt={product.name}
+                                <div
                                   style={{
-                                    height: '150px',
-                                    width: '100%',
-                                    objectFit: 'cover',
+                                    width: '55px',
+                                    height: '55px',
+                                    borderRadius: '14px',
+                                    background: 'rgba(255,255,255,0.2)',
+                                    backdropFilter: 'blur(10px)',
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    justifyContent: 'center',
+                                    fontSize: '28px',
+                                    color: '#fff',
                                   }}
-                                /> */}
+                                >
+                                  🧴
+                                </div>
 
                                 <div
                                   style={{
                                     position: 'absolute',
                                     top: '10px',
                                     right: '10px',
-                                    background: product.quantity > 10 ? '#198754' : '#dc3545',
+                                    background:
+                                      product.quantity > 10
+                                        ? '#198754'
+                                        : product.quantity > 0
+                                          ? '#fd7e14'
+                                          : '#dc3545',
                                     color: '#fff',
-                                    padding: '4px 10px',
+                                    padding: '5px 12px',
                                     borderRadius: '20px',
                                     fontSize: '11px',
-                                    fontWeight: 'bold',
+                                    fontWeight: '600',
                                   }}
                                 >
-                                  {product.quantity}
+                                  {product.quantity} In Stock
                                 </div>
                               </div>
 
-                              <CCardBody>
-                                <div className="d-flex flex-column justify-content-between h-100">
-                                  <div>
-                                    <h6
-                                      className="fw-bold mb-1"
+                              <CCardBody className="d-flex flex-column justify-content-between">
+                                <div>
+                                  <h6
+                                    className="fw-bold mb-1"
+                                    style={{
+                                      minHeight: '42px',
+                                      lineHeight: '1.3',
+                                    }}
+                                  >
+                                    {product.name}
+                                  </h6>
+
+                                  {/* <small
+                                    className="text-muted"
+                                    style={{
+                                      fontWeight: '500',
+                                    }}
+                                  >
+                                    Retail Product
+                                  </small> */}
+                                </div>
+
+                                <div className="mt-3">
+                                  <div
+                                    style={{
+                                      width: '100%',
+                                      height: '1px',
+                                      background: '#f1f3f5',
+                                      marginBottom: '10px',
+                                    }}
+                                  />
+
+                                  <div className="d-flex justify-content-between align-items-center">
+                                    <h5
+                                      className="fw-bold text-success mb-0"
                                       style={{
-                                        minHeight: '40px',
+                                        letterSpacing: '.5px',
                                       }}
                                     >
-                                      {product.name}
-                                    </h6>
-
-                                    <small className="text-medium-emphasis">Product</small>
-                                  </div>
-
-                                  <div className="mt-3">
-                                    <h5 className="fw-bold text-success mb-0">
                                       ₦{Number(product.sellingPrice).toLocaleString()}
                                     </h5>
+
+                                    <div
+                                      style={{
+                                        width: '35px',
+                                        height: '35px',
+                                        borderRadius: '10px',
+                                        background: '#f8f9fa',
+                                        display: 'flex',
+                                        alignItems: 'center',
+                                        justifyContent: 'center',
+                                        fontSize: '18px',
+                                      }}
+                                    >
+                                      🛒
+                                    </div>
                                   </div>
                                 </div>
                               </CCardBody>
