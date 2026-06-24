@@ -90,7 +90,7 @@ export const routes = [
     path: '/dashboard',
     name: 'Dashboard',
     element: Dashboard,
-    roles: ['admin', 'manager', 'cashier', 'staff'],
+    roles: ['admin', 'manager'],
   },
 
   { path: '/buttons/dropdowns', name: 'Dropdowns', element: Dropdowns },
@@ -99,7 +99,7 @@ export const routes = [
   { path: '/forms/form-control', name: 'Form Control', element: FormControl },
   { path: '/forms/select', name: 'Select', element: Select },
   { path: '/setting', name: 'Settings', element: Settings, roles: ['admin'] },
-  { path: '/report', name: 'Report', element: Reports, roles: ['admin', 'manager', 'staff'] },
+  { path: '/report', name: 'Report', element: Reports, roles: ['admin', 'manager'] },
   {
     path: '/commission',
     name: 'Commission',
@@ -110,7 +110,7 @@ export const routes = [
     path: '/loyaltycard',
     name: 'Loyalty Card',
     element: LoyaltyCard,
-    roles: ['admin', 'manager', 'cashier'],
+    roles: ['admin', 'manager'],
   },
   {
     path: '/editService/:id',
@@ -122,7 +122,7 @@ export const routes = [
     path: '/editCustomer/:id',
     name: 'Edit Customer',
     element: EditCustomer,
-    roles: ['admin', 'manager', 'cashier'],
+    roles: ['admin', 'manager'],
   },
   {
     path: '/viewCustomer',
@@ -135,7 +135,7 @@ export const routes = [
     exact: true,
     name: 'Customer',
     element: Customer,
-    roles: ['admin', 'manager', 'cashier'],
+    roles: ['admin', 'manager'],
   },
   {
     path: '/viewService',
@@ -147,13 +147,13 @@ export const routes = [
     path: '/service',
     name: 'Services',
     element: Service,
-    roles: ['admin', 'manager', 'cashier', 'staff'],
+    roles: ['admin', 'manager'],
   },
-  { path: '/viewStaff', name: 'View Staff', element: vStaff, roles: ['admin'] },
+  { path: '/viewStaff', name: 'View Staff', element: vStaff, roles: ['admin', 'manager'] },
   { path: '/staff', name: 'Staff', element: Staff, roles: ['admin'] },
   { path: '/viewExpense', name: 'View Expense', element: viewExpense, roles: ['admin', 'manager'] },
   { path: '/expense', name: 'Expense', element: Expense, roles: ['admin', 'manager'] },
-  { path: '/recycleBin', name: 'Bin', element: Bin },
+  { path: '/recycleBin', name: 'Bin', element: Bin, roles: ['admin', 'manager'] },
   {
     path: '/viewProduct',
     name: 'View Products',
@@ -164,21 +164,21 @@ export const routes = [
     path: '/products',
     name: 'Products',
     element: Products,
-    roles: ['admin', 'manager', 'cashier', 'staff'],
+    roles: ['admin', 'manager', 'cashier'],
   },
   { path: '/logout', name: 'Logout', element: Logout },
   {
     path: '/editProduct/:id',
     name: 'Edit Product',
     element: editProduct,
-    roles: ['admin', 'manager', 'cashier'],
+    roles: ['admin', 'manager'],
   },
 
   {
     path: '/salesReport',
     name: 'Sales Report',
     element: salesReport,
-    roles: ['admin', 'manager', 'cashier'],
+    roles: ['cashier'],
   },
   // { path: '/pos', name: 'Pos', element: Pos },
 ]
