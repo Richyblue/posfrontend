@@ -871,15 +871,15 @@ const POSPage = () => {
           </CCol>
           <CCol md={2}>
             <CNavItem>
-              <CButton size="lg" color="success" className="w-100 shadow-sm">
+              <CButton size="lg" color="white" className="w-100 shadow-sm">
                 <LogoutButton />
               </CButton>
             </CNavItem>
           </CCol>
           <CCol md={2}>
             <Link to={`/salesReport`}>
-              <CButton size="lg" color="success" className="w-100 shadow-sm">
-                <CIcon icon={cilChart} size="lg" />
+              <CButton size="lg" color="info" className="w-100 shadow-sm">
+                <CIcon icon={cilChart} size="lg" /> <br />
                 <small>Sales Report</small>
               </CButton>
             </Link>
