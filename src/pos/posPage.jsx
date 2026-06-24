@@ -170,7 +170,7 @@ const POSPage = () => {
 
     setTimeout(() => {
       soundPlayingRef.current = false
-    }, 300)
+    }, 100)
   }
 
   const getStaff = async () => {
