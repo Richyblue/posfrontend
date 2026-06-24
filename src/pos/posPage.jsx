@@ -999,17 +999,9 @@ const POSPage = () => {
                                   >
                                     {service.name}
                                   </h6>
-
-                                  {/* <small
-                                    style={{
-                                      opacity: 0.9,
-                                    }}
-                                  >
-                                    Professional Service
-                                  </small> */}
                                 </div>
 
-                                <div className="mt-3">
+                                <div className="mt-1">
                                   <div
                                     style={{
                                       width: '100%',
@@ -1019,14 +1011,14 @@ const POSPage = () => {
                                     }}
                                   />
 
-                                  <h4
+                                  <h5
                                     className="fw-bold mb-0"
                                     style={{
                                       letterSpacing: '0.5px',
                                     }}
                                   >
                                     ₦{Number(service.price).toLocaleString()}
-                                  </h4>
+                                  </h5>
                                 </div>
                               </CCardBody>
                             </CCard>
@@ -1152,15 +1144,6 @@ const POSPage = () => {
                                   >
                                     {product.name}
                                   </h6>
-
-                                  {/* <small
-                                    className="text-muted"
-                                    style={{
-                                      fontWeight: '500',
-                                    }}
-                                  >
-                                    Retail Product
-                                  </small> */}
                                 </div>
 
                                 <div className="mt-3">
