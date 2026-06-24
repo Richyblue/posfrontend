@@ -959,10 +959,10 @@ const POSPage = () => {
                                     {service.name}
                                   </h6>
 
-                                  <small className="text-medium-emphasis">Service</small>
+                                  {/* <small className="text-medium-emphasis">Service</small> */}
                                 </div>
 
-                                <div className="mt-3">
+                                <div className="mt-1">
                                   <h5 className="mb-0 text-primary fw-bold">
                                     ₦{Number(service.price).toLocaleString()}
                                   </h5>
