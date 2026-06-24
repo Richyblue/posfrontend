@@ -781,6 +781,20 @@ const POSPage = () => {
     }
   }, [cart, subtotal, total, selectedCustomer])
 
+  const serviceColors = [
+    'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+    'linear-gradient(135deg, #11998e 0%, #38ef7d 100%)',
+    'linear-gradient(135deg, #ff9966 0%, #ff5e62 100%)',
+    'linear-gradient(135deg, #36d1dc 0%, #5b86e5 100%)',
+    'linear-gradient(135deg, #fc466b 0%, #3f5efb 100%)',
+    'linear-gradient(135deg, #f7971e 0%, #ffd200 100%)',
+    'linear-gradient(135deg, #00c6ff 0%, #0072ff 100%)',
+    'linear-gradient(135deg, #56ab2f 0%, #a8e063 100%)',
+  ]
+
+  const getServiceColor = (id) => {
+    return serviceColors[id % serviceColors.length]
+  }
   return (
     <CContainer fluid className="py-3 p-3">
       <CCard className=" mb-1 shadow-sm border-0 p-3">
@@ -918,11 +932,22 @@ const POSPage = () => {
                         {currentServices.map((service) => (
                           <CCol xs={6} md={4} lg={3} key={service.id} className="mb-3">
                             <CCard
-                              className="border-0 shadow-sm h-100 cursor-pointer"
+                              className="border-0 shadow h-100"
                               style={{
-                                borderRadius: '12px',
-                                transition: 'all 0.2s ease',
+                                borderRadius: '18px',
+                                overflow: 'hidden',
                                 cursor: 'pointer',
+                                background: getServiceColor(service.id),
+                                transition: 'all 0.3s ease',
+                                minHeight: '150px',
+                              }}
+                              onMouseEnter={(e) => {
+                                e.currentTarget.style.transform = 'translateY(-5px)'
+                                e.currentTarget.style.boxShadow = '0 12px 25px rgba(0,0,0,0.15)'
+                              }}
+                              onMouseLeave={(e) => {
+                                e.currentTarget.style.transform = 'translateY(0px)'
+                                e.currentTarget.style.boxShadow = ''
                               }}
                               onClick={() =>
                                 addToCart({
@@ -932,40 +957,63 @@ const POSPage = () => {
                                 })
                               }
                             >
-                              <CCardBody className="d-flex flex-column justify-content-between">
+                              <CCardBody className="d-flex flex-column justify-content-between text-white p-3">
                                 <div>
                                   <div
-                                    className="mb-2"
+                                    className="mb-3"
                                     style={{
-                                      width: '40px',
-                                      height: '40px',
-                                      borderRadius: '10px',
-                                      background: '#f3f4f6',
+                                      width: '50px',
+                                      height: '50px',
+                                      borderRadius: '14px',
+                                      background: 'rgba(255,255,255,0.20)',
+                                      backdropFilter: 'blur(10px)',
                                       display: 'flex',
                                       alignItems: 'center',
                                       justifyContent: 'center',
-                                      fontSize: '18px',
+                                      fontSize: '24px',
+                                      border: '1px solid rgba(255,255,255,0.30)',
                                     }}
                                   >
                                     ✂️
                                   </div>
 
                                   <h6
-                                    className="mb-1 fw-bold"
+                                    className="fw-bold mb-1"
                                     style={{
-                                      fontSize: '14px',
+                                      fontSize: '15px',
+                                      lineHeight: '1.3',
                                     }}
                                   >
                                     {service.name}
                                   </h6>
 
-                                  {/* <small className="text-medium-emphasis">Service</small> */}
+                                  <small
+                                    style={{
+                                      opacity: 0.9,
+                                    }}
+                                  >
+                                    Professional Service
+                                  </small>
                                 </div>
 
-                                <div className="mt-1">
-                                  <h5 className="mb-0 text-primary fw-bold">
+                                <div className="mt-3">
+                                  <div
+                                    style={{
+                                      width: '100%',
+                                      height: '1px',
+                                      background: 'rgba(255,255,255,0.2)',
+                                      marginBottom: '10px',
+                                    }}
+                                  />
+
+                                  <h4
+                                    className="fw-bold mb-0"
+                                    style={{
+                                      letterSpacing: '0.5px',
+                                    }}
+                                  >
                                     ₦{Number(service.price).toLocaleString()}
-                                  </h5>
+                                  </h4>
                                 </div>
                               </CCardBody>
                             </CCard>
