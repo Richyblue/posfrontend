@@ -157,14 +157,20 @@ const POSPage = () => {
   //     })
   //   }
   // }, [])
-  const playAddSound = () => {
-    if (!addSoundRef.current) return
+  const soundPlayingRef = useRef(false)
 
-    addSoundRef.current.pause()
+  const playAddSound = () => {
+    if (soundPlayingRef.current) return
+
+    soundPlayingRef.current = true
 
     addSoundRef.current.currentTime = 0
 
     addSoundRef.current.play().catch(() => {})
+
+    setTimeout(() => {
+      soundPlayingRef.current = false
+    }, 300)
   }
 
   const getStaff = async () => {
