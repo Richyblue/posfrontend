@@ -808,109 +808,172 @@ const POSPage = () => {
   const getProductColor = (id) => {
     return productColors[id % productColors.length]
   }
+
+  const actionCardStyle = {
+    height: '90px',
+    borderRadius: '18px',
+    border: 'none',
+    color: '#fff',
+    display: 'flex',
+    flexDirection: 'column',
+    justifyContent: 'center',
+    alignItems: 'center',
+    gap: '6px',
+    transition: 'all .3s ease',
+    fontWeight: '600',
+  }
   return (
     <CContainer fluid className="py-3 p-3">
-      <CCard className=" mb-1 shadow-sm border-0 p-3">
-        <CRow className="g-2 mb-3">
-          <CCol md={2}>
-            <CButton
-              color="primary"
-              className="w-100 shadow-sm"
-              style={posButtonStyle}
-              onClick={() => setShowNewCustomerModal(true)}
-            >
-              <CIcon icon={cilUserPlus} size="lg" />
-              <small>New Customer</small>
-            </CButton>
-          </CCol>
-
-          <CCol md={2}>
-            <CButton
-              color="info"
-              className="w-100 shadow-sm"
-              style={posButtonStyle}
-              onClick={() => setShowCustomerModal(true)}
-            >
-              <CIcon icon={cilPeople} size="lg" />
-              <small>Customers</small>
-            </CButton>
-          </CCol>
-
-          <CCol md={2}>
-            <CButton color="secondary" className="w-100 shadow-sm" style={posButtonStyle}>
-              <CIcon icon={cilUser} size="lg" />
-              <small>Staff</small>
-            </CButton>
-          </CCol>
-
-          <CCol md={2}>
-            <CButton
-              color="warning"
-              className="w-100 shadow-sm"
-              style={posButtonStyle}
-              onClick={() => setShowLoyaltyModal(true)}
-            >
-              <CIcon icon={cilCreditCard} size="lg" />
-              <small>Loyalty</small>
-            </CButton>
-          </CCol>
-
-          <CCol md={2}>
-            <CButton
-              color="dark"
-              className="w-100 shadow-sm"
-              style={posButtonStyle}
-              onClick={() => setShowBarcodeModal(true)}
-            >
-              <CIcon icon={cilBarcode} size="lg" />
-              <small>Barcode</small>
-            </CButton>
-          </CCol>
-
-          <CCol md={2}>
-            <CButton
-              color="secondary"
-              className="w-100 shadow-sm"
-              style={posButtonStyle}
-              onClick={() => handleReprint(lastSale?.id)}
-            >
-              <CIcon icon={cilPrint} size="lg" />
-              <small>Reprint</small>
-            </CButton>
-          </CCol>
-
-          <CCol md={2}>
-            <CButton
-              color="danger"
-              className="w-100 shadow-sm"
-              style={posButtonStyle}
-              onClick={() => setShowClearCartModal(true)}
-            >
-              <CIcon icon={cilTrash} size="lg" />
-              <small>Clear Cart</small>
-            </CButton>
-          </CCol>
-          <CCol md={2}>
-            <CButton color="secondary" className="w-100 shadow-sm" style={posButtonStyle}>
-              <CIcon icon={cilSpeedometer} size="lg" />
-              <small>Dashboard</small>
-            </CButton>
-          </CCol>
-
-          <CCol md={2}>
-            <Link to={`/salesReport`}>
-              <CButton size="lg" color="info" className="w-100 shadow-sm">
-                <CIcon icon={cilChart} size="lg" /> <br />
-                <small>Sales Report</small>
+      <CCard
+        className="border-0 shadow"
+        style={{
+          borderRadius: '20px',
+          background: '#fff',
+        }}
+      >
+        <CCardBody>
+          <CRow className="g-3">
+            <CCol md={2}>
+              <CButton
+                className="w-100 shadow"
+                style={{
+                  ...actionCardStyle,
+                  background: 'linear-gradient(135deg,#667eea,#764ba2)',
+                }}
+                onClick={() => setShowNewCustomerModal(true)}
+              >
+                <CIcon icon={cilUserPlus} size="xl" />
+                <small>New Customer</small>
               </CButton>
-            </Link>
-          </CCol>
-          <CCol md={2}>
-            <CNavItem>
-              <LogoutButton />
-            </CNavItem>
-          </CCol>
-        </CRow>
+            </CCol>
+
+            <CCol md={2}>
+              <CButton
+                className="w-100 shadow"
+                style={{
+                  ...actionCardStyle,
+                  background: 'linear-gradient(135deg,#11998e,#38ef7d)',
+                }}
+                onClick={() => setShowCustomerModal(true)}
+              >
+                <CIcon icon={cilPeople} size="xl" />
+                <small>Customers</small>
+              </CButton>
+            </CCol>
+
+            <CCol md={2}>
+              <CButton
+                className="w-100 shadow"
+                style={{
+                  ...actionCardStyle,
+                  background: 'linear-gradient(135deg,#36d1dc,#5b86e5)',
+                }}
+              >
+                <CIcon icon={cilUser} size="xl" />
+                <small>Staff</small>
+              </CButton>
+            </CCol>
+
+            <CCol md={2}>
+              <CButton
+                className="w-100 shadow"
+                style={{
+                  ...actionCardStyle,
+                  background: 'linear-gradient(135deg,#f7971e,#ffd200)',
+                }}
+                onClick={() => setShowLoyaltyModal(true)}
+              >
+                <CIcon icon={cilCreditCard} size="xl" />
+                <small>Loyalty</small>
+              </CButton>
+            </CCol>
+
+            <CCol md={2}>
+              <CButton
+                className="w-100 shadow"
+                style={{
+                  ...actionCardStyle,
+                  background: 'linear-gradient(135deg,#232526,#414345)',
+                }}
+                onClick={() => setShowBarcodeModal(true)}
+              >
+                <CIcon icon={cilBarcode} size="xl" />
+                <small>Barcode</small>
+              </CButton>
+            </CCol>
+
+            <CCol md={2}>
+              <CButton
+                className="w-100 shadow"
+                style={{
+                  ...actionCardStyle,
+                  background: 'linear-gradient(135deg,#fc466b,#3f5efb)',
+                }}
+                onClick={() => handleReprint(lastSale?.id)}
+              >
+                <CIcon icon={cilPrint} size="xl" />
+                <small>Reprint</small>
+              </CButton>
+            </CCol>
+
+            <CCol md={2}>
+              <CButton
+                className="w-100 shadow"
+                style={{
+                  ...actionCardStyle,
+                  background: 'linear-gradient(135deg,#ff416c,#ff4b2b)',
+                }}
+                onClick={() => setShowClearCartModal(true)}
+              >
+                <CIcon icon={cilTrash} size="xl" />
+                <small>Clear Cart</small>
+              </CButton>
+            </CCol>
+
+            <CCol md={2}>
+              <CButton
+                className="w-100 shadow"
+                style={{
+                  ...actionCardStyle,
+                  background: 'linear-gradient(135deg,#4e54c8,#8f94fb)',
+                }}
+              >
+                <CIcon icon={cilSpeedometer} size="xl" />
+                <small>Dashboard</small>
+              </CButton>
+            </CCol>
+
+            <CCol md={2}>
+              <Link
+                to="/salesReport"
+                style={{
+                  textDecoration: 'none',
+                }}
+              >
+                <CButton
+                  className="w-100 shadow"
+                  style={{
+                    ...actionCardStyle,
+                    background: 'linear-gradient(135deg,#00c6ff,#0072ff)',
+                  }}
+                >
+                  <CIcon icon={cilChart} size="xl" />
+                  <small>Sales Report</small>
+                </CButton>
+              </Link>
+            </CCol>
+
+            <CCol md={2}>
+              <div
+                style={{
+                  height: '90px',
+                }}
+              >
+                <LogoutButton />
+              </div>
+            </CCol>
+          </CRow>
+        </CCardBody>
       </CCard>
       <CRow style={{ width: '100%', marginLeft: '0px' }}>
         <CCol md={6}>
