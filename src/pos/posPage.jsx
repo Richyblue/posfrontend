@@ -869,13 +869,7 @@ const POSPage = () => {
               <small>Dashboard</small>
             </CButton>
           </CCol>
-          <CCol md={2}>
-            <CNavItem>
-              <CButton size="lg" color="white" className="w-100 shadow-sm">
-                <LogoutButton />
-              </CButton>
-            </CNavItem>
-          </CCol>
+
           <CCol md={2}>
             <Link to={`/salesReport`}>
               <CButton size="lg" color="info" className="w-100 shadow-sm">
@@ -883,6 +877,11 @@ const POSPage = () => {
                 <small>Sales Report</small>
               </CButton>
             </Link>
+          </CCol>
+          <CCol md={2}>
+            <CNavItem>
+              <LogoutButton />
+            </CNavItem>
           </CCol>
         </CRow>
       </CCard>
