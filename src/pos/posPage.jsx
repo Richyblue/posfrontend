@@ -158,12 +158,13 @@ const POSPage = () => {
   //   }
   // }, [])
   const playAddSound = () => {
-    try {
-      addSoundRef.current.currentTime = 0
-      addSoundRef.current.play()
-    } catch (error) {
-      console.log(error)
-    }
+    if (!addSoundRef.current) return
+
+    addSoundRef.current.pause()
+
+    addSoundRef.current.currentTime = 0
+
+    addSoundRef.current.play().catch(() => {})
   }
 
   const getStaff = async () => {
