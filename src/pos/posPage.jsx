@@ -1250,49 +1250,86 @@ const POSPage = () => {
 
               {/* POS Grid */}
               <div
+                className="border rounded shadow-sm"
                 style={{
                   maxHeight: '450px',
                   overflowY: 'auto',
+                  background: '#fff',
                 }}
               >
-                <CTable hover responsive borderless className="mb-0">
+                <CTable
+                  hover
+                  responsive
+                  className="mb-0 align-middle"
+                  style={{
+                    fontSize: '14px',
+                  }}
+                >
                   <thead
                     style={{
                       position: 'sticky',
                       top: 0,
-                      background: '#fff',
-                      zIndex: 1,
+                      background: '#f8f9fa',
+                      zIndex: 2,
+                      borderBottom: '2px solid #dee2e6',
                     }}
                   >
                     <tr>
-                      <th>Item</th>
-                      <th width="120">Qty</th>
-                      <th width="120">Unit Price</th>
-                      <th width="120">Total</th>
-                      <th width="50"></th>
+                      <th>#</th>
+                      <th>Item Description</th>
+                      <th className="text-center">Qty</th>
+                      <th className="text-end">Unit Price</th>
+                      <th className="text-end">Amount</th>
+                      <th className="text-center">Action</th>
                     </tr>
                   </thead>
 
                   <tbody>
-                    {cart.map((item) => (
-                      <tr key={`${item.type}-${item.id}`}>
+                    {cart.map((item, index) => (
+                      <tr
+                        key={`${item.type}-${item.id}`}
+                        style={{
+                          borderBottom: '1px solid #f1f3f5',
+                        }}
+                      >
+                        <td className="fw-bold text-muted">{index + 1}</td>
+
                         <td>
                           <div>
-                            <strong>{item.name}</strong>
+                            <div className="fw-semibold">{item.name}</div>
 
-                            <br />
-
-                            <small className="text-muted">{item.type}</small>
+                            <small
+                              className={`badge ${
+                                item.type === 'service' ? 'bg-primary' : 'bg-success'
+                              }`}
+                            >
+                              {item.type}
+                            </small>
                           </div>
                         </td>
 
-                        <td>
-                          <div className="d-flex align-items-center gap-1">
+                        <td className="text-center">
+                          <div
+                            className="d-inline-flex align-items-center"
+                            style={{
+                              border: '1px solid #dee2e6',
+                              borderRadius: '8px',
+                              overflow: 'hidden',
+                            }}
+                          >
                             <CButton size="sm" color="light" onClick={() => decreaseQty(item.id)}>
                               −
                             </CButton>
 
-                            <span className="px-2">{item.quantity}</span>
+                            <span
+                              style={{
+                                minWidth: '40px',
+                                textAlign: 'center',
+                                fontWeight: '600',
+                              }}
+                            >
+                              {item.quantity}
+                            </span>
 
                             <CButton size="sm" color="light" onClick={() => increaseQty(item.id)}>
                               +
@@ -1300,55 +1337,70 @@ const POSPage = () => {
                           </div>
                         </td>
 
-                        <td>₦{Number(item.price || item.sellingPrice).toLocaleString()}</td>
+                        <td className="text-end fw-semibold">
+                          ₦{Number(item.price || item.sellingPrice).toLocaleString()}
+                        </td>
 
-                        <td>
-                          <strong>
+                        <td className="text-end">
+                          <span
+                            className="fw-bold"
+                            style={{
+                              color: '#198754',
+                            }}
+                          >
                             ₦
                             {Number(
                               (item.price || item.sellingPrice) * item.quantity,
                             ).toLocaleString()}
-                          </strong>
+                          </span>
                         </td>
 
-                        <td>
-                          <CButton size="sm" color="light" onClick={() => removeItem(item.id)}>
+                        <td className="text-center">
+                          <CButton
+                            size="sm"
+                            color="danger"
+                            variant="ghost"
+                            onClick={() => removeItem(item.id)}
+                          >
                             <CIcon icon={cilTrash} />
                           </CButton>
                         </td>
                       </tr>
                     ))}
+
+                    {cart.length === 0 && (
+                      <tr>
+                        <td colSpan="6" className="text-center py-5 text-muted">
+                          No items added to cart
+                        </td>
+                      </tr>
+                    )}
                   </tbody>
                 </CTable>
               </div>
 
               {/* Summary Footer */}
-              <div
-                className="border-top p-3"
-                style={{
-                  background: '#f8fafc',
-                }}
-              >
-                <div className="d-flex justify-content-between">
-                  <span>Items</span>
+              <CCard className="border-0 shadow-sm mt-3">
+                <CCardBody>
+                  <div className="d-flex justify-content-between mb-2">
+                    <span>Total Items</span>
+                    <strong>{cart.reduce((sum, item) => sum + item.quantity, 0)}</strong>
+                  </div>
 
-                  <strong>{cart.reduce((sum, item) => sum + item.quantity, 0)}</strong>
-                </div>
-
-                <div className="d-flex justify-content-between mt-2">
-                  <span>Subtotal</span>
-
-                  <strong>
-                    ₦
-                    {cart
-                      .reduce(
-                        (total, item) => total + (item.price || item.sellingPrice) * item.quantity,
-                        0,
-                      )
-                      .toLocaleString()}
-                  </strong>
-                </div>
-              </div>
+                  <div className="d-flex justify-content-between">
+                    <span>Cart Value</span>
+                    <strong className="text-success">
+                      ₦
+                      {cart
+                        .reduce(
+                          (sum, item) => sum + (item.price || item.sellingPrice) * item.quantity,
+                          0,
+                        )
+                        .toLocaleString()}
+                    </strong>
+                  </div>
+                </CCardBody>
+              </CCard>
             </CCardBody>
           </CCard>
         </CCol>
