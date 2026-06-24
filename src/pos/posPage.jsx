@@ -825,7 +825,7 @@ const POSPage = () => {
   return (
     <CContainer fluid className="py-3 p-3">
       <CCard
-        className="border-0 shadow"
+        className="border-0 shadow mb-2"
         style={{
           borderRadius: '20px',
           background: '#fff',
@@ -1473,151 +1473,198 @@ const POSPage = () => {
           <CRow>
             {/* Actions */}
             <CCol md={3}>
-              <div className="h-100 p-3 border rounded" style={{ background: '#f8fafc' }}>
-                <h6 className="fw-bold mb-3">Actions</h6>
+              <CCard
+                className="border-0 shadow h-100"
+                style={{
+                  borderRadius: '20px',
+                  background: 'linear-gradient(135deg,#667eea,#764ba2)',
+                  color: '#fff',
+                }}
+              >
+                <CCardBody>
+                  <h5 className="fw-bold mb-4">Quick Actions</h5>
 
-                <CButton
-                  color="warning"
-                  className="w-100 mb-2"
-                  onClick={() => setShowHoldModal(true)}
-                >
-                  Hold Sale
-                </CButton>
+                  <CButton
+                    color="light"
+                    className="w-100 mb-3 fw-semibold"
+                    onClick={() => setShowHoldModal(true)}
+                  >
+                    Hold Sale
+                  </CButton>
 
-                <CButton
-                  color="info"
-                  variant="outline"
-                  className="w-100"
-                  onClick={openHeldSalesModal}
-                >
-                  Restore Sale
-                </CButton>
-              </div>
+                  <CButton
+                    color="light"
+                    variant="outline"
+                    className="w-100 fw-semibold"
+                    onClick={openHeldSalesModal}
+                  >
+                    Restore Sale
+                  </CButton>
+                </CCardBody>
+              </CCard>
             </CCol>
 
             {/* Loyalty */}
             <CCol md={4}>
-              <div className="h-100 p-3 border rounded" style={{ background: '#f8fafc' }}>
-                <h6 className="fw-bold mb-3">Loyalty & Wallet</h6>
+              <CCard
+                className="border-0 shadow h-100"
+                style={{
+                  borderRadius: '20px',
+                  background: 'linear-gradient(135deg,#11998e,#38ef7d)',
+                  color: '#fff',
+                }}
+              >
+                <CCardBody>
+                  <h5 className="fw-bold mb-4">Loyalty & Wallet</h5>
 
-                {selectedCustomer ? (
-                  <>
-                    <div className="d-flex justify-content-between mb-2">
-                      <span>Points</span>
+                  {selectedCustomer ? (
+                    <>
+                      <div className="d-flex justify-content-between mb-3">
+                        <span>Loyalty Points</span>
+                        <h5>{selectedCustomer.loyaltyPoints}</h5>
+                      </div>
 
-                      <strong>{selectedCustomer.loyaltyPoints}</strong>
+                      <div className="d-flex justify-content-between mb-4">
+                        <span>Wallet Balance</span>
+                        <h5>₦{Number(selectedCustomer.walletBalance || 0).toLocaleString()}</h5>
+                      </div>
+
+                      <CFormCheck
+                        className="mb-3"
+                        label="Use Loyalty Points"
+                        checked={usePoints}
+                        onChange={(e) => setUsePoints(e.target.checked)}
+                      />
+
+                      <CFormCheck
+                        className="mb-3"
+                        label="Use Wallet Balance"
+                        checked={useWallet}
+                        onChange={(e) => setUseWallet(e.target.checked)}
+                      />
+
+                      <CFormInput
+                        type="number"
+                        label="Redeem Points"
+                        value={redeemPoints}
+                        min={0}
+                        max={selectedCustomer?.loyaltyPoints || 0}
+                        onChange={(e) => setRedeemPoints(Number(e.target.value))}
+                      />
+                    </>
+                  ) : (
+                    <div
+                      className="text-center py-4"
+                      style={{
+                        opacity: 0.9,
+                      }}
+                    >
+                      No customer selected
                     </div>
-
-                    <div className="d-flex justify-content-between mb-3">
-                      <span>Wallet</span>
-
-                      <strong>
-                        ₦{Number(selectedCustomer.walletBalance || 0).toLocaleString()}
-                      </strong>
-                    </div>
-
-                    <CFormCheck
-                      className="mb-2"
-                      label="Use Loyalty Points"
-                      checked={usePoints}
-                      onChange={(e) => setUsePoints(e.target.checked)}
-                    />
-
-                    <CFormCheck
-                      className="mb-3"
-                      label="Use Wallet Balance"
-                      checked={useWallet}
-                      onChange={(e) => setUseWallet(e.target.checked)}
-                    />
-
-                    <CFormInput
-                      type="number"
-                      label="Redeem Points"
-                      value={redeemPoints}
-                      min={0}
-                      max={selectedCustomer?.loyaltyPoints || 0}
-                      onChange={(e) => setRedeemPoints(Number(e.target.value))}
-                    />
-                  </>
-                ) : (
-                  <small className="text-muted">No customer selected</small>
-                )}
-              </div>
+                  )}
+                </CCardBody>
+              </CCard>
             </CCol>
 
             {/* Summary */}
             <CCol md={5}>
-              <div className="h-100 p-3 border rounded" style={{ background: '#fff' }}>
-                <h6 className="fw-bold mb-3">Order Summary</h6>
+              <CCard
+                className="border-0 shadow h-100"
+                style={{
+                  borderRadius: '20px',
+                  background: 'linear-gradient(135deg,#0f2027,#203a43,#2c5364)',
+                  color: '#fff',
+                }}
+              >
+                <CCardBody>
+                  <h5 className="fw-bold mb-4">Order Summary</h5>
 
-                <div className="d-flex justify-content-between mb-2">
-                  <span>Subtotal</span>
+                  <div className="d-flex justify-content-between mb-3">
+                    <span>Subtotal</span>
 
-                  <strong>₦{Number(subtotal).toLocaleString()}</strong>
-                </div>
+                    <strong>₦{Number(subtotal).toLocaleString()}</strong>
+                  </div>
 
-                <div className="mb-2">
-                  <CFormInput
-                    type="number"
-                    label="Discount"
-                    value={discount}
-                    onChange={(e) => setDiscount(Number(e.target.value))}
+                  <div className="mb-3">
+                    <CFormInput
+                      type="number"
+                      label="Discount"
+                      value={discount}
+                      onChange={(e) => setDiscount(Number(e.target.value))}
+                    />
+                  </div>
+
+                  {usePoints && (
+                    <div className="d-flex justify-content-between mb-2 text-warning">
+                      <span>Points Discount</span>
+
+                      <strong>- ₦{Number(pointsDiscount || 0).toLocaleString()}</strong>
+                    </div>
+                  )}
+
+                  {useWallet && (
+                    <div className="d-flex justify-content-between mb-2 text-warning">
+                      <span>Wallet Used</span>
+
+                      <strong>- ₦{Number(walletUsed || 0).toLocaleString()}</strong>
+                    </div>
+                  )}
+
+                  <hr
+                    style={{
+                      borderColor: 'rgba(255,255,255,.2)',
+                    }}
                   />
-                </div>
 
-                {usePoints && (
-                  <div className="d-flex justify-content-between text-success mb-2">
-                    <span>Points Discount</span>
+                  <div className="d-flex justify-content-between align-items-center">
+                    <span
+                      style={{
+                        fontSize: '18px',
+                      }}
+                    >
+                      Grand Total
+                    </span>
 
-                    <strong>- ₦{Number(pointsDiscount || 0).toLocaleString()}</strong>
+                    <h2 className="fw-bold text-success mb-0">₦{Number(total).toLocaleString()}</h2>
                   </div>
-                )}
 
-                {useWallet && (
-                  <div className="d-flex justify-content-between text-success mb-2">
-                    <span>Wallet Used</span>
+                  <div className="mt-3">
+                    <small>Loyalty Points Earned</small>
 
-                    <strong>- ₦{Number(walletUsed || 0).toLocaleString()}</strong>
+                    <h5 className="fw-bold">{Math.floor(total / 1000)}</h5>
                   </div>
-                )}
-
-                <hr />
-
-                <div className="d-flex justify-content-between align-items-center">
-                  <h5 className="mb-0">Grand Total</h5>
-
-                  <h4 className="mb-0 text-primary fw-bold">₦{Number(total).toLocaleString()}</h4>
-                </div>
-
-                <div className="mt-2 text-muted">
-                  Earn Points:
-                  <strong className="ms-2">{Math.floor(total / 1000)}</strong>
-                </div>
-              </div>
+                </CCardBody>
+              </CCard>
             </CCol>
           </CRow>
 
           <hr />
 
           {/* Payment Footer */}
-          <CRow className="align-items-end">
+          <CRow className="align-items-end mt-4">
             <CCol md={4}>
-              <CFormSelect value={paymentMethod} onChange={(e) => setPaymentMethod(e.target.value)}>
+              <CFormSelect
+                size="lg"
+                value={paymentMethod}
+                onChange={(e) => setPaymentMethod(e.target.value)}
+              >
                 <option value="cash">Cash</option>
-
                 <option value="transfer">Transfer</option>
-
                 <option value="pos">POS</option>
-
                 <option value="mixed">Mixed</option>
               </CFormSelect>
             </CCol>
 
             <CCol md={8}>
               <CButton
-                color="success"
                 size="lg"
-                className="w-100 fw-bold"
+                className="w-100 fw-bold shadow"
+                style={{
+                  height: '55px',
+                  borderRadius: '14px',
+                  border: 'none',
+                  background: 'linear-gradient(135deg,#11998e,#38ef7d)',
+                }}
                 onClick={() => setShowPaymentModal(true)}
               >
                 Complete Payment • ₦{Number(total).toLocaleString()}
