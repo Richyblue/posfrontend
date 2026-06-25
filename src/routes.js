@@ -27,6 +27,7 @@ const Expense = React.lazy(() => import('./expense/AddExpense'))
 const viewExpense = React.lazy(() => import('./expense/ExpenseList'))
 const Staff = React.lazy(() => import('./staff/AddStaff'))
 const vStaff = React.lazy(() => import('./staff/ViewStaff'))
+const EditStaff = React.lazy(() => import('./staff/editStaff'))
 const Service = React.lazy(() => import('./service/CreateService'))
 const viewService = React.lazy(() => import('./service/ViewServices'))
 const Customer = React.lazy(() => import('./customers/CreateCustomer'))
@@ -151,6 +152,12 @@ export const routes = [
   },
   { path: '/viewStaff', name: 'View Staff', element: vStaff, roles: ['admin', 'manager'] },
   { path: '/staff', name: 'Staff', element: Staff, roles: ['admin'] },
+  {
+    path: '/editStaff/:id',
+    name: 'Edit Staff',
+    element: EditStaff,
+    roles: ['admin'],
+  },
   { path: '/viewExpense', name: 'View Expense', element: viewExpense, roles: ['admin', 'manager'] },
   { path: '/expense', name: 'Expense', element: Expense, roles: ['admin', 'manager'] },
   { path: '/recycleBin', name: 'Bin', element: Bin, roles: ['admin', 'manager'] },

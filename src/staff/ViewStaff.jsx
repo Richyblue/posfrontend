@@ -121,6 +121,42 @@ const ViewStaff = () => {
     0,
   )
 
+  const toggleStaffStatus = async (staff) => {
+    const action = staff.User.isActive ? 'Deactivate' : 'Activate'
+
+    const result = await Swal.fire({
+      title: `${action} Staff?`,
+      text: `Are you sure you want to ${action.toLowerCase()} this staff account?`,
+      icon: 'question',
+      showCancelButton: true,
+      confirmButtonText: action,
+    })
+
+    if (!result.isConfirmed) return
+
+    try {
+      const token = localStorage.getItem('token')
+
+      await axios.put(
+        `${API_URL}api/v1/staff/${staff.id}/status`,
+        {
+          isActive: !staff.User.isActive,
+        },
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        },
+      )
+
+      Swal.fire('Success', `Staff ${action.toLowerCase()}d successfully.`, 'success')
+
+      getStaff()
+    } catch (error) {
+      Swal.fire('Error', error.response?.data?.message || 'Operation failed', 'error')
+    }
+  }
+
   return (
     <>
       <CRow className="mb-4">
@@ -233,15 +269,21 @@ const ViewStaff = () => {
               <CTableDataCell>{staff.commissionRate}%</CTableDataCell>
 
               <CTableDataCell>
-                <CBadge color={staff.User?.isActive ? 'success' : 'danger'}>
-                  {staff.User?.isActive ? 'Active' : 'Inactive'}
-                </CBadge>
+                <CButton
+                  color={staff.User?.isActive ? 'danger' : 'success'}
+                  size="sm"
+                  onClick={() => toggleStaffStatus(staff)}
+                >
+                  {staff.User?.isActive ? 'Deactivate' : 'Activate'}
+                </CButton>
               </CTableDataCell>
 
               <CTableDataCell>
-                <CButton size="sm" color="info" className="me-2">
-                  <CIcon icon={cilPencil} />
-                </CButton>
+                <Link to={`/editStaff/${staff.id}`}>
+                  <CButton color="warning" size="sm">
+                    <CIcon icon={cilPencil} />
+                  </CButton>
+                </Link>
 
                 <CButton size="sm" color="danger" onClick={() => deleteStaff(staff.id)}>
                   <CIcon icon={cilTrash} />
