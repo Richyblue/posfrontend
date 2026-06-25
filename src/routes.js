@@ -156,7 +156,7 @@ export const routes = [
     path: '/editStaff/:id',
     name: 'Edit Staff',
     element: EditStaff,
-    roles: ['admin'],
+    roles: ['admin', 'manager'],
   },
   { path: '/viewExpense', name: 'View Expense', element: viewExpense, roles: ['admin', 'manager'] },
   { path: '/expense', name: 'Expense', element: Expense, roles: ['admin', 'manager'] },
