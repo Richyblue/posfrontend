@@ -139,7 +139,7 @@ const ViewStaff = () => {
       const token = localStorage.getItem('token')
 
       await axios.put(
-        `${API_URL}api/v1/staff/${staff.id}/status`,
+        `${API_URL}api/v1/${staff.id}/status`,
         {
           isActive: !staff.User.isActive,
         },

@@ -63,7 +63,7 @@ const AddStaff = () => {
     try {
       const token = localStorage.getItem('token')
 
-      const { data } = await axios.get(`${API_URL}api/v1/staff/${id}`, {
+      const { data } = await axios.get(`${API_URL}api/v1/${id}`, {
         headers: {
           Authorization: `Bearer ${token}`,
         },
