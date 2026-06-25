@@ -27,6 +27,7 @@ import {
   CInputGroup,
   CInputGroupText,
 } from '@coreui/react'
+import { Link } from 'react-router-dom'
 
 const ViewStaff = () => {
   const API_URL = import.meta.env.VITE_BACKEND_URL
