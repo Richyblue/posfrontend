@@ -328,12 +328,14 @@ const Report = () => {
         <CTableBody>
           {filteredSales.map((sale) => (
             <CTableRow key={sale.id}>
-              <CTableDataCell>{sale.invoiceNumber}</CTableDataCell>
+              <CTableDataCell> {sale.invoiceNumber || sale.receiptNumber}</CTableDataCell>
 
               <CTableDataCell>{sale.Customer?.fullname}</CTableDataCell>
               <CTableDataCell>{sale.RecordedBy?.fullname}</CTableDataCell>
 
-              <CTableDataCell>{sale.ServiceProvider?.User?.fullname || '-'}</CTableDataCell>
+              <CTableDataCell>
+                {sale.ServiceProvider?.fullname || sale.ServiceProvider?.User?.fullname || '-'}
+              </CTableDataCell>
 
               <CTableDataCell>₦{Number(sale.totalAmount).toLocaleString()}</CTableDataCell>
 
