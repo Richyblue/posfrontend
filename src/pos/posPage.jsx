@@ -73,7 +73,11 @@ const POSPage = () => {
   const [products, setProducts] = useState([])
   const [staff, setStaffs] = useState([])
   const [loadingProducts, setLoadingProducts] = useState(false)
+  const [showPriceModal, setShowPriceModal] = useState(false)
 
+  const [editingItem, setEditingItem] = useState(null)
+
+  const [editedPrice, setEditedPrice] = useState('')
   const [customers, setCustomers] = useState([])
   const [showLoyaltyModal, setShowLoyaltyModal] = useState(false)
   const [showBarcodeModal, setShowBarcodeModal] = useState(false)
@@ -119,6 +123,35 @@ const POSPage = () => {
   // const pointsDiscount = usePoints ? Math.min(selectedCustomer?.loyaltyPoints || 0, subtotal) : 0
   const [showHeldSalesModal, setShowHeldSalesModal] = useState(false)
   const [heldSales, setHeldSales] = useState([])
+
+  const openPriceModal = (item) => {
+    setEditingItem(item)
+
+    setEditedPrice(item.price)
+
+    setShowPriceModal(true)
+  }
+
+  const saveEditedPrice = () => {
+    if (!editingItem) return
+
+    setCart(
+      cart.map((cartItem) =>
+        cartItem.id === editingItem.id && cartItem.type === 'service'
+          ? {
+              ...cartItem,
+              price: Number(editedPrice),
+            }
+          : cartItem,
+      ),
+    )
+
+    setShowPriceModal(false)
+
+    setEditingItem(null)
+
+    setEditedPrice('')
+  }
   // Calculate total pages
 
   const walletUsed = useWallet
@@ -1417,11 +1450,30 @@ const POSPage = () => {
                           </div>
                         </td>
 
-                        <td className="text-end fw-semibold">
+                        {/* <td className="text-end fw-semibold">
                           ₦{Number(item.price || item.sellingPrice).toLocaleString()}
-                        </td>
+                        </td> */}
 
                         <td className="text-end">
+                          <div className="d-flex justify-content-end align-items-center gap-2">
+                            <span className="fw-semibold">
+                              ₦{Number(item.price).toLocaleString()}
+                            </span>
+
+                            {item.type === 'service' && (
+                              <CButton
+                                color="light"
+                                size="sm"
+                                variant="ghost"
+                                onClick={() => openPriceModal(item)}
+                              >
+                                <CIcon icon={cilPencil} />
+                              </CButton>
+                            )}
+                          </div>
+                        </td>
+
+                        {/* <td className="text-end">
                           <span
                             className="fw-bold"
                             style={{
@@ -1432,6 +1484,28 @@ const POSPage = () => {
                             {Number(
                               (item.price || item.sellingPrice) * item.quantity,
                             ).toLocaleString()}
+                          </span>
+                        </td> */}
+
+                        <td className="text-end">
+                          {item.originalPrice && item.originalPrice !== item.price && (
+                            <small
+                              className="text-danger d-block"
+                              style={{
+                                textDecoration: 'line-through',
+                              }}
+                            >
+                              ₦{Number(item.originalPrice).toLocaleString()}
+                            </small>
+                          )}
+
+                          <span
+                            className="fw-bold"
+                            style={{
+                              color: '#198754',
+                            }}
+                          >
+                            ₦{Number(item.price * item.quantity).toLocaleString()}
                           </span>
                         </td>
 
@@ -1757,6 +1831,47 @@ const POSPage = () => {
         report={report}
         loading={reportLoading}
       />
+
+      {/* Edit price modal */}
+
+      <CModal visible={showPriceModal} onClose={() => setShowPriceModal(false)} alignment="center">
+        <CModalHeader>
+          <CModalTitle>Change Service Price</CModalTitle>
+        </CModalHeader>
+
+        <CModalBody>
+          {editingItem && (
+            <>
+              <h5 className="fw-bold mb-3">{editingItem.name}</h5>
+
+              <div className="mb-3">
+                <small className="text-muted">Original Price</small>
+
+                <h4 className="text-primary">
+                  ₦{Number(editingItem.originalPrice || editingItem.price).toLocaleString()}
+                </h4>
+              </div>
+
+              <CFormInput
+                label="New Price"
+                type="number"
+                value={editedPrice}
+                onChange={(e) => setEditedPrice(e.target.value)}
+              />
+            </>
+          )}
+        </CModalBody>
+
+        <CModalFooter>
+          <CButton color="secondary" onClick={() => setShowPriceModal(false)}>
+            Cancel
+          </CButton>
+
+          <CButton color="primary" onClick={saveEditedPrice}>
+            Update Price
+          </CButton>
+        </CModalFooter>
+      </CModal>
     </CContainer>
   )
 }
