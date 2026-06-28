@@ -35,6 +35,8 @@ export default function PaymentModal({
     onSubmit({
       paymentMethod,
       serviceProviderId,
+      standTag,
+      cardNumber,
       note,
     })
   }
@@ -104,6 +106,38 @@ export default function PaymentModal({
             </CFormSelect>
 
             <small className="text-muted">Staff that attended to the customer</small>
+          </CCol>
+        </CRow>
+
+        {/* STAND TAG */}
+
+        <CRow className="mb-3">
+          <CCol md={6}>
+            <label className="form-label fw-semibold">Stand Tag</label>
+
+            <CFormSelect value={standTag} onChange={(e) => setStandTag(e.target.value)}>
+              <option value="">Select Stand</option>
+
+              {[...Array(10)].map((_, i) => (
+                <option key={i + 1} value={`Stand ${i + 1}`}>
+                  Stand {i + 1}
+                </option>
+              ))}
+            </CFormSelect>
+          </CCol>
+
+          <CCol md={6}>
+            <label className="form-label fw-semibold">Card Number</label>
+
+            <CFormSelect value={cardNumber} onChange={(e) => setCardNumber(e.target.value)}>
+              <option value="">Select Card</option>
+
+              {[...Array(100)].map((_, i) => (
+                <option key={i + 1} value={String(i + 1).padStart(3, '0')}>
+                  Card #{String(i + 1).padStart(3, '0')}
+                </option>
+              ))}
+            </CFormSelect>
           </CCol>
         </CRow>
 

@@ -63,7 +63,7 @@ const AddStaff = () => {
     try {
       const token = localStorage.getItem('token')
 
-      const { data } = await axios.get(`${API_URL}api/v1/${id}`, {
+      const { data } = await axios.get(`${API_URL}api/v1/staff/${id}`, {
         headers: {
           Authorization: `Bearer ${token}`,
         },
@@ -106,7 +106,7 @@ const AddStaff = () => {
     try {
       const token = localStorage.getItem('token')
 
-      await axios.put(`${API_URL}api/v1/${id}`, formData, {
+      await axios.put(`${API_URL}api/v1/staff/${id}`, formData, {
         headers: {
           Authorization: `Bearer ${token}`,
         },
