@@ -32,6 +32,11 @@ import {
   CNavItem,
   CNavLink,
   CFormCheck,
+  CModal,
+  CModalHeader,
+  CModalTitle,
+  CModalBody,
+  CModalFooter,
 } from '@coreui/react'
 import CustomerSearchModal from '../pos/CustomerSearchModal'
 
