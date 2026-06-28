@@ -531,6 +531,7 @@ const POSPage = () => {
         discount,
         standTag: paymentData.standTag,
         cardNumber: paymentData.cardNumber,
+        serviceProviderId: paymentData.serviceProviderId,
 
         paymentMethod: paymentData.paymentMethod,
 

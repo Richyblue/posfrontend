@@ -26,9 +26,7 @@ export default function PaymentModal({
   currentUser,
 }) {
   const [paymentMethod, setPaymentMethod] = useState('cash')
-
   const [serviceProviderId, setServiceProviderId] = useState('')
-
   const [note, setNote] = useState('')
   const [standTag, setStandTag] = useState('')
   const [cardNumber, setCardNumber] = useState('')
