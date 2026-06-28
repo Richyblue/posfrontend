@@ -316,6 +316,7 @@ const Report = () => {
             <CTableHeaderCell>Sales By</CTableHeaderCell>
 
             <CTableHeaderCell>Attended By</CTableHeaderCell>
+            <CTableHeaderCell>Card/Stand Tag</CTableHeaderCell>
 
             <CTableHeaderCell>Amount</CTableHeaderCell>
 
@@ -335,6 +336,10 @@ const Report = () => {
 
               <CTableDataCell>
                 {sale.ServiceProvider?.fullname || sale.ServiceProvider?.User?.fullname || '-'}
+              </CTableDataCell>
+
+              <CTableDataCell>
+                {sale.cardNumber}, {sale.standTag}
               </CTableDataCell>
 
               <CTableDataCell>₦{Number(sale.totalAmount).toLocaleString()}</CTableDataCell>
