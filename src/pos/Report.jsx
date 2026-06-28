@@ -86,9 +86,9 @@ const Report = () => {
     return sum + profit
   }, 0)
 
-  const ownerProfit = totalServiceSales * 0.6
+  const ownerProfit = totalServiceSales * 0.7
 
-  const staffCommissionPool = totalServiceSales * 0.4
+  const staffCommissionPool = totalServiceSales * 0.3
   const totalProfits = ownerProfit + productProfit
   const getSalesReport = async () => {
     try {
@@ -248,7 +248,7 @@ const Report = () => {
         <CCol md={3}>
           <CCard>
             <CCardBody>
-              <h6>Owner Profit (60%)</h6>
+              <h6>Owner Profit (70%)</h6>
               <h3 className="text-success">₦{ownerProfit.toLocaleString()}</h3>
             </CCardBody>
           </CCard>
@@ -257,7 +257,7 @@ const Report = () => {
         <CCol md={3}>
           <CCard>
             <CCardBody>
-              <h6>Staff Share (40%)</h6>
+              <h6>Staff Share (30%)</h6>
               <h3 className="text-primary">₦{staffCommissionPool.toLocaleString()}</h3>
             </CCardBody>
           </CCard>
@@ -339,7 +339,11 @@ const Report = () => {
               </CTableDataCell>
 
               <CTableDataCell>
-                {sale.cardNumber}, {sale.standTag}
+                <div>
+                  <strong>Card:</strong> {sale.cardNumber || '-'}
+                  <br />
+                  <small className="text-muted">Stand: {sale.standTag || '-'}</small>
+                </div>
               </CTableDataCell>
 
               <CTableDataCell>₦{Number(sale.totalAmount).toLocaleString()}</CTableDataCell>
