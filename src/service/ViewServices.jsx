@@ -30,7 +30,7 @@ const ViewService = () => {
   const getServices = async () => {
     const token = localStorage.getItem('token')
 
-    const response = await axios.get(`${API_URL}api/v1/services`, {
+    const response = await axios.get(`${API_URL}api/v1/servicess`, {
       headers: {
         Authorization: `Bearer ${token}`,
       },
