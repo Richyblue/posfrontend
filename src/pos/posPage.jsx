@@ -36,6 +36,7 @@ import {
   CModalHeader,
   CModalBody,
   CModalFooter,
+  CModalTitle,
 } from '@coreui/react'
 import CustomerSearchModal from '../pos/CustomerSearchModal'
 
