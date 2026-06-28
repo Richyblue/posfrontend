@@ -363,7 +363,7 @@ const POSPage = () => {
       const token = localStorage.getItem('token')
 
       const response = await axios.get(
-        `${API_URL}api/v1/services`,
+        `${API_URL}api/v1/servicess`,
 
         {
           headers: {
