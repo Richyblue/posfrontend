@@ -197,6 +197,7 @@ const POSPage = () => {
     const fetchData = async () => {
       await getStaff()
     }
+
     fetchData()
   }, [])
   // product section
@@ -349,9 +350,12 @@ const POSPage = () => {
   ]
 
   const getService = async () => {
+    const token = localStorage.getItem('token')
+    if (!token) {
+      console.error('No token found in localStorage')
+      return // Exit if token is missing
+    }
     try {
-      const token = localStorage.getItem('token')
-
       const response = await axios.get(
         `${API_URL}api/v1/servicess`,
 
