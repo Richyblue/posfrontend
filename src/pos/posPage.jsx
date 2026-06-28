@@ -320,64 +320,26 @@ const POSPage = () => {
       alert(error.response?.data?.message || 'Card not found')
     }
   }
-  // Loyaltycard looup end
-  // const services = [
-  //   {
-  //     id: 1,
-  //     name: 'Hair Fixing',
-  //     price: 15000,
-  //   },
-  //   {
-  //     id: 2,
-  //     name: 'Pedicure',
-  //     price: 10000,
-  //   },
-  // ]
-
-  const productss = [
-    {
-      id: 1,
-      name: 'Shampoo',
-      sellingPrice: 3500,
-      quantity: 0,
-    },
-    {
-      id: 2,
-      name: 'Clipper',
-      sellingPrice: 25000,
-      quantity: 10,
-    },
-  ]
 
   const getService = async () => {
     const token = localStorage.getItem('token')
-    if (!token) {
-      console.error('No token found in localStorage')
-      return // Exit if token is missing
-    }
-    try {
-      const response = await axios.get(
-        `${API_URL}api/v1/servicess`,
 
-        {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
+    try {
+      const response = await axios.get(`${API_URL}api/v1/servicess`, {
+        headers: {
+          Authorization: `Bearer ${token}`,
         },
-      )
+      })
+
+      console.log('SERVICE RESPONSE:', response.data)
 
       setService(response.data.services)
     } catch (error) {
-      console.error(error)
+      console.log(error.response?.status)
+      console.log(error.response?.data)
+      console.log(error.response)
     }
   }
-  useEffect(() => {
-    const fetchData = async () => {
-      await getService()
-    }
-    fetchData()
-  }, [])
-
   // customers
 
   const getCustomer = async () => {
