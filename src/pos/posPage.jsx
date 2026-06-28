@@ -321,25 +321,36 @@ const POSPage = () => {
     }
   }
 
+
   const getService = async () => {
     const token = localStorage.getItem('token')
-
+    if (!token) {
+      console.error('No token found in localStorage')
+      return // Exit if token is missing
+    }
     try {
-      const response = await axios.get(`${API_URL}api/v1/servicess`, {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-      })
+      const response = await axios.get(
+        `${API_URL}api/v1/servicess`,
 
-      console.log('SERVICE RESPONSE:', response.data)
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        },
+      )
 
       setService(response.data.services)
     } catch (error) {
-      console.log(error.response?.status)
-      console.log(error.response?.data)
-      console.log(error.response)
+      console.error(error)
     }
   }
+  useEffect(() => {
+    const fetchData = async () => {
+      await getService()
+    }
+    fetchData()
+  }, [])
+
   // customers
 
   const getCustomer = async () => {
