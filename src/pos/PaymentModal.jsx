@@ -30,6 +30,8 @@ export default function PaymentModal({
   const [serviceProviderId, setServiceProviderId] = useState('')
 
   const [note, setNote] = useState('')
+  const [standTag, setStandTag] = useState('')
+  const [cardNumber, setCardNumber] = useState('')
 
   const handleSubmit = () => {
     onSubmit({
