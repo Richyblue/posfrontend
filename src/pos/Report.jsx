@@ -45,7 +45,7 @@ const Report = () => {
   const [providerFilter, setProviderFilter] = useState('')
   const [showReturnModal, setShowReturnModal] = useState(false)
 
-  const [selectedSale, setSelectedSale] = useState(null)
+  const [selectedSaleId, setSelectedSaleId] = useState(null)
 
   // STATES
   const [sales, setSales] = useState([])
@@ -64,8 +64,10 @@ const Report = () => {
   })
 
   const handleReturn = (sale) => {
-    setSelectedSale(sale)
-
+    console.log("Sale ID:", sale.id)
+  
+    setSelectedSaleId(sale.id)
+  
     setShowReturnModal(true)
   }
   // KPI CALCULATIONS AFTER FILTER
@@ -376,11 +378,11 @@ const Report = () => {
         </CTableBody>
       </CTable>
       <ReturnModal
-        show={showReturnModal}
-        onHide={() => setShowReturnModal(false)}
-        sale={selectedSale}
-        reload={getSalesReport}
-      />
+  show={showReturnModal}
+  onHide={() => setShowReturnModal(false)}
+  saleId={selectedSaleId}
+  reload={getSalesReport}
+/>
     </>
   )
 }
