@@ -38,11 +38,11 @@ const ReturnModal = ({ show, onHide, saleId, reload }) => {
   const [loading, setLoading] = useState(false)
   const [sale, setSale] = useState(null)
 
-  useEffect(() => {
-    if (show && saleId) {
-      getSale()
-    }
-  }, [show, saleId])
+  //   useEffect(() => {
+  //     if (show && saleId) {
+  //       getSale()
+  //     }
+  //   }, [show, saleId])
 
   const toggleItem = (index) => {
     const data = [...items]
@@ -103,6 +103,12 @@ const ReturnModal = ({ show, onHide, saleId, reload }) => {
       setLoading(false)
     }
   }
+  useEffect(() => {
+    const fetchData = async () => {
+      await getSale()
+    }
+    fetchData()
+  }, [show, saleId])
 
   const processReturn = async () => {
     try {
