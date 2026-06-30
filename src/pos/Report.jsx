@@ -7,6 +7,7 @@ import * as XLSX from 'xlsx'
 import { saveAs } from 'file-saver'
 
 import CIcon from '@coreui/icons-react'
+import ReturnModal from './ReturnModal'
 
 import { cilSearch, cilTrash, cilPencil, cilCloudDownload } from '@coreui/icons'
 
@@ -42,6 +43,9 @@ const Report = () => {
   const [statusFilter, setStatusFilter] = useState('')
   const [cashierFilter, setCashierFilter] = useState('')
   const [providerFilter, setProviderFilter] = useState('')
+  const [showReturnModal, setShowReturnModal] = useState(false)
+
+  const [selectedSale, setSelectedSale] = useState(null)
 
   // STATES
   const [sales, setSales] = useState([])
@@ -59,6 +63,11 @@ const Report = () => {
     )
   })
 
+  const handleReturn = (sale) => {
+    setSelectedSale(sale)
+
+    setShowReturnModal(true)
+  }
   // KPI CALCULATIONS AFTER FILTER
   const totalSales = filteredSales.reduce((sum, sale) => sum + Number(sale.totalAmount || 0), 0)
 
@@ -323,6 +332,8 @@ const Report = () => {
             <CTableHeaderCell>Status</CTableHeaderCell>
 
             <CTableHeaderCell>Date</CTableHeaderCell>
+
+            <CTableHeaderCell>Action</CTableHeaderCell>
           </CTableRow>
         </CTableHead>
 
@@ -355,10 +366,21 @@ const Report = () => {
               </CTableDataCell>
 
               <CTableDataCell>{new Date(sale.createdAt).toLocaleDateString()}</CTableDataCell>
+              <CTableDataCell>
+                <CButton color="warning" size="sm" onClick={() => handleReturn(sale)}>
+                  Return
+                </CButton>
+              </CTableDataCell>
             </CTableRow>
           ))}
         </CTableBody>
       </CTable>
+      <ReturnModal
+        show={showReturnModal}
+        onHide={() => setShowReturnModal(false)}
+        sale={selectedSale}
+        reload={getSalesReport}
+      />
     </>
   )
 }
