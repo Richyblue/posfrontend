@@ -43,7 +43,7 @@ const Logout = React.lazy(() => import('./auth/logout'))
 // Buttons
 const editProduct = React.lazy(() => import('./product/editProduct'))
 const salesReport = React.lazy(() => import('./pos/salesReport'))
-const Dropdowns = React.lazy(() => import('./views/buttons/dropdowns/Dropdowns'))
+const returnSales = React.lazy(() => import('./pos/Returns'))
 
 //Forms
 const ChecksRadios = React.lazy(() => import('./views/forms/checks-radios/ChecksRadios'))
@@ -94,7 +94,7 @@ export const routes = [
     roles: ['admin', 'manager'],
   },
 
-  { path: '/buttons/dropdowns', name: 'Dropdowns', element: Dropdowns },
+
   { path: '/charts', name: 'Charts', element: Charts },
   { path: '/forms', name: 'Forms', element: FormControl, exact: true },
   { path: '/forms/form-control', name: 'Form Control', element: FormControl },
@@ -186,6 +186,13 @@ export const routes = [
     name: 'Sales Report',
     element: salesReport,
     roles: ['cashier'],
+  },
+
+  {
+    path: '/returns',
+    name: 'Return Sales',
+    element: returnSales,
+    roles: ['admin', 'manager'],
   },
   // { path: '/pos', name: 'Pos', element: Pos },
 ]

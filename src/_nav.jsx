@@ -210,6 +210,13 @@ const _nav = [
     to: '/report',
     icon: <CIcon icon={cilChartPie} customClassName="nav-icon" />,
   },
+
+  {
+    component: CNavItem,
+    name: 'Return Sales',
+    to: '/returns',
+    icon: <CIcon icon={cilBarChart} customClassName="nav-icon" />,
+  },
   {
     component: CNavItem,
     name: 'Commissions',
