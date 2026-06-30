@@ -24,7 +24,8 @@ import {
   CCardBody,
 } from '@coreui/react'
 
-const ReturnModal = ({ show, onHide, sale, reload }) => {
+const ReturnModal = ({ show, onHide, saleId, reload }) => {
+  const API_URL = import.meta.env.VITE_BACKEND_URL
   const [items, setItems] = useState([])
 
   const [reason, setReason] = useState('')
@@ -34,21 +35,14 @@ const ReturnModal = ({ show, onHide, sale, reload }) => {
   const [refundType, setRefundType] = useState('refund')
 
   const [processing, setProcessing] = useState(false)
+  const [loading, setLoading] = useState(false)
+  const [sale, setSale] = useState(null)
 
   useEffect(() => {
-    if (!sale) return
-
-    console.log('Selected Sale:', sale)
-
-    const invoiceItems = (sale.SaleItems || []).map((item) => ({
-      ...item,
-      selected: false,
-      returnQty: item.quantity,
-      refund: Number(item.subtotal),
-    }))
-
-    setItems(invoiceItems)
-  }, [sale])
+    if (show && saleId) {
+      getSale()
+    }
+  }, [show, saleId])
 
   const toggleItem = (index) => {
     const data = [...items]
@@ -65,7 +59,10 @@ const ReturnModal = ({ show, onHide, sale, reload }) => {
 
     data[index].returnQty = qty
 
-    data[index].refund = qty * Number(data[index].price)
+    const unitPrice =
+      Number(data[index].price) || Number(data[index].subtotal) / Number(data[index].quantity)
+
+    data[index].refund = qty * unitPrice
 
     setItems(data)
   }
@@ -73,6 +70,39 @@ const ReturnModal = ({ show, onHide, sale, reload }) => {
   const totalRefund = items
     .filter((item) => item.selected)
     .reduce((sum, item) => sum + Number(item.refund), 0)
+
+  const getSale = async () => {
+    try {
+      setLoading(true)
+
+      const token = localStorage.getItem('token')
+
+      const response = await axios.get(`${API_URL}api/v1/report/${saleId}`, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      })
+
+      setSale(response.data.sale)
+
+      setItems(
+        (response.data.sale.SaleItems || []).map((item) => ({
+          ...item,
+          selected: false,
+          returnQty: item.quantity,
+          refund: Number(item.subtotal),
+        })),
+      )
+    } catch (error) {
+      Swal.fire({
+        icon: 'error',
+        title: 'Error',
+        text: error.response?.data?.message || 'Unable to load invoice.',
+      })
+    } finally {
+      setLoading(false)
+    }
+  }
 
   const processReturn = async () => {
     try {
@@ -84,6 +114,7 @@ const ReturnModal = ({ show, onHide, sale, reload }) => {
           itemType: item.itemType,
           quantity: Number(item.returnQty),
           price: Number(item.price),
+          subtotal: Number(item.refund),
         }))
 
       if (selectedItems.length === 0) {
@@ -131,6 +162,11 @@ const ReturnModal = ({ show, onHide, sale, reload }) => {
       reload()
 
       onHide()
+      setItems([])
+      setReason('')
+      setRemarks('')
+      setRefundType('refund')
+      setSale(null)
     } catch (error) {
       Swal.fire({
         icon: 'error',
@@ -140,6 +176,23 @@ const ReturnModal = ({ show, onHide, sale, reload }) => {
     } finally {
       setProcessing(false)
     }
+  }
+
+  const closeModal = () => {
+    setItems([])
+    setReason('')
+    setRemarks('')
+    setRefundType('refund')
+    setSale(null)
+
+    onHide()
+  }
+  if (loading) {
+    return (
+      <CModal visible={show} onClose={closeModal}>
+        <CModalBody className="text-center py-5">Loading invoice...</CModalBody>
+      </CModal>
+    )
   }
 
   return (
@@ -220,7 +273,9 @@ const ReturnModal = ({ show, onHide, sale, reload }) => {
                     />
                   </CTableDataCell>
 
-                  <CTableDataCell>₦{Number(item.refund).toLocaleString()}</CTableDataCell>
+                  <CTableDataCell>
+                    {item.selected ? `₦${Number(item.refund).toLocaleString()}` : '-'}
+                  </CTableDataCell>
                 </CTableRow>
               ))
             ) : (
@@ -294,11 +349,15 @@ const ReturnModal = ({ show, onHide, sale, reload }) => {
       </CModalBody>
 
       <CModalFooter>
-        <CButton color="secondary" onClick={onHide}>
+        <CButton color="secondary" onClick={closeModal}>
           Cancel
         </CButton>
 
-        <CButton color="danger" disabled={processing || totalRefund <= 0} onClick={processReturn}>
+        <CButton
+          color="danger"
+          disabled={processing || totalRefund <= 0 || !reason}
+          onClick={processReturn}
+        >
           {processing ? 'Processing...' : 'Process Return'}
         </CButton>
       </CModalFooter>
