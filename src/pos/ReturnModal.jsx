@@ -72,6 +72,7 @@ const ReturnModal = ({ show, onHide, saleId, reload }) => {
     .reduce((sum, item) => sum + Number(item.refund), 0)
 
   const getSale = async () => {
+    if (!saleId) return
     try {
       setLoading(true)
 
