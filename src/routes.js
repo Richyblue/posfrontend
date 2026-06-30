@@ -99,7 +99,7 @@ export const routes = [
   { path: '/forms', name: 'Forms', element: FormControl, exact: true },
   { path: '/forms/form-control', name: 'Form Control', element: FormControl },
   { path: '/forms/select', name: 'Select', element: Select },
-  { path: '/setting', name: 'Settings', element: Settings, roles: ['admin'] },
+  { path: '/setting', name: 'Settings', element: Settings, roles: ['admin', 'manager'] },
   { path: '/report', name: 'Report', element: Reports, roles: ['admin', 'manager'] },
   {
     path: '/commission',
@@ -151,7 +151,7 @@ export const routes = [
     roles: ['admin', 'manager'],
   },
   { path: '/viewStaff', name: 'View Staff', element: vStaff, roles: ['admin', 'manager'] },
-  { path: '/staff', name: 'Staff', element: Staff, roles: ['admin'] },
+  { path: '/staff', name: 'Staff', element: Staff, roles: ['admin', 'manager'] },
   {
     path: '/editStaff/:id',
     name: 'Edit Staff',
