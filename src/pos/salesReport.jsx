@@ -298,7 +298,7 @@ const MySales = () => {
 
                     <CTableDataCell>{sale.StandTag || '-'}</CTableDataCell>
 
-                    <CTableDataCell>{sale.serviceProviderId || '-'}</CTableDataCell>
+                    <CTableDataCell>{sale.serviceProvider || '-'}</CTableDataCell>
 
                     <CTableDataCell>{sale.paymentMethod}</CTableDataCell>
 
