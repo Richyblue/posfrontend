@@ -64,10 +64,10 @@ const Report = () => {
   })
 
   const handleReturn = (sale) => {
-    console.log("Sale ID:", sale.id)
-  
+    console.log('Sale ID:', sale.id)
+
     setSelectedSaleId(sale.id)
-  
+
     setShowReturnModal(true)
   }
   // KPI CALCULATIONS AFTER FILTER
@@ -378,11 +378,11 @@ const Report = () => {
         </CTableBody>
       </CTable>
       <ReturnModal
-  show={showReturnModal}
-  onHide={() => setShowReturnModal(false)}
-  saleId={selectedSaleId}
-  reload={getSalesReport}
-/>
+        show={showReturnModal}
+        onHide={() => setShowReturnModal(false)}
+        saleId={selectedSaleId}
+        reload={getSalesReport}
+      />
     </>
   )
 }

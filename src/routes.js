@@ -94,7 +94,6 @@ export const routes = [
     roles: ['admin', 'manager'],
   },
 
-
   { path: '/charts', name: 'Charts', element: Charts },
   { path: '/forms', name: 'Forms', element: FormControl, exact: true },
   { path: '/forms/form-control', name: 'Form Control', element: FormControl },
@@ -185,7 +184,7 @@ export const routes = [
     path: '/salesReport',
     name: 'Sales Report',
     element: salesReport,
-    roles: ['cashier'],
+    roles: ['cashier', 'admin'],
   },
 
   {
