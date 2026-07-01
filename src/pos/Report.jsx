@@ -51,6 +51,7 @@ const Report = () => {
   const [sales, setSales] = useState([])
   const [search, setSearch] = useState('')
   const [period, setPeriod] = useState('today')
+  const [report, setReport] = useState({})
 
   // FILTER FIRST
   const filteredSales = sales.filter((sale) => {
@@ -71,36 +72,58 @@ const Report = () => {
     setShowReturnModal(true)
   }
   // KPI CALCULATIONS AFTER FILTER
-  const totalSales = filteredSales.reduce((sum, sale) => sum + Number(sale.totalAmount || 0), 0)
+  // const totalSales = filteredSales.reduce((sum, sale) => sum + Number(sale.totalAmount || 0), 0)
 
-  const totalTransactions = filteredSales.length
+  // const totalTransactions = filteredSales.length
 
-  const totalServiceSales = filteredSales.reduce((sum, sale) => {
-    const serviceTotal =
-      sale.items?.reduce(
-        (itemSum, item) =>
-          item.saleType === 'service' ? itemSum + Number(item.subtotal || 0) : itemSum,
-        0,
-      ) || 0
+  // const totalServiceSales = filteredSales.reduce((sum, sale) => {
+  //   const serviceTotal =
+  //     sale.items?.reduce(
+  //       (itemSum, item) =>
+  //         item.saleType === 'service' ? itemSum + Number(item.subtotal || 0) : itemSum,
+  //       0,
+  //     ) || 0
 
-    return sum + serviceTotal
-  }, 0)
+  //   return sum + serviceTotal
+  // }, 0)
 
-  const productProfit = filteredSales.reduce((sum, sale) => {
-    const profit =
-      sale.items?.reduce((itemSum, item) => {
-        if (item.saleType !== 'product') return itemSum
+  // const productProfit = filteredSales.reduce((sum, sale) => {
+  //   const profit =
+  //     sale.items?.reduce((itemSum, item) => {
+  //       if (item.saleType !== 'product') return itemSum
 
-        return itemSum + (Number(item.price) - Number(item.costPrice)) * Number(item.quantity)
-      }, 0) || 0
+  //       return itemSum + (Number(item.price) - Number(item.costPrice)) * Number(item.quantity)
+  //     }, 0) || 0
 
-    return sum + profit
-  }, 0)
+  //   return sum + profit
+  // }, 0)
 
-  const ownerProfit = totalServiceSales * 0.7
+  // const ownerProfit = totalServiceSales * 0.7
 
-  const staffCommissionPool = totalServiceSales * 0.3
-  const totalProfits = ownerProfit + productProfit
+  // const staffCommissionPool = totalServiceSales * 0.3
+  // const totalProfits = ownerProfit + productProfit
+
+  const grossSales = report.grossSales || 0
+
+  const totalReturns = report.totalReturns || 0
+
+  const netSales = report.netSales || 0
+
+  const totalTransactions = report.totalTransactions || 0
+
+  const totalServiceSales = report.totalServiceSales || 0
+
+  const totalProductSales = report.totalProductSales || 0
+
+  const productProfit = report.productProfit || 0
+
+  const ownerProfit = report.ownerProfit || 0
+
+  const staffCommissionPool = report.staffShare || 0
+
+  const totalProfits = report.totalProfit || 0
+
+  const averageSale = totalTransactions > 0 ? netSales / totalTransactions : 0
   const getSalesReport = async () => {
     try {
       setLoading(true)
@@ -118,6 +141,8 @@ const Report = () => {
           Authorization: `Bearer ${token}`,
         },
       })
+
+      setReport(response.data)
 
       setSales(response.data.sales)
     } catch (error) {
@@ -150,7 +175,7 @@ const Report = () => {
 
   // const totalTransactions = sales.length
 
-  const averageSale = totalTransactions > 0 ? totalSales / totalTransactions : 0
+  // const averageSale = totalTransactions > 0 ? totalSales / totalTransactions : 0
 
   // const totalServiceSales = filteredSales.reduce((sum, sale) => {
   //   const serviceTotal =
@@ -202,10 +227,27 @@ const Report = () => {
     <>
       <CRow className="mb-4">
         <CCol md={3}>
+          <h6>Gross Sales</h6>
+
+          <h3 className="text-success">₦{grossSales.toLocaleString()}</h3>
+        </CCol>
+
+        <CCol md={3}>
           <CCard>
             <CCardBody>
-              <h6>Total Sales</h6>
-              <h3>₦{totalSales.toLocaleString()}</h3>
+              <h6>Total Returns</h6>
+
+              <h3 className="text-danger">₦{totalReturns.toLocaleString()}</h3>
+            </CCardBody>
+          </CCard>
+        </CCol>
+
+        <CCol md={3}>
+          <CCard>
+            <CCardBody>
+              <h6>Net Sales</h6>
+
+              <h3 className="text-primary">₦{netSales.toLocaleString()}</h3>
             </CCardBody>
           </CCard>
         </CCol>
@@ -214,25 +256,8 @@ const Report = () => {
           <CCard>
             <CCardBody>
               <h6>Transactions</h6>
+
               <h3>{totalTransactions}</h3>
-            </CCardBody>
-          </CCard>
-        </CCol>
-
-        <CCol md={3}>
-          <CCard>
-            <CCardBody>
-              <h6>Total Profit</h6>
-              <h3>₦{productSales.toLocaleString()}</h3>
-            </CCardBody>
-          </CCard>
-        </CCol>
-
-        <CCol md={3}>
-          <CCard>
-            <CCardBody>
-              <h6>Average Sale</h6>
-              <h3>₦{averageSale.toLocaleString()}</h3>
             </CCardBody>
           </CCard>
         </CCol>
@@ -241,8 +266,9 @@ const Report = () => {
         <CCol md={3}>
           <CCard>
             <CCardBody>
-              <h6>Total Sales</h6>
-              <h3>₦{totalProfits.toLocaleString()}</h3>
+              <h6>Product Profit</h6>
+
+              <h3>₦{productProfit.toLocaleString()}</h3>
             </CCardBody>
           </CCard>
         </CCol>
@@ -251,6 +277,7 @@ const Report = () => {
           <CCard>
             <CCardBody>
               <h6>Service Revenue</h6>
+
               <h3>₦{totalServiceSales.toLocaleString()}</h3>
             </CCardBody>
           </CCard>
@@ -260,6 +287,7 @@ const Report = () => {
           <CCard>
             <CCardBody>
               <h6>Owner Profit (70%)</h6>
+
               <h3 className="text-success">₦{ownerProfit.toLocaleString()}</h3>
             </CCardBody>
           </CCard>
@@ -269,6 +297,7 @@ const Report = () => {
           <CCard>
             <CCardBody>
               <h6>Staff Share (30%)</h6>
+
               <h3 className="text-primary">₦{staffCommissionPool.toLocaleString()}</h3>
             </CCardBody>
           </CCard>
