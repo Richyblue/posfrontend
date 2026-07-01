@@ -22,7 +22,7 @@ import {
   CSpinner,
 } from '@coreui/react'
 
-// import ViewReturnModal from './ViewReturnModal'
+import ViewReturnModal from './ViewReturnModal'
 
 const Returns = () => {
   const API_URL = import.meta.env.VITE_BACKEND_URL
