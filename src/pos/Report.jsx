@@ -227,9 +227,13 @@ const Report = () => {
     <>
       <CRow className="mb-4">
         <CCol md={3}>
-          <h6>Gross Sales</h6>
+          <CCard>
+            <CCardBody>
+              <h6>Gross Sales</h6>
 
-          <h3 className="text-success">₦{grossSales.toLocaleString()}</h3>
+              <h3 className="text-success">₦{grossSales.toLocaleString()}</h3>
+            </CCardBody>
+          </CCard>
         </CCol>
 
         <CCol md={3}>
@@ -398,8 +402,13 @@ const Report = () => {
 
               <CTableDataCell>{new Date(sale.createdAt).toLocaleDateString()}</CTableDataCell>
               <CTableDataCell>
-                <CButton color="warning" size="sm" onClick={() => handleReturn(sale)}>
-                  Return
+                <CButton
+                  color="warning"
+                  size="sm"
+                  disabled={sale.status === 'refunded'}
+                  onClick={() => handleReturn(sale)}
+                >
+                  {sale.status === 'refunded' ? 'Returned' : 'Return'}
                 </CButton>
               </CTableDataCell>
             </CTableRow>

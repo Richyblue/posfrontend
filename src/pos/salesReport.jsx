@@ -43,6 +43,11 @@ const MySales = () => {
       const token = localStorage.getItem('token')
 
       const response = await axios.get(`${API_URL}api/v1/reports/my-sales`, {
+        params: {
+          period,
+          startDate,
+          endDate,
+        },
         headers: {
           Authorization: `Bearer ${token}`,
         },
@@ -124,9 +129,19 @@ const MySales = () => {
         <CCol md={3}>
           <CCard className="border-start border-success border-4 shadow-sm">
             <CCardBody>
-              <small>Total Sales</small>
+              <small>Gross Sales</small>
 
-              <h3>₦{Number(report.totalSales || 0).toLocaleString()}</h3>
+              <h3>₦{Number(report.grossSales || 0).toLocaleString()}</h3>
+            </CCardBody>
+          </CCard>
+        </CCol>
+
+        <CCol md={3}>
+          <CCard className="border-start border-danger border-4 shadow-sm">
+            <CCardBody>
+              <small>Returns</small>
+
+              <h3>₦{Number(report.totalReturns || 0).toLocaleString()}</h3>
             </CCardBody>
           </CCard>
         </CCol>
@@ -134,19 +149,9 @@ const MySales = () => {
         <CCol md={3}>
           <CCard className="border-start border-primary border-4 shadow-sm">
             <CCardBody>
-              <small>Transactions</small>
+              <small>Net Sales</small>
 
-              <h3>{report.totalTransactions || 0}</h3>
-            </CCardBody>
-          </CCard>
-        </CCol>
-
-        <CCol md={3}>
-          <CCard className="border-start border-warning border-4 shadow-sm">
-            <CCardBody>
-              <small>Customers</small>
-
-              <h3>{report.customersServed || 0}</h3>
+              <h3>₦{Number(report.netSales || 0).toLocaleString()}</h3>
             </CCardBody>
           </CCard>
         </CCol>
@@ -154,18 +159,17 @@ const MySales = () => {
         <CCol md={3}>
           <CCard className="border-start border-info border-4 shadow-sm">
             <CCardBody>
-              <small>Items Sold</small>
+              <small>Transactions</small>
 
-              <h3>{report.itemsSold || 0}</h3>
+              <h3>{report.totalTransactions || 0}</h3>
             </CCardBody>
           </CCard>
         </CCol>
       </CRow>
-
       {/* Payment Breakdown */}
 
       <CRow className="mb-4">
-        <CCol md={4}>
+        <CCol md={3}>
           <CCard className="shadow-sm">
             <CCardBody>
               <small>Cash Sales</small>
@@ -175,7 +179,7 @@ const MySales = () => {
           </CCard>
         </CCol>
 
-        <CCol md={4}>
+        <CCol md={3}>
           <CCard className="shadow-sm">
             <CCardBody>
               <small>Transfer Sales</small>
@@ -185,7 +189,7 @@ const MySales = () => {
           </CCard>
         </CCol>
 
-        <CCol md={4}>
+        <CCol md={3}>
           <CCard className="shadow-sm">
             <CCardBody>
               <small>POS Sales</small>
@@ -194,8 +198,59 @@ const MySales = () => {
             </CCardBody>
           </CCard>
         </CCol>
+
+        <CCol md={3}>
+          <CCard className="shadow-sm">
+            <CCardBody>
+              <small>Mixed Sales</small>
+
+              <h4>₦{Number(report.mixedSales || 0).toLocaleString()}</h4>
+            </CCardBody>
+          </CCard>
+        </CCol>
       </CRow>
 
+      <CRow className="mb-4">
+        <CCol md={3}>
+          <CCard className="shadow-sm border-start border-warning border-4">
+            <CCardBody>
+              <small>Customers Served</small>
+
+              <h4>{report.customersServed || 0}</h4>
+            </CCardBody>
+          </CCard>
+        </CCol>
+
+        <CCol md={3}>
+          <CCard className="shadow-sm border-start border-info border-4">
+            <CCardBody>
+              <small>Items Sold</small>
+
+              <h4>{report.itemsSold || 0}</h4>
+            </CCardBody>
+          </CCard>
+        </CCol>
+
+        <CCol md={3}>
+          <CCard className="shadow-sm border-start border-success border-4">
+            <CCardBody>
+              <small>Average Sale</small>
+
+              <h4>₦{Number(report.averageSale || 0).toLocaleString()}</h4>
+            </CCardBody>
+          </CCard>
+        </CCol>
+
+        <CCol md={3}>
+          <CCard className="shadow-sm border-start border-primary border-4">
+            <CCardBody>
+              <small>Service Revenue</small>
+
+              <h4>₦{Number(report.totalServiceSales || 0).toLocaleString()}</h4>
+            </CCardBody>
+          </CCard>
+        </CCol>
+      </CRow>
       {/* Search */}
 
       <CCard className="shadow-sm border-0">
