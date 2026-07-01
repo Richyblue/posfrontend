@@ -274,6 +274,11 @@ const MySales = () => {
                   <CTableHeaderCell>Receipt</CTableHeaderCell>
 
                   <CTableHeaderCell>Customer</CTableHeaderCell>
+                  <CTableHeaderCell>Card No.</CTableHeaderCell>
+
+                  <CTableHeaderCell>Stand Tag</CTableHeaderCell>
+
+                  <CTableHeaderCell>Staff ID</CTableHeaderCell>
 
                   <CTableHeaderCell>Payment</CTableHeaderCell>
 
@@ -289,6 +294,11 @@ const MySales = () => {
                     <CTableDataCell>{sale.receiptNumber}</CTableDataCell>
 
                     <CTableDataCell>{sale.customer}</CTableDataCell>
+                    <CTableDataCell>{sale.CardNumber || '-'}</CTableDataCell>
+
+                    <CTableDataCell>{sale.StandTag || '-'}</CTableDataCell>
+
+                    <CTableDataCell>{sale.serviceProviderId || '-'}</CTableDataCell>
 
                     <CTableDataCell>{sale.paymentMethod}</CTableDataCell>
 
