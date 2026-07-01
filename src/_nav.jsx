@@ -232,8 +232,8 @@ const _nav = [
 
   {
     component: CNavItem,
-    name: 'Settings',
-    to: '/setting',
+    name: 'Return sales',
+    to: '/returns',
     icon: <CIcon icon={cilSettings} customClassName="nav-icon" />,
   },
   {
