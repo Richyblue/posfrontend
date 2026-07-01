@@ -213,7 +213,7 @@ const _nav = [
 
   {
     component: CNavItem,
-    name: 'Return',
+    name: 'Return Sales',
     to: '/returns',
     icon: <CIcon icon={cilBarChart} customClassName="nav-icon" />,
   },
@@ -232,8 +232,8 @@ const _nav = [
 
   {
     component: CNavItem,
-    name: 'Return sales',
-    to: '/returns',
+    name: 'Settings',
+    to: '/setting',
     icon: <CIcon icon={cilSettings} customClassName="nav-icon" />,
   },
   {
