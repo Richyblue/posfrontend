@@ -385,11 +385,9 @@ const Report = () => {
               </CTableDataCell>
 
               <CTableDataCell>
-                <div>
-                  <strong>Card:</strong> {sale.cardNumber || '-'}
-                  <br />
-                  <small className="text-muted">Stand: {sale.standTag || '-'}</small>
-                </div>
+                <strong>Card:</strong> {sale.CardNumber || '-'}
+                <br />
+                <small className="text-muted">Stand: {sale.StandTag || '-'}</small>
               </CTableDataCell>
 
               <CTableDataCell>₦{Number(sale.totalAmount).toLocaleString()}</CTableDataCell>
