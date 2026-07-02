@@ -84,9 +84,11 @@ const Commission = () => {
     }
   }
   useEffect(() => {
-    getCommissions()
-
-    getStaffs()
+    const fetchData = async () => {
+      await getCommissions()
+      getStaffs()
+    }
+    fetchData()
   }, [])
 
   const filteredCommissions = selectedStaff
