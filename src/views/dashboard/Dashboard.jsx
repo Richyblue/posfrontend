@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react'
 import axios from 'axios'
 import Swal from 'sweetalert2'
 import CIcon from '@coreui/icons-react'
+import KpiCard from './KpiCard'
 
 import {
   CAvatar,
@@ -50,40 +51,91 @@ ChartJS.register(CategoryScale, LinearScale, PointElement, LineElement, Title, T
 const Dashboard = () => {
   const API_URL = import.meta.env.VITE_BACKEND_URL
   const [dashboard, setDashboard] = useState({
+    /*
+    ==========================================
+    TODAY
+    ==========================================
+    */
     todaySales: 0,
-
+    todayProfit: 0,
     todayTransactions: 0,
-
+    todayCustomers: 0,
     todayExpenses: 0,
-
     todayCommission: 0,
 
-    todayProfit: 0,
-
+    /*
+    ==========================================
+    MONTH
+    ==========================================
+    */
     monthSales: 0,
-
+    monthProfit: 0,
     monthExpenses: 0,
-
     monthCommission: 0,
 
-    monthProfit: 0,
+    /*
+    ==========================================
+    SALES ANALYTICS
+    ==========================================
+    */
+    grossSales: 0,
+    totalReturns: 0,
+    netSales: 0,
+    averageSale: 0,
 
+    /*
+    ==========================================
+    REVENUE
+    ==========================================
+    */
+    serviceRevenue: 0,
+    productRevenue: 0,
+    ownerProfit: 0,
+    staffShare: 0,
+
+    /*
+    ==========================================
+    PAYMENT BREAKDOWN
+    ==========================================
+    */
+    cashSales: 0,
+    transferSales: 0,
+    posSales: 0,
+    mixedSales: 0,
+
+    /*
+    ==========================================
+    BUSINESS
+    ==========================================
+    */
     totalProducts: 0,
-
     totalCustomers: 0,
-
     totalStaff: 0,
+    inventoryValue: 0,
 
+    /*
+    ==========================================
+    ALERTS
+    ==========================================
+    */
     lowStockProducts: 0,
-
     outOfStockProducts: 0,
-
     pendingCommission: 0,
+    totalAlerts: 0,
 
+    /*
+    ==========================================
+    TABLES
+    ==========================================
+    */
     topProducts: [],
-
     topStaff: [],
 
+    /*
+    ==========================================
+    CHARTS
+    ==========================================
+    */
     sevenDaysSales: [],
   })
   const {
@@ -201,176 +253,204 @@ const Dashboard = () => {
       )}
       <CRow className="mb-4">
         <CCol md={3}>
-          <CCard className="shadow-sm border-0">
-            <CCardBody>
-              <div className="d-flex justify-content-between align-items-center">
-                <div>
-                  <div className="text-medium-emphasis">Today's Sales</div>
-                  <h3 className="fw-bold mt-2">
-                    ₦{Number(dashboard?.todaySales || 0).toLocaleString()}
-                  </h3>
-                </div>
-
-                <CIcon icon={cilMoney} size="xl" className="text-success" />
-              </div>
-            </CCardBody>
-          </CCard>
+          <KpiCard
+            title="Today's Sales"
+            value={money(dashboard.todaySales)}
+            icon={cilMoney}
+            color="success"
+          />
         </CCol>
 
         <CCol md={3}>
-          <CCard className="shadow-sm border-0">
-            <CCardBody>
-              <div className="d-flex justify-content-between align-items-center">
-                <div>
-                  <div className="text-medium-emphasis">Today's Profit</div>
-                  <h3 className="fw-bold mt-2">
-                    ₦{Number(dashboard?.todayProfit || 0).toLocaleString()}
-                  </h3>
-                </div>
-
-                <CIcon icon={cilDollar} size="xl" className="text-primary" />
-              </div>
-            </CCardBody>
-          </CCard>
+          <KpiCard
+            title="Today's Profit"
+            value={money(dashboard.todayProfit)}
+            icon={cilDollar}
+            color="primary"
+          />
         </CCol>
 
         <CCol md={3}>
-          <CCard className="shadow-sm border-0">
-            <CCardBody>
-              <div className="d-flex justify-content-between align-items-center">
-                <div>
-                  <div className="text-medium-emphasis">Transactions</div>
-                  <h3 className="fw-bold mt-2">{dashboard?.todayTransactions || 0}</h3>
-                </div>
-
-                <CIcon icon={cilCart} size="xl" className="text-info" />
-              </div>
-            </CCardBody>
-          </CCard>
+          <KpiCard
+            title="Transactions"
+            value={dashboard.todayTransactions}
+            icon={cilCart}
+            color="info"
+          />
         </CCol>
 
         <CCol md={3}>
-          <CCard className="shadow-sm border-0">
-            <CCardBody>
-              <div className="d-flex justify-content-between align-items-center">
-                <div>
-                  <div className="text-medium-emphasis">Pending Commission</div>
-                  <h3 className="fw-bold mt-2">
-                    ₦{Number(dashboard?.pendingCommission || 0).toLocaleString()}
-                  </h3>
-                </div>
-
-                <CIcon icon={cilPeople} size="xl" className="text-warning" />
-              </div>
-            </CCardBody>
-          </CCard>
+          <KpiCard
+            title="Today's Customers"
+            value={dashboard.todayCustomers}
+            icon={cilPeople}
+            color="warning"
+          />
         </CCol>
       </CRow>
       <CRow className="mb-4">
-        <CCol md={3}>
-          <CCard className="shadow-sm border-0">
-            <CCardBody>
-              <div className="d-flex justify-content-between align-items-center">
-                <div>
-                  <div className="text-medium-emphasis">Monthly Sales</div>
-                  <h3 className="fw-bold mt-2">
-                    ₦{Number(dashboard?.monthSales || 0).toLocaleString()}
-                  </h3>
-                </div>
+        <KpiCard
+          title="Monthly Sales"
+          value={money(dashboard.monthSales)}
+          icon={cilMoney}
+          color="success"
+        />
 
-                <CIcon icon={cilMoney} size="xl" className="text-success" />
-              </div>
-            </CCardBody>
-          </CCard>
-        </CCol>
+        <KpiCard
+          title="Monthly Profit"
+          value={money(dashboard.monthProfit)}
+          icon={cilChartLine}
+          color="primary"
+        />
 
-        <CCol md={3}>
-          <CCard className="shadow-sm border-0">
-            <CCardBody>
-              <div className="d-flex justify-content-between align-items-center">
-                <div>
-                  <div className="text-medium-emphasis">Monthly Profit</div>
-                  <h3 className="fw-bold mt-2">
-                    ₦{Number(dashboard?.monthProfit || 0).toLocaleString()}
-                  </h3>
-                </div>
+        <KpiCard
+          title="Monthly Expenses"
+          value={money(dashboard.monthExpenses)}
+          icon={cilWarning}
+          color="danger"
+        />
 
-                <CIcon icon={cilChartLine} size="xl" className="text-primary" />
-              </div>
-            </CCardBody>
-          </CCard>
-        </CCol>
-
-        <CCol md={3}>
-          <CCard className="shadow-sm border-0">
-            <CCardBody>
-              <div className="d-flex justify-content-between align-items-center">
-                <div>
-                  <div className="text-medium-emphasis">Monthly Expenses</div>
-                  <h3 className="fw-bold mt-2">
-                    ₦{Number(dashboard?.monthExpenses || 0).toLocaleString()}
-                  </h3>
-                </div>
-
-                <CIcon icon={cilWarning} size="xl" className="text-danger" />
-              </div>
-            </CCardBody>
-          </CCard>
-        </CCol>
-
-        <CCol md={3}>
-          <CCard className="shadow-sm border-0">
-            <CCardBody>
-              <div className="d-flex justify-content-between align-items-center">
-                <div>
-                  <div className="text-medium-emphasis">Monthly Commission</div>
-                  <h3 className="fw-bold mt-2">
-                    ₦{Number(dashboard?.monthCommission || 0).toLocaleString()}
-                  </h3>
-                </div>
-
-                <CIcon icon={cilUser} size="xl" className="text-warning" />
-              </div>
-            </CCardBody>
-          </CCard>
-        </CCol>
+        <KpiCard
+          title="Monthly Commission"
+          value={money(dashboard.monthCommission)}
+          icon={cilUser}
+          color="warning"
+        />
       </CRow>
       <CRow className="mb-4">
-        <CCol md={3}>
-          <CCard className="shadow-sm border-0">
-            <CCardBody>
-              <div className="text-medium-emphasis">Products</div>
-              <h3 className="fw-bold mt-2">{dashboard?.totalProducts || 0}</h3>
-            </CCardBody>
-          </CCard>
-        </CCol>
+        <KpiCard
+          title="Gross Sales"
+          value={money(dashboard.grossSales)}
+          icon={cilMoney}
+          color="success"
+        />
 
-        <CCol md={3}>
-          <CCard className="shadow-sm border-0">
-            <CCardBody>
-              <div className="text-medium-emphasis">Customers</div>
-              <h3 className="fw-bold mt-2">{dashboard?.totalCustomers || 0}</h3>
-            </CCardBody>
-          </CCard>
-        </CCol>
+        <KpiCard
+          title="Returns"
+          value={money(dashboard.totalReturns)}
+          icon={cilWarning}
+          color="danger"
+        />
 
-        <CCol md={3}>
-          <CCard className="shadow-sm border-0">
-            <CCardBody>
-              <div className="text-medium-emphasis">Staff</div>
-              <h3 className="fw-bold mt-2">{dashboard?.totalStaff || 0}</h3>
-            </CCardBody>
-          </CCard>
-        </CCol>
+        <KpiCard
+          title="Net Sales"
+          value={money(dashboard.netSales)}
+          icon={cilDollar}
+          color="primary"
+        />
 
-        <CCol md={3}>
-          <CCard className="shadow-sm border-0">
-            <CCardBody>
-              <div className="text-medium-emphasis">Low Stock</div>
-              <h3 className="fw-bold mt-2 text-danger">{dashboard?.lowStockProducts || 0}</h3>
-            </CCardBody>
-          </CCard>
-        </CCol>
+        <KpiCard
+          title="Average Sale"
+          value={money(dashboard.averageSale)}
+          icon={cilChartLine}
+          color="info"
+        />
+      </CRow>
+      <CRow className="mb-4">
+        <KpiCard
+          title="Service Revenue"
+          value={money(dashboard.serviceRevenue)}
+          icon={cilUserFemale}
+          color="success"
+        />
+
+        <KpiCard
+          title="Product Revenue"
+          value={money(dashboard.productRevenue)}
+          icon={cilBasket}
+          color="info"
+        />
+
+        <KpiCard
+          title="Owner Profit"
+          value={money(dashboard.ownerProfit)}
+          icon={cilDollar}
+          color="primary"
+        />
+
+        <KpiCard
+          title="Staff Share"
+          value={money(dashboard.staffShare)}
+          icon={cilPeople}
+          color="warning"
+        />
+      </CRow>
+      <CRow className="mb-4">
+        <KpiCard
+          title="Cash Sales"
+          value={money(dashboard.cashSales)}
+          icon={cilMoney}
+          color="success"
+        />
+
+        <KpiCard
+          title="Transfer Sales"
+          value={money(dashboard.transferSales)}
+          icon={cilDollar}
+          color="primary"
+        />
+
+        <KpiCard title="POS Sales" value={money(dashboard.posSales)} icon={cilCart} color="info" />
+
+        <KpiCard
+          title="Mixed Sales"
+          value={money(dashboard.mixedSales)}
+          icon={cilBasket}
+          color="warning"
+        />
+      </CRow>
+      <CRow className="mb-4">
+        <KpiCard
+          title="Products"
+          value={dashboard.totalProducts}
+          icon={cilBasket}
+          color="primary"
+        />
+
+        <KpiCard
+          title="Customers"
+          value={dashboard.totalCustomers}
+          icon={cilPeople}
+          color="success"
+        />
+
+        <KpiCard title="Staff" value={dashboard.totalStaff} icon={cilUser} color="warning" />
+
+        <KpiCard
+          title="Inventory Value"
+          value={money(dashboard.inventoryValue)}
+          icon={cilMoney}
+          color="info"
+        />
+      </CRow>
+      <CRow className="mb-4">
+        <KpiCard
+          title="Low Stock"
+          value={dashboard.lowStockProducts}
+          icon={cilWarning}
+          color="warning"
+        />
+
+        <KpiCard
+          title="Out Of Stock"
+          value={dashboard.outOfStockProducts}
+          icon={cilWarning}
+          color="danger"
+        />
+
+        <KpiCard
+          title="Pending Commission"
+          value={money(dashboard.pendingCommission)}
+          icon={cilPeople}
+          color="primary"
+        />
+
+        <KpiCard
+          title="Total Alerts"
+          value={dashboard.totalAlerts}
+          icon={cilWarning}
+          color="danger"
+        />
       </CRow>{' '}
       <CCard className="p-3">
         <Line
