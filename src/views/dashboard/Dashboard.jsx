@@ -477,7 +477,7 @@ const Dashboard = () => {
               gradient.addColorStop(1, 'rgba(25,135,84,0)')
 
               return {
-                labels: dashboard.sevenDaysSales.map((d) => d.date),
+                labels: (dashboard.sevenDaysSales || []).map((d) => d.date),
 
                 datasets: [
                   {
