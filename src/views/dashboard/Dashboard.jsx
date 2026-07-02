@@ -30,15 +30,12 @@ import {
   LinearScale,
   PointElement,
   LineElement,
-  ArcElement,
   Title,
   Tooltip,
   Legend,
 } from 'chart.js'
 
 import { Line } from 'react-chartjs-2'
-import { Doughnut } from 'react-chartjs-2'
-import { Pie } from 'react-chartjs-2'
 import {
   cilMoney,
   cilDollar,
@@ -50,16 +47,7 @@ import {
   cilChartLine,
   cilUserFemale,
 } from '@coreui/icons'
-ChartJS.register(
-  CategoryScale,
-  LinearScale,
-  PointElement,
-  LineElement,
-  ArcElement,
-  Title,
-  Tooltip,
-  Legend,
-)
+ChartJS.register(CategoryScale, LinearScale, PointElement, LineElement, Title, Tooltip, Legend)
 const Dashboard = () => {
   const API_URL = import.meta.env.VITE_BACKEND_URL
   const [dashboard, setDashboard] = useState({
@@ -456,221 +444,21 @@ const Dashboard = () => {
           color="danger"
         />
       </CRow>{' '}
-      <CCard className="shadow-sm border-0 rounded-4 mb-4">
-        <CCardBody>
-          <div className="d-flex justify-content-between align-items-center mb-3">
-            <div>
-              <h5 className="mb-0 fw-bold">Sales Trend</h5>
+      <CCard className="p-3">
+        <Line
+          data={{
+            labels: dashboard.sevenDaysSales.map((d) => d.date),
 
-              <small className="text-medium-emphasis">Last 7 Days Market Performance</small>
-            </div>
-          </div>
+            datasets: [
+              {
+                label: 'Sales',
 
-          <Line
-            data={(canvas) => {
-              const ctx = canvas.ctx
-
-              const gradient = ctx.createLinearGradient(0, 0, 0, 350)
-
-              gradient.addColorStop(0, 'rgba(25,135,84,0.35)')
-
-              gradient.addColorStop(1, 'rgba(25,135,84,0)')
-
-              return {
-                labels: (dashboard.sevenDaysSales || []).map((d) => d.date),
-
-                datasets: [
-                  {
-                    label: 'Sales',
-
-                    data: dashboard.sevenDaysSales.map((d) => d.sales),
-
-                    fill: true,
-
-                    backgroundColor: gradient,
-
-                    borderColor: '#198754',
-
-                    borderWidth: 4,
-
-                    tension: 0.4,
-
-                    pointRadius: 5,
-
-                    pointHoverRadius: 8,
-
-                    pointBackgroundColor: '#198754',
-
-                    pointBorderColor: '#fff',
-
-                    pointBorderWidth: 3,
-                  },
-                ],
-              }
-            }}
-            options={{
-              responsive: true,
-
-              maintainAspectRatio: false,
-
-              interaction: {
-                intersect: false,
-                mode: 'index',
+                data: dashboard.sevenDaysSales.map((d) => d.sales),
               },
-
-              plugins: {
-                legend: {
-                  display: false,
-                },
-
-                tooltip: {
-                  backgroundColor: '#222',
-
-                  cornerRadius: 10,
-
-                  padding: 12,
-
-                  callbacks: {
-                    label(context) {
-                      return `₦${Number(context.parsed.y).toLocaleString()}`
-                    },
-                  },
-                },
-              },
-
-              scales: {
-                x: {
-                  grid: {
-                    display: false,
-                  },
-                },
-
-                y: {
-                  beginAtZero: true,
-
-                  grid: {
-                    color: '#f1f3f5',
-                  },
-
-                  ticks: {
-                    callback(value) {
-                      return '₦' + Number(value).toLocaleString()
-                    },
-                  },
-                },
-              },
-            }}
-            height={120}
-          />
-        </CCardBody>
+            ],
+          }}
+        />
       </CCard>
-      <CCol md={6}>
-        <CCard className="shadow-sm border-0 rounded-4 h-100">
-          <CCardBody>
-            <h5 className="fw-bold">Payment Breakdown</h5>
-
-            <small className="text-medium-emphasis">Payment Method Distribution</small>
-
-            <div style={{ height: 320 }}>
-              <Doughnut
-                data={{
-                  labels: ['Cash', 'Transfer', 'POS', 'Mixed'],
-
-                  datasets: [
-                    {
-                      data: [
-                        dashboard.cashSales,
-                        dashboard.transferSales,
-                        dashboard.posSales,
-                        dashboard.mixedSales,
-                      ],
-
-                      backgroundColor: ['#198754', '#0d6efd', '#ffc107', '#6f42c1'],
-
-                      borderWidth: 2,
-
-                      hoverOffset: 20,
-                    },
-                  ],
-                }}
-                options={{
-                  responsive: true,
-
-                  maintainAspectRatio: false,
-
-                  plugins: {
-                    legend: {
-                      position: 'bottom',
-                    },
-
-                    tooltip: {
-                      callbacks: {
-                        label(context) {
-                          return context.label + ': ₦' + Number(context.parsed).toLocaleString()
-                        },
-                      },
-                    },
-                  },
-                }}
-              />
-            </div>
-          </CCardBody>
-        </CCard>
-      </CCol>
-      <CCol md={6}>
-        <CCard className="shadow-sm border-0 rounded-4 h-100">
-          <CCardBody>
-            <h5 className="fw-bold">Revenue Breakdown</h5>
-
-            <small className="text-medium-emphasis">Business Revenue Sources</small>
-
-            <div style={{ height: 320 }}>
-              <Pie
-                data={{
-                  labels: ['Service Revenue', 'Product Revenue', 'Returns'],
-
-                  datasets: [
-                    {
-                      data: [
-                        dashboard.serviceRevenue,
-
-                        dashboard.productRevenue,
-
-                        dashboard.totalReturns,
-                      ],
-
-                      backgroundColor: ['#20c997', '#0dcaf0', '#dc3545'],
-
-                      borderWidth: 2,
-
-                      hoverOffset: 20,
-                    },
-                  ],
-                }}
-                options={{
-                  responsive: true,
-
-                  maintainAspectRatio: false,
-
-                  plugins: {
-                    legend: {
-                      position: 'bottom',
-                    },
-
-                    tooltip: {
-                      callbacks: {
-                        label(context) {
-                          return context.label + ': ₦' + Number(context.parsed).toLocaleString()
-                        },
-                      },
-                    },
-                  },
-                }}
-              />
-            </div>
-          </CCardBody>
-        </CCard>
-      </CCol>
       <CTable hover responsive>
         <CTableHead>
           <CTableRow>
