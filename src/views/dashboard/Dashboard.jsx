@@ -252,41 +252,33 @@ const Dashboard = () => {
         </CAlert>
       )}
       <CRow className="mb-4">
-        <CCol md={3}>
-          <KpiCard
-            title="Today's Sales"
-            value={money(dashboard.todaySales)}
-            icon={cilMoney}
-            color="success"
-          />
-        </CCol>
+        <KpiCard
+          title="Today's Sales"
+          value={money(dashboard.todaySales)}
+          icon={cilMoney}
+          color="success"
+        />
 
-        <CCol md={3}>
-          <KpiCard
-            title="Today's Profit"
-            value={money(dashboard.todayProfit)}
-            icon={cilDollar}
-            color="primary"
-          />
-        </CCol>
+        <KpiCard
+          title="Today's Profit"
+          value={money(dashboard.todayProfit)}
+          icon={cilDollar}
+          color="primary"
+        />
 
-        <CCol md={3}>
-          <KpiCard
-            title="Transactions"
-            value={dashboard.todayTransactions}
-            icon={cilCart}
-            color="info"
-          />
-        </CCol>
+        <KpiCard
+          title="Transactions"
+          value={dashboard.todayTransactions}
+          icon={cilCart}
+          color="info"
+        />
 
-        <CCol md={3}>
-          <KpiCard
-            title="Today's Customers"
-            value={dashboard.todayCustomers}
-            icon={cilPeople}
-            color="warning"
-          />
-        </CCol>
+        <KpiCard
+          title="Today's Customers"
+          value={dashboard.todayCustomers}
+          icon={cilPeople}
+          color="warning"
+        />
       </CRow>
       <CRow className="mb-4">
         <KpiCard
