@@ -482,7 +482,6 @@ const Dashboard = () => {
         <CTableHead>
           <CTableRow>
             <CTableHeaderCell>Staff</CTableHeaderCell>
-
             <CTableHeaderCell>Commission</CTableHeaderCell>
           </CTableRow>
         </CTableHead>
@@ -493,7 +492,7 @@ const Dashboard = () => {
               <CTableDataCell>{staff?.Staff?.User?.fullname || 'Unknown'}</CTableDataCell>
 
               <CTableDataCell>
-                ₦{Number(staff?.satffId?.totalCommission).toLocaleString()}
+                ₦{Number(staff?.totalCommission || 0).toLocaleString()}
               </CTableDataCell>
             </CTableRow>
           ))}
