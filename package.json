@@ -37,6 +37,7 @@
     "core-js": "^3.49.0",
     "dotenv": "^17.4.2",
     "file-saver": "^2.0.5",
+    "html5-qrcode": "^2.3.8",
     "prop-types": "^15.8.1",
     "react": "^19.2.4",
     "react-bootstrap": "^2.10.10",
@@ -71,23 +72,23 @@
     "wait-on": "^9.0.10"
   },
   "build": {
-  "appId": "com.princesssalon.pos",
-  "productName": "Princess Salon POS",
-  "directories": {
-    "output": "release"
-  },
-  "files": [
-    "dist/**/*",
-    "electron/**/*",
-    "package.json"
-  ],
-  "win": {
-    "target": "nsis",
-    "icon": "public/icon.ico"
-  },
-  "nsis": {
-    "oneClick": false,
-    "allowToChangeInstallationDirectory": true
+    "appId": "com.princesssalon.pos",
+    "productName": "Princess Salon POS",
+    "directories": {
+      "output": "release"
+    },
+    "files": [
+      "dist/**/*",
+      "electron/**/*",
+      "package.json"
+    ],
+    "win": {
+      "target": "nsis",
+      "icon": "public/icon.ico"
+    },
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true
+    }
   }
-}
 }
