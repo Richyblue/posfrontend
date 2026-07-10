@@ -54,6 +54,7 @@
   "devDependencies": {
     "@babel/eslint-parser": "^7.29.7",
     "@babel/preset-react": "^7.29.7",
+    "@vitejs/plugin-legacy": "^8.2.0",
     "@vitejs/plugin-react": "^6.0.1",
     "autoprefixer": "^10.4.27",
     "concurrently": "^9.2.3",
@@ -77,6 +78,22 @@
     "directories": {
       "output": "release"
     },
+    "browserslist": {
+  "production": [
+    ">0.2%",
+    "not dead",
+    "not op_mini all",
+    "Android >= 5",
+    "Chrome >= 49",
+    "Safari >= 10",
+    "Edge >= 15"
+  ],
+  "development": [
+    "last 1 chrome version",
+    "last 1 firefox version",
+    "last 1 safari version"
+  ]
+},
     "files": [
       "dist/**/*",
       "electron/**/*",
