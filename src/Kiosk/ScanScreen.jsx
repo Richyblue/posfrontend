@@ -51,7 +51,7 @@ const ScanScreen = ({ setScreen, setStaff, setNextAction }) => {
       }}
     >
       <CCard
-        className="shadow-lg border-0"
+        className="shadow-sm border-0"
         style={{
           width: 750,
           borderRadius: 20,
