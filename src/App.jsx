@@ -18,6 +18,7 @@ import React, { Suspense, useEffect } from 'react'
 import { HashRouter, Route, Routes } from 'react-router-dom'
 import { useSelector } from 'react-redux'
 import ProtectedRoute from './components/ProtectedRoute'
+import { Capacitor } from '@capacitor/core'
 
 import { CSpinner, useColorModes } from '@coreui/react'
 import './scss/style.scss'
@@ -60,6 +61,13 @@ const Page500 = React.lazy(() => import('./views/pages/page500/Page500'))
  * ReactDOM.render(<App />, document.getElementById('root'))
  */
 const App = () => {
+  const isNative = Capacitor.isNativePlatform()
+
+  useEffect(() => {
+    if (isNative && window.location.hash === '') {
+      window.location.replace('#/kiosk')
+    }
+  }, [isNative])
   const { isColorModeSet, setColorMode } = useColorModes('coreui-free-react-admin-template-theme')
   const storedTheme = useSelector((state) => state.theme)
 
