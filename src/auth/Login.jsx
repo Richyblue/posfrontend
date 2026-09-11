@@ -26,7 +26,7 @@ const Login = () => {
 
   const handleLogin = async (e) => {
     e.preventDefault()
-    setError('') // Clear any previous errors
+    setError('')
 
     try {
       const response = await axios.post(`${API_URL}api/auth/login`, {
@@ -34,20 +34,51 @@ const Login = () => {
         password,
       })
 
-      // Handle success (e.g., save token, redirect user)
-      console.log('Login successful:', response.data)
-      alert('Login successful!')
-      localStorage.setItem('token', response.data.token)
+      // Only save login information after successful authentication
+      if (response.data.success && response.data.token) {
+        console.log('Login successful:', response.data)
 
-      localStorage.setItem('user', JSON.stringify(response.data.user))
+        localStorage.setItem('token', response.data.token)
 
-      localStorage.setItem('expiresAt', Date.now() + 8 * 60 * 60 * 1000)
+        localStorage.setItem('user', JSON.stringify(response.data.user))
 
-      navigate('/dashboard')
+        // localStorage.setItem('expiresAt', Date.now() + 8 * 60 * 60 * 1000)
+
+        alert('Login successful!')
+
+        // Role-based redirect
+        if (response.data.user?.role === 'cashier') {
+          navigate('/pos', { replace: true })
+        } else {
+          navigate('/dashboard', { replace: true })
+        }
+      }
     } catch (err) {
-      // Handle error (e.g., invalid credentials)
       console.error('Login failed:', err.response?.data || err.message)
-      setError('Invalid email or password')
+
+      // Disabled account
+      if (err.response?.status === 403) {
+        localStorage.removeItem('token')
+        localStorage.removeItem('user')
+        localStorage.removeItem('expiresAt')
+
+        setError(
+          err.response?.data?.message ||
+            'Your account has been disabled. Please contact the administrator.',
+        )
+
+        return
+      }
+
+      // Invalid credentials
+      if (err.response?.status === 401) {
+        setError(err.response?.data?.message || 'Invalid email or password')
+
+        return
+      }
+
+      // Other errors
+      setError(err.response?.data?.message || 'Unable to login. Please try again.')
     }
   }
 
