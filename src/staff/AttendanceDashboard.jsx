@@ -93,9 +93,11 @@ const AttendanceDashboard = () => {
       setRefreshing(false)
     }
   }, [])
-
   useEffect(() => {
-    fetchDashboard()
+    const fetchData = async () => {
+      await fetchDashboard()
+    }
+    fetchData()
   }, [fetchDashboard])
 
   // =====================================================
