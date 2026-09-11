@@ -29,7 +29,7 @@ const StaffIDCardModal = ({ visible, onClose, staff }) => {
 
         const token = localStorage.getItem('token')
 
-        const response = await axios.get(`${API_URL}api/staff/${staff.id}/qrcode`, {
+        const response = await axios.get(`${API_URL}api/v1/${staff.id}/qrcode`, {
           headers: {
             Authorization: `Bearer ${token}`,
           },
