@@ -7,7 +7,10 @@ const QRScanner = ({ onSuccess }) => {
 
     const config = {
       fps: 5,
-      qrbox: 180,
+      qrbox: {
+        width: 320,
+        height: 320,
+      },
       aspectRatio: 1.0,
     }
 
