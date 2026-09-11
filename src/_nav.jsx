@@ -110,6 +110,11 @@ const _nav = [
         name: 'View',
         to: '/viewStaff',
       },
+      {
+        component: CNavItem,
+        name: 'Attendance',
+        to: '/attendanceDashboard',
+      },
     ],
   },
   {

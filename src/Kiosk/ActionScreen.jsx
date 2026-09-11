@@ -293,7 +293,7 @@ const ActionScreen = ({ staff, nextAction, setScreen, setSuccessData }) => {
             style={{
               fontSize: 32,
               fontWeight: 800,
-              color: '#111827',
+              color: '#ffffff',
               marginBottom: 5,
             }}
           >

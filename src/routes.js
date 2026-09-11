@@ -46,7 +46,7 @@ const salesReport = React.lazy(() => import('./pos/salesReport'))
 const returnSales = React.lazy(() => import('./pos/Returns'))
 
 //Forms
-const ChecksRadios = React.lazy(() => import('./views/forms/checks-radios/ChecksRadios'))
+const attendanceDashboard = React.lazy(() => import('./staff/AttendanceDashboard'))
 const ChipInput = React.lazy(() => import('./views/forms/chip-input/ChipInput'))
 const FloatingLabels = React.lazy(() => import('./views/forms/floating-labels/FloatingLabels'))
 const FormControl = React.lazy(() => import('./views/forms/form-control/FormControl'))
@@ -191,6 +191,12 @@ export const routes = [
     path: '/returns',
     name: 'Return Sales',
     element: returnSales,
+    roles: ['admin', 'manager'],
+  },
+  {
+    path: '/attendanceDashboard',
+    name: 'Attendance Dashboard',
+    element: attendanceDashboard,
     roles: ['admin', 'manager'],
   },
   // { path: '/pos', name: 'Pos', element: Pos },
