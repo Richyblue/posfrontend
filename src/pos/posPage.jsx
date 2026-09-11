@@ -781,7 +781,7 @@ const POSPage = () => {
   }
   const [currentPageServices, setCurrentPageServices] = useState(1)
   const [currentPageProducts, setCurrentPageProducts] = useState(1)
-  const itemsPerPage = 12 // Number of items per page
+  const itemsPerPage = 8 // Number of items per page
 
   // Paginate Services
   const indexOfLastService = currentPageServices * itemsPerPage
