@@ -7,6 +7,7 @@ import Swal from 'sweetalert2'
 import CIcon from '@coreui/icons-react'
 
 import { cilSearch, cilPencil, cilTrash } from '@coreui/icons'
+import StaffIDCardModal from '../components/StaffIdCardModal'
 
 import {
   CCard,
@@ -39,6 +40,9 @@ const ViewStaff = () => {
   const [roleFilter, setRoleFilter] = useState('')
 
   const [employmentFilter, setEmploymentFilter] = useState('')
+  const [selectedStaff, setSelectedStaff] = useState(null)
+
+  const [showIDCard, setShowIDCard] = useState(false)
 
   const getStaff = async () => {
     try {
@@ -278,6 +282,16 @@ const ViewStaff = () => {
                   {staff.User?.isActive ? 'Deactivate' : 'Activate'}
                 </CButton>
               </CTableDataCell>
+              <CButton
+                color="dark"
+                size="sm"
+                onClick={() => {
+                  setSelectedStaff(staff)
+                  setShowIDCard(true)
+                }}
+              >
+                ID Card
+              </CButton>
 
               <CTableDataCell>
                 <Link to={`/editStaff/${staff.id}`}>
@@ -294,6 +308,15 @@ const ViewStaff = () => {
           ))}
         </CTableBody>
       </CTable>
+
+      <StaffIDCardModal
+        visible={showIDCard}
+        onClose={() => {
+          setShowIDCard(false)
+          setSelectedStaff(null)
+        }}
+        staff={selectedStaff}
+      />
     </>
   )
 }
