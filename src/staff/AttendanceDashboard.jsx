@@ -34,7 +34,7 @@ import {
   cilArrowRight,
 } from '@coreui/icons'
 
-const API_URL = import.meta.env.VITE_API_URL?.replace(/\/$/, '')
+const API_URL = import.meta.env.VITE_BACKEND_URL
 
 const AttendanceDashboard = () => {
   const [kpis, setKpis] = useState(null)
