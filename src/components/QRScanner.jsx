@@ -13,7 +13,7 @@ const QRScanner = ({ onSuccess }) => {
 
     html5QrCode
       .start(
-        { facingMode: 'environment' },
+        { facingMode: 'user' },
         config,
         (decodedText) => {
           onSuccess(decodedText)
