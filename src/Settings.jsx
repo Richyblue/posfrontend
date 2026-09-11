@@ -47,8 +47,13 @@ const Settings = () => {
     allowNegativeStock: false,
 
     receiptFooter: '',
-  })
 
+    // Attendance Settings
+    openingTime: '08:00',
+    closingTime: '17:00',
+    gracePeriod: 15,
+    workingHours: 8,
+  })
   const getSettings = async () => {
     try {
       setLoading(true)
@@ -251,6 +256,72 @@ const Settings = () => {
               />
             </CCol>
           </CRow>
+          {/* ===================================== */}
+          {/* ATTENDANCE SETTINGS */}
+          {/* ===================================== */}
+
+          <CCard className="mt-4">
+            <CCardHeader>
+              <strong>Attendance Settings</strong>
+            </CCardHeader>
+
+            <CCardBody>
+              <CRow>
+                <CCol md={3}>
+                  <CFormInput
+                    type="time"
+                    label="Opening Time"
+                    name="openingTime"
+                    value={formData.openingTime || ''}
+                    onChange={handleChange}
+                  />
+
+                  <small className="text-medium-emphasis">Normal staff starting time</small>
+                </CCol>
+
+                <CCol md={3}>
+                  <CFormInput
+                    type="time"
+                    label="Closing Time"
+                    name="closingTime"
+                    value={formData.closingTime || ''}
+                    onChange={handleChange}
+                  />
+
+                  <small className="text-medium-emphasis">Normal staff closing time</small>
+                </CCol>
+
+                <CCol md={3}>
+                  <CFormInput
+                    type="number"
+                    min="0"
+                    label="Grace Period (Minutes)"
+                    name="gracePeriod"
+                    value={formData.gracePeriod}
+                    onChange={handleChange}
+                  />
+
+                  <small className="text-medium-emphasis">
+                    Time allowed before staff is marked late
+                  </small>
+                </CCol>
+
+                <CCol md={3}>
+                  <CFormInput
+                    type="number"
+                    min="1"
+                    step="0.5"
+                    label="Working Hours"
+                    name="workingHours"
+                    value={formData.workingHours}
+                    onChange={handleChange}
+                  />
+
+                  <small className="text-medium-emphasis">Standard working hours per day</small>
+                </CCol>
+              </CRow>
+            </CCardBody>
+          </CCard>
 
           <div className="mt-4">
             <CButton type="submit" color="primary" disabled={saving}>
