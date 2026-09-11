@@ -19,6 +19,7 @@ import {
 } from '@coreui/react'
 const AddStaff = () => {
   const API_URL = import.meta.env.VITE_BACKEND_URL
+  const currentUser = JSON.parse(localStorage.getItem('user'))
 
   const [formData, setFormData] = useState({
     fullname: '',
@@ -171,13 +172,21 @@ const AddStaff = () => {
 
           <CRow className="mt-3">
             <CCol md={6}>
-              <CFormSelect label="Role" name="role" value={formData.role} onChange={handleChange}>
+              {/* <CFormSelect label="Role" name="role" value={formData.role} onChange={handleChange}>
                 <option value="admin">Admin</option>
 
                 <option value="manager">Manager</option>
 
                 <option value="cashier">Cashier</option>
 
+                <option value="staff">Staff</option>
+              </CFormSelect> */}
+
+              <CFormSelect label="Role" name="role" value={formData.role} onChange={handleChange}>
+                {currentUser?.role === 'admin' && <option value="admin">Admin</option>}
+
+                <option value="manager">Manager</option>
+                <option value="cashier">Cashier</option>
                 <option value="staff">Staff</option>
               </CFormSelect>
             </CCol>

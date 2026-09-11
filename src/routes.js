@@ -98,13 +98,13 @@ export const routes = [
   { path: '/forms', name: 'Forms', element: FormControl, exact: true },
   { path: '/forms/form-control', name: 'Form Control', element: FormControl },
   { path: '/forms/select', name: 'Select', element: Select },
-  { path: '/setting', name: 'Settings', element: Settings, roles: ['admin', 'manager'] },
-  { path: '/report', name: 'Report', element: Reports, roles: ['admin', 'manager'] },
+  { path: '/setting', name: 'Settings', element: Settings, roles: ['admin'] },
+  { path: '/report', name: 'Report', element: Reports, roles: ['admin'] },
   {
     path: '/commission',
     name: 'Commission',
     element: Commission,
-    roles: ['admin', 'manager', 'staff'],
+    roles: ['admin', 'manager'],
   },
   {
     path: '/loyaltycard',
