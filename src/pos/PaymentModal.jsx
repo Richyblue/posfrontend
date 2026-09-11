@@ -92,7 +92,7 @@ export default function PaymentModal({
           <CCol md={12}>
             <label className="form-label fw-semibold">Service Provider</label>
 
-            <CFormSelect
+            {/* <CFormSelect
               value={serviceProviderId}
               onChange={(e) => setServiceProviderId(e.target.value)}
             >
@@ -103,6 +103,21 @@ export default function PaymentModal({
                   {item.User?.fullname}
                 </option>
               ))}
+            </CFormSelect> */}
+
+            <CFormSelect
+              value={serviceProviderId}
+              onChange={(e) => setServiceProviderId(e.target.value)}
+            >
+              <option value="">Select Staff</option>
+
+              {staff
+                .filter((item) => item.User?.isActive === true)
+                .map((item) => (
+                  <option key={item.id} value={item.id}>
+                    {item.User?.fullname}
+                  </option>
+                ))}
             </CFormSelect>
 
             <small className="text-muted">Staff that attended to the customer</small>
