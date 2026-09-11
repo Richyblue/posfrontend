@@ -112,14 +112,17 @@ export default function PaymentModal({
               <option value="">Select Staff</option>
 
               {staff
-                .filter((item) => item.User?.isActive === true)
+                .filter(
+                  (item) =>
+                    (item.User?.isActive === true || item.User?.isActive === 1) &&
+                    item.User?.fullname?.trim(),
+                )
                 .map((item) => (
                   <option key={item.id} value={item.id}>
-                    {item.User?.fullname}
+                    {item.User.fullname.trim()}
                   </option>
                 ))}
             </CFormSelect>
-
             <small className="text-muted">Staff that attended to the customer</small>
           </CCol>
         </CRow>
