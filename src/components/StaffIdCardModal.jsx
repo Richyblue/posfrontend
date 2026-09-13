@@ -7,11 +7,9 @@ import {
   CModalFooter,
   CButton,
   CSpinner,
-  CAlert,
 } from '@coreui/react'
 
 import axios from 'axios'
-import html2canvas from 'html2canvas'
 
 const API_URL = import.meta.env.VITE_BACKEND_URL
 
@@ -19,95 +17,8 @@ const StaffIDCardModal = ({ visible, onClose, staff }) => {
   const [loading, setLoading] = useState(false)
   const [qrImage, setQrImage] = useState('')
   const [qrCode, setQrCode] = useState('')
-  const [error, setError] = useState('')
 
   const cardRef = useRef(null)
-
-  /*
-   * ROBUST STAFF NAME HANDLER
-   * Supports different possible backend field names.
-   */
-  const getStaffName = () => {
-    if (!staff) return 'Staff Member'
-
-    const possibleNames = [
-      staff.fullname,
-      staff.fullName,
-      staff.name,
-      staff.staffName,
-      staff.staff_name,
-      staff.displayName,
-      staff.display_name,
-      staff.username,
-      [staff.firstName, staff.lastName].filter(Boolean).join(' '),
-      [staff.first_name, staff.last_name].filter(Boolean).join(' '),
-    ]
-
-    const validName = possibleNames.find(
-      (name) => typeof name === 'string' && name.trim().length > 0,
-    )
-
-    return validName?.trim() || 'Staff Member'
-  }
-
-  const getStaffInitials = () => {
-    const name = getStaffName()
-
-    if (!name || name === 'Staff Member') {
-      return 'SM'
-    }
-
-    const initials = name
-      .split(' ')
-      .filter(Boolean)
-      .slice(0, 2)
-      .map((word) => word.charAt(0).toUpperCase())
-      .join('')
-
-    return initials || 'SM'
-  }
-
-  const getStaffPosition = () => {
-    return (
-      staff?.position ||
-      staff?.role ||
-      staff?.jobTitle ||
-      staff?.job_title ||
-      staff?.department ||
-      'Staff Member'
-    )
-  }
-
-  const getStaffId = () => {
-    return (
-      staff?.staffId ||
-      staff?.staff_id ||
-      staff?.employeeId ||
-      staff?.employee_id ||
-      staff?.id ||
-      'N/A'
-    )
-  }
-
-  const getStaffPhoto = () => {
-    return (
-      staff?.profileImage ||
-      staff?.profile_image ||
-      staff?.photo ||
-      staff?.image ||
-      staff?.avatar ||
-      ''
-    )
-  }
-
-  const formatDate = (date = new Date()) => {
-    return new Date(date).toLocaleDateString('en-NG', {
-      day: '2-digit',
-      month: 'short',
-      year: 'numeric',
-      timeZone: 'Africa/Lagos',
-    })
-  }
 
   useEffect(() => {
     if (!visible || !staff?.id) return
@@ -115,9 +26,6 @@ const StaffIDCardModal = ({ visible, onClose, staff }) => {
     const loadQRCode = async () => {
       try {
         setLoading(true)
-        setError('')
-        setQrImage('')
-        setQrCode('')
 
         const token = localStorage.getItem('token')
 
@@ -127,14 +35,10 @@ const StaffIDCardModal = ({ visible, onClose, staff }) => {
           },
         })
 
-        setQrImage(response.data?.qrImage || '')
-        setQrCode(response.data?.qrCode || '')
+        setQrImage(response.data.qrImage)
+        setQrCode(response.data.qrCode)
       } catch (error) {
         console.error('Failed to load QR code:', error)
-
-        setError(
-          error?.response?.data?.message || 'Unable to generate staff QR code. Please try again.',
-        )
       } finally {
         setLoading(false)
       }
@@ -150,51 +54,38 @@ const StaffIDCardModal = ({ visible, onClose, staff }) => {
 
     const printWindow = window.open('', '_blank', 'width=600,height=800')
 
-    if (!printWindow) {
-      setError('Please allow pop-ups in your browser to print the card.')
-      return
-    }
-
     printWindow.document.write(`
       <!DOCTYPE html>
       <html>
         <head>
-          <title>${getStaffName()} - Staff ID Card</title>
+          <title>Staff ID Card</title>
 
           <style>
             * {
               box-sizing: border-box;
             }
 
-            html,
             body {
               margin: 0;
-              padding: 0;
-              background: #ffffff;
+              padding: 30px;
+              background: #f3f4f6;
               font-family: Arial, sans-serif;
             }
 
             .print-card {
-              width: 380px !important;
-              height: 600px !important;
-              margin: 20px auto !important;
-              box-shadow: none !important;
-              transform: none !important;
+              width: 350px;
+              height: 550px;
+              margin: auto;
             }
 
             @media print {
-              @page {
-                size: auto;
-                margin: 0;
-              }
-
               body {
                 padding: 0;
                 background: white;
               }
 
               .print-card {
-                margin: 0 !important;
+                margin: 0;
               }
             }
           </style>
@@ -212,63 +103,16 @@ const StaffIDCardModal = ({ visible, onClose, staff }) => {
       printWindow.focus()
       printWindow.print()
       printWindow.close()
-    }, 700)
+    }, 500)
   }
-
-  const downloadAsJPG = async () => {
-    if (!cardRef.current) return
-
-    try {
-      setLoading(true)
-      setError('')
-
-      const canvas = await html2canvas(cardRef.current, {
-        scale: 3,
-        useCORS: true,
-        allowTaint: false,
-        backgroundColor: '#ffffff',
-        logging: false,
-      })
-
-      const imageURL = canvas.toDataURL('image/jpeg', 0.95)
-
-      const downloadLink = document.createElement('a')
-
-      downloadLink.href = imageURL
-      downloadLink.download = `${getStaffName()
-        .replace(/\s+/g, '-')
-        .toLowerCase()}-staff-id-card.jpg`
-
-      document.body.appendChild(downloadLink)
-      downloadLink.click()
-      document.body.removeChild(downloadLink)
-    } catch (error) {
-      console.error('Failed to download ID card:', error)
-      setError('Unable to download the ID card as JPG.')
-    } finally {
-      setLoading(false)
-    }
-  }
-
-  const staffName = getStaffName()
-  const staffInitials = getStaffInitials()
-  const staffPosition = getStaffPosition()
-  const staffId = getStaffId()
-  const staffPhoto = getStaffPhoto()
 
   return (
-    <CModal visible={visible} onClose={onClose} size="lg" alignment="center" backdrop="static">
+    <CModal visible={visible} onClose={onClose} size="lg" alignment="center">
       <CModalHeader>
-        <CModalTitle className="fw-bold">Staff Identification Card</CModalTitle>
+        <CModalTitle>Staff ID Card</CModalTitle>
       </CModalHeader>
 
       <CModalBody>
-        {error && (
-          <CAlert color="danger" className="mb-4">
-            {error}
-          </CAlert>
-        )}
-
         <div className="text-center">
           {loading ? (
             <div
@@ -276,68 +120,41 @@ const StaffIDCardModal = ({ visible, onClose, staff }) => {
                 padding: 80,
               }}
             >
-              <CSpinner color="primary" size="lg" />
+              <CSpinner />
 
-              <div className="mt-3 text-muted">Preparing staff ID card...</div>
+              <div className="mt-3 text-muted">Generating QR Code...</div>
             </div>
           ) : (
             <div
               ref={cardRef}
               className="print-card"
               style={{
-                width: 380,
-                height: 600,
+                width: 350,
+                height: 550,
                 margin: '0 auto',
-                borderRadius: 26,
+                borderRadius: 22,
                 overflow: 'hidden',
                 background: '#ffffff',
-                boxShadow: '0 24px 70px rgba(15, 23, 42, 0.22)',
-                border: '1px solid #e2e8f0',
+                boxShadow: '0 20px 50px rgba(0,0,0,0.18)',
+                border: '1px solid #e5e7eb',
                 position: 'relative',
-                fontFamily: 'Inter, Arial, Helvetica, sans-serif',
-                color: '#0f172a',
+                fontFamily: 'Arial, sans-serif',
               }}
             >
-              {/* TOP BRANDING SECTION */}
+              {/* HEADER */}
+
               <div
                 style={{
-                  position: 'relative',
-                  background: 'linear-gradient(135deg, #111827 0%, #312e81 55%, #7c3aed 100%)',
-                  padding: '28px 24px 48px',
-                  color: '#ffffff',
+                  background: 'linear-gradient(135deg, #4f46e5, #7c3aed)',
+                  padding: '25px 20px 30px',
+                  color: '#fff',
                   textAlign: 'center',
-                  overflow: 'hidden',
                 }}
               >
                 <div
                   style={{
-                    position: 'absolute',
-                    width: 180,
-                    height: 180,
-                    borderRadius: '50%',
-                    background: 'rgba(255,255,255,0.08)',
-                    top: -100,
-                    right: -60,
-                  }}
-                />
-
-                <div
-                  style={{
-                    position: 'absolute',
-                    width: 130,
-                    height: 130,
-                    borderRadius: '50%',
-                    background: 'rgba(255,255,255,0.06)',
-                    bottom: -80,
-                    left: -40,
-                  }}
-                />
-
-                <div
-                  style={{
-                    position: 'relative',
-                    fontSize: 21,
-                    fontWeight: 900,
+                    fontSize: 14,
+                    fontWeight: 700,
                     letterSpacing: 2,
                   }}
                 >
@@ -346,321 +163,126 @@ const StaffIDCardModal = ({ visible, onClose, staff }) => {
 
                 <div
                   style={{
-                    position: 'relative',
-                    marginTop: 7,
-                    fontSize: 10,
-                    fontWeight: 600,
-                    letterSpacing: 2.5,
-                    color: '#ddd6fe',
+                    fontSize: 11,
+                    opacity: 0.85,
+                    marginTop: 5,
                   }}
                 >
-                  PREMIUM GROOMING EXPERIENCE
-                </div>
-
-                <div
-                  style={{
-                    position: 'relative',
-                    display: 'inline-block',
-                    marginTop: 18,
-                    padding: '7px 14px',
-                    borderRadius: 30,
-                    border: '1px solid rgba(255,255,255,0.35)',
-                    background: 'rgba(255,255,255,0.12)',
-                    fontSize: 10,
-                    fontWeight: 800,
-                    letterSpacing: 1.5,
-                  }}
-                >
-                  STAFF IDENTIFICATION
+                  STAFF IDENTIFICATION CARD
                 </div>
               </div>
 
-              {/* STAFF PROFILE SECTION */}
+              {/* STAFF */}
+
               <div
                 style={{
-                  position: 'relative',
-                  marginTop: -38,
                   textAlign: 'center',
-                  padding: '0 24px',
+                  padding: '25px 20px 10px',
                 }}
               >
                 <div
                   style={{
-                    width: 92,
-                    height: 92,
-                    margin: '0 auto 15px',
+                    width: 75,
+                    height: 75,
                     borderRadius: '50%',
-                    background: 'linear-gradient(135deg, #eef2ff, #ddd6fe)',
-                    border: '5px solid #ffffff',
-                    boxShadow: '0 10px 25px rgba(15, 23, 42, 0.18)',
+                    margin: '0 auto 12px',
+                    background: 'linear-gradient(135deg, #e0e7ff, #ede9fe)',
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'center',
-                    overflow: 'hidden',
-                    color: '#4338ca',
-                    fontSize: 30,
-                    fontWeight: 900,
-                  }}
-                >
-                  {staffPhoto ? (
-                    <img
-                      src={staffPhoto}
-                      alt={staffName}
-                      crossOrigin="anonymous"
-                      style={{
-                        width: '100%',
-                        height: '100%',
-                        objectFit: 'cover',
-                      }}
-                      onError={(event) => {
-                        event.currentTarget.style.display = 'none'
-                      }}
-                    />
-                  ) : (
-                    staffInitials
-                  )}
-                </div>
-
-                <div
-                  style={{
-                    fontSize: 23,
-                    fontWeight: 900,
-                    lineHeight: 1.2,
-                    color: '#111827',
-                    wordBreak: 'break-word',
-                  }}
-                >
-                  {staff.User?.fullname}
-                </div>
-
-                <div
-                  style={{
-                    marginTop: 7,
-                    fontSize: 13,
-                    fontWeight: 700,
-                    color: '#6366f1',
-                    textTransform: 'uppercase',
-                    letterSpacing: 1,
-                  }}
-                >
-                  {staffPosition}
-                </div>
-
-                {/* <div
-                  style={{
-                    display: 'inline-flex',
-                    alignItems: 'center',
-                    gap: 7,
-                    marginTop: 12,
-                    padding: '6px 13px',
-                    borderRadius: 20,
-                    background: '#f1f5f9',
-                    color: '#475569',
-                    fontSize: 11,
+                    color: '#4f46e5',
+                    fontSize: 28,
                     fontWeight: 800,
                   }}
                 >
-                  <span
-                    style={{
-                      width: 7,
-                      height: 7,
-                      borderRadius: '50%',
-                      background: '#22c55e',
-                    }}
-                  />
-                  ACTIVE STAFF
-                </div> */}
+                  {staff?.User?.fullname?.charAt(0)?.toUpperCase()}
+                </div>
+
+                <div
+                  style={{
+                    fontSize: 20,
+                    fontWeight: 800,
+                    color: '#111827',
+                  }}
+                >
+                  {staff?.User?.fullname}
+                </div>
+
+                <div
+                  style={{
+                    marginTop: 5,
+                    fontSize: 13,
+                    color: '#6b7280',
+                  }}
+                >
+                  {staff?.position || 'Staff'}
+                </div>
               </div>
 
-              {/* STAFF INFORMATION */}
-              {/* <div
-                style={{
-                  display: 'grid',
-                  gridTemplateColumns: '1fr 1fr',
-                  gap: 12,
-                  margin: '22px 24px 12px',
-                }}
-              >
-                <div
-                  style={{
-                    padding: '11px 13px',
-                    borderRadius: 12,
-                    background: '#f8fafc',
-                    border: '1px solid #e2e8f0',
-                    textAlign: 'left',
-                  }}
-                >
-                  <div
-                    style={{
-                      fontSize: 9,
-                      fontWeight: 800,
-                      color: '#94a3b8',
-                      letterSpacing: 1,
-                    }}
-                  >
-                    STAFF ID
-                  </div>
+              {/* QR */}
 
-                  <div
-                    style={{
-                      marginTop: 5,
-                      fontSize: 12,
-                      fontWeight: 900,
-                      color: '#1e293b',
-                      wordBreak: 'break-word',
-                    }}
-                  >
-                    {staffId}
-                  </div>
-                </div>
-
-                <div
-                  style={{
-                    padding: '11px 13px',
-                    borderRadius: 12,
-                    background: '#f8fafc',
-                    border: '1px solid #e2e8f0',
-                    textAlign: 'left',
-                  }}
-                >
-                  <div
-                    style={{
-                      fontSize: 9,
-                      fontWeight: 800,
-                      color: '#94a3b8',
-                      letterSpacing: 1,
-                    }}
-                  >
-                    ISSUE DATE
-                  </div>
-
-                  <div
-                    style={{
-                      marginTop: 5,
-                      fontSize: 12,
-                      fontWeight: 900,
-                      color: '#1e293b',
-                    }}
-                  >
-                    {formatDate()}
-                  </div>
-                </div>
-              </div> */}
-
-              {/* QR CODE SECTION */}
               <div
                 style={{
                   textAlign: 'center',
-                  padding: '8px 24px 100px',
+                  padding: '10px 20px',
                 }}
               >
-                <div
-                  style={{
-                    fontSize: 10,
-                    fontWeight: 800,
-                    color: '#64748b',
-                    letterSpacing: 1,
-                    marginBottom: 8,
-                  }}
-                >
-                  SECURE ATTENDANCE QR CODE
-                </div>
-
-                <div
-                  style={{
-                    width: 172,
-                    height: 172,
-                    margin: '0 auto',
-                    padding: 9,
-                    background: '#ffffff',
-                    border: '1px solid #e2e8f0',
-                    borderRadius: 16,
-                    boxShadow: '0 8px 22px rgba(15, 23, 42, 0.08)',
-                  }}
-                >
-                  {qrImage ? (
-                    <img
-                      src={qrImage}
-                      alt="Staff QR Code"
-                      crossOrigin="anonymous"
-                      style={{
-                        width: '100%',
-                        height: '100%',
-                        objectFit: 'contain',
-                      }}
-                    />
-                  ) : (
-                    <div
-                      style={{
-                        height: '100%',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        fontSize: 12,
-                        color: '#94a3b8',
-                      }}
-                    >
-                      QR unavailable
-                    </div>
-                  )}
-                </div>
+                {qrImage && (
+                  <img
+                    src={qrImage}
+                    alt="Staff QR Code"
+                    style={{
+                      width: 170,
+                      height: 170,
+                      objectFit: 'contain',
+                    }}
+                  />
+                )}
 
                 <div
                   style={{
                     fontSize: 9,
-                    color: '#64748b',
+                    color: '#6b7280',
                     wordBreak: 'break-all',
-                    marginTop: 8,
+                    marginTop: 5,
                   }}
                 >
-                  {qrCode || 'QR code generated for attendance'}
+                  {qrCode}
                 </div>
               </div>
 
               {/* FOOTER */}
+
               <div
                 style={{
                   position: 'absolute',
                   bottom: 0,
                   left: 0,
                   right: 0,
-                  padding: '17px 24px',
-                  background: 'linear-gradient(135deg, #f8fafc, #eef2ff)',
-                  borderTop: '1px solid #e2e8f0',
+                  padding: '14px 20px',
+                  background: '#f8fafc',
+                  borderTop: '1px solid #e5e7eb',
                   textAlign: 'center',
                 }}
               >
                 <div
                   style={{
                     fontSize: 10,
-                    fontWeight: 700,
-                    color: '#64748b',
-                    letterSpacing: 1.2,
+                    color: '#6b7280',
                   }}
                 >
-                  PROPERTY OF PRINCESS CUTZ
+                  SCAN QR CODE FOR
                 </div>
 
                 <div
                   style={{
                     fontSize: 12,
-                    fontWeight: 900,
-                    color: '#312e81',
-                    marginTop: 5,
-                    letterSpacing: 0.5,
+                    fontWeight: 700,
+                    color: '#111827',
+                    marginTop: 3,
                   }}
                 >
-                  SCAN FOR STAFF ATTENDANCE
-                </div>
-
-                <div
-                  style={{
-                    fontSize: 9,
-                    color: '#94a3b8',
-                    marginTop: 5,
-                  }}
-                >
-                  If found, please return to Princess Cutz.
+                  STAFF ATTENDANCE
                 </div>
               </div>
             </div>
@@ -671,10 +293,6 @@ const StaffIDCardModal = ({ visible, onClose, staff }) => {
       <CModalFooter>
         <CButton color="secondary" onClick={onClose}>
           Close
-        </CButton>
-
-        <CButton color="dark" disabled={loading || !qrImage} onClick={downloadAsJPG}>
-          Download JPG
         </CButton>
 
         <CButton color="primary" disabled={loading || !qrImage} onClick={printCard}>
