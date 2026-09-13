@@ -67,3 +67,13 @@ export const getAttendanceDashboardKPIs = async () => {
     },
   })
 }
+
+export const getTodayBusinessHours = async () => {
+  const token = localStorage.getItem('token')
+
+  return axios.get(`${API_URL}api/v1/business-hours/today`, {
+    headers: {
+      Authorization: `Bearer ${token}`,
+    },
+  })
+}

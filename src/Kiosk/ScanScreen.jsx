@@ -5,7 +5,7 @@ import { CSpinner } from '@coreui/react'
 import LiveClock from '../components/LiveClock'
 import QRScanner from '../components/QRScanner'
 
-import { scanQR, getAttendanceDashboardKPIs } from '../services/kioskApi'
+import { scanQR, getAttendanceDashboardKPIs, getTodayBusinessHours } from '../services/kioskApi'
 
 const ScanScreen = ({
   setScreen,
@@ -122,7 +122,79 @@ const ScanScreen = ({
       'Staff Member'
     )
   }
+  const [businessHours, setBusinessHours] = useState(null)
+  const [businessHoursLoading, setBusinessHoursLoading] = useState(true)
+  const formatTime12Hour = (time) => {
+    if (!time) return '--'
 
+    const [hours, minutes] = String(time).substring(0, 5).split(':').map(Number)
+
+    const date = new Date()
+
+    date.setHours(hours)
+    date.setMinutes(minutes)
+    date.setSeconds(0)
+
+    return date.toLocaleTimeString('en-NG', {
+      hour: '2-digit',
+      minute: '2-digit',
+      hour12: true,
+      timeZone: 'Africa/Lagos',
+    })
+  }
+
+  const loadTodayBusinessHours = async () => {
+    try {
+      setBusinessHoursLoading(true)
+
+      const response = await getTodayBusinessHours()
+
+      const data = response.data?.data || response.data
+
+      setBusinessHours(data || null)
+    } catch (error) {
+      console.error('Failed to load today business hours:', error)
+
+      setBusinessHours(null)
+    } finally {
+      setBusinessHoursLoading(false)
+    }
+  }
+  useEffect(() => {
+    loadKioskKPIs()
+    loadTodayBusinessHours()
+
+    const interval = setInterval(() => {
+      loadKioskKPIs()
+      loadTodayBusinessHours()
+    }, 30000)
+
+    return () => {
+      clearInterval(interval)
+    }
+  }, [])
+
+  const getShiftTitle = () => {
+    if (businessHoursLoading) {
+      return 'Loading business hours...'
+    }
+
+    if (!businessHours) {
+      return 'Business hours unavailable'
+    }
+
+    if (!businessHours.isOpen) {
+      return 'Business Closed Today'
+    }
+
+    const shiftName = businessHours.shiftName || businessHours.name || 'Today’s Grooming Shift'
+
+    const openingTime = formatTime12Hour(businessHours.openTime)
+
+    const closingTime = formatTime12Hour(businessHours.closeTime)
+
+    return `${shiftName}: ${openingTime} – ${closingTime}`
+  }
   const getActivityPosition = (activity) => {
     return activity?.staff?.position || activity?.position || activity?.role || 'Staff'
   }
@@ -801,9 +873,7 @@ const ScanScreen = ({
                 <div className="princess-hours-icon">◷</div>
 
                 <div>
-                  <div className="princess-hours-title">
-                    Morning Grooming Shift: 08:00 AM – 04:00 PM
-                  </div>
+                  <div className="princess-hours-title">{getShiftTitle()}</div>
 
                   <div className="princess-hours-subtitle">Grace period until 08:15 AM</div>
                 </div>
