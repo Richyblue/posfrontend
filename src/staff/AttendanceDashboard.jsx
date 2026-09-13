@@ -124,7 +124,7 @@ const AttendanceDashboard = () => {
   }, [attendance, search, statusFilter])
 
   // =====================================================
-  // FORMAT TIME
+  // FORMAT TIME - 12 HOURS
   // =====================================================
 
   const formatTime = (date) => {
@@ -132,12 +132,14 @@ const AttendanceDashboard = () => {
 
     return new Date(date).toLocaleTimeString('en-NG', {
       hour: '2-digit',
+      timeZone: 'Africa/Lagos',
       minute: '2-digit',
+      hour12: true,
     })
   }
 
   // =====================================================
-  // FORMAT DATE
+  // FORMAT DATE AND TIME
   // =====================================================
 
   const formatDateTime = (date) => {
@@ -145,12 +147,30 @@ const AttendanceDashboard = () => {
 
     return new Date(date).toLocaleString('en-NG', {
       day: '2-digit',
-      month: 'short',
+      month: 'long',
+      timeZone: 'Africa/Lagos',
+      year: 'numeric',
       hour: '2-digit',
       minute: '2-digit',
+      hour12: true,
     })
   }
 
+  // =====================================================
+  // FORMAT FULL DATE
+  // =====================================================
+
+  const formatFullDate = (date) => {
+    if (!date) return '--'
+
+    return new Date(date).toLocaleDateString('en-NG', {
+      weekday: 'long',
+      day: '2-digit',
+      timeZone: 'Africa/Lagos',
+      month: 'long',
+      year: 'numeric',
+    })
+  }
   // =====================================================
   // STATUS BADGE
   // =====================================================
@@ -251,6 +271,15 @@ const AttendanceDashboard = () => {
           <div className="text-medium-emphasis">
             Monitor today's staff attendance and activities
           </div>
+
+          <small className="text-muted">
+            {new Date().toLocaleDateString('en-NG', {
+              weekday: 'long',
+              day: '2-digit',
+              month: 'long',
+              year: 'numeric',
+            })}
+          </small>
         </div>
 
         <CButton color="light" onClick={() => fetchDashboard(true)} disabled={refreshing}>
@@ -419,6 +448,7 @@ const AttendanceDashboard = () => {
                   <CTableHeaderCell>Staff</CTableHeaderCell>
 
                   <CTableHeaderCell>Position</CTableHeaderCell>
+                  <CTableHeaderCell>Date</CTableHeaderCell>
 
                   <CTableHeaderCell>Clock In</CTableHeaderCell>
 
@@ -451,6 +481,15 @@ const AttendanceDashboard = () => {
                       </CTableDataCell>
 
                       <CTableDataCell>{item.Staff?.position || '--'}</CTableDataCell>
+                      <CTableDataCell>
+                        {item.attendanceDate
+                          ? new Date(item.attendanceDate).toLocaleDateString('en-NG', {
+                              day: '2-digit',
+                              month: 'long',
+                              year: 'numeric',
+                            })
+                          : '--'}
+                      </CTableDataCell>
 
                       <CTableDataCell>{formatTime(item.clockIn)}</CTableDataCell>
 
