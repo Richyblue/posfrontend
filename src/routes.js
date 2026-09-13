@@ -47,8 +47,8 @@ const returnSales = React.lazy(() => import('./pos/Returns'))
 
 //Forms
 const attendanceDashboard = React.lazy(() => import('./staff/AttendanceDashboard'))
-const ChipInput = React.lazy(() => import('./views/forms/chip-input/ChipInput'))
-const FloatingLabels = React.lazy(() => import('./views/forms/floating-labels/FloatingLabels'))
+const businessHours = React.lazy(() => import('./staff/BusinessHours'))
+const staffPenalties = React.lazy(() => import('./staff/StaffPenalties'))
 const FormControl = React.lazy(() => import('./views/forms/form-control/FormControl'))
 const InputGroup = React.lazy(() => import('./views/forms/input-group/InputGroup'))
 const Layout = React.lazy(() => import('./views/forms/layout/Layout'))
@@ -197,6 +197,19 @@ export const routes = [
     path: '/attendanceDashboard',
     name: 'Attendance Dashboard',
     element: attendanceDashboard,
+    roles: ['admin', 'manager'],
+  },
+  {
+    path: '/businessHours',
+    name: 'Business Hours',
+    element: businessHours,
+    roles: ['admin', 'manager'],
+  },
+
+  {
+    path: '/staffPenalty',
+    name: 'Staff Penalty',
+    element: staffPenalties,
     roles: ['admin', 'manager'],
   },
   // { path: '/pos', name: 'Pos', element: Pos },
