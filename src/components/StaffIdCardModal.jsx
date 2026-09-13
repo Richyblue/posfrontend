@@ -430,7 +430,7 @@ const StaffIDCardModal = ({ visible, onClose, staff }) => {
                     wordBreak: 'break-word',
                   }}
                 >
-                  {staffName}
+                  {staff.User?.fullname}
                 </div>
 
                 <div
@@ -446,7 +446,7 @@ const StaffIDCardModal = ({ visible, onClose, staff }) => {
                   {staffPosition}
                 </div>
 
-                <div
+                {/* <div
                   style={{
                     display: 'inline-flex',
                     alignItems: 'center',
@@ -469,11 +469,11 @@ const StaffIDCardModal = ({ visible, onClose, staff }) => {
                     }}
                   />
                   ACTIVE STAFF
-                </div>
+                </div> */}
               </div>
 
               {/* STAFF INFORMATION */}
-              <div
+              {/* <div
                 style={{
                   display: 'grid',
                   gridTemplateColumns: '1fr 1fr',
@@ -545,7 +545,7 @@ const StaffIDCardModal = ({ visible, onClose, staff }) => {
                     {formatDate()}
                   </div>
                 </div>
-              </div>
+              </div> */}
 
               {/* QR CODE SECTION */}
               <div
