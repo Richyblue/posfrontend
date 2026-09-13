@@ -115,6 +115,11 @@ const _nav = [
         name: 'Attendance',
         to: '/attendanceDashboard',
       },
+      {
+        component: CNavItem,
+        name: 'Staff Penalty',
+        to: '/staffPenalty',
+      },
     ],
   },
   {
@@ -239,6 +244,12 @@ const _nav = [
     component: CNavItem,
     name: 'Settings',
     to: '/setting',
+    icon: <CIcon icon={cilSettings} customClassName="nav-icon" />,
+  },
+  {
+    component: CNavItem,
+    name: 'Business Hours',
+    to: '/businessHours',
     icon: <CIcon icon={cilSettings} customClassName="nav-icon" />,
   },
   {
