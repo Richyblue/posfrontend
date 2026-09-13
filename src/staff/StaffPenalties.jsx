@@ -61,7 +61,7 @@ const StaffPenalties = () => {
       setLoading(true)
       setError('')
 
-      const response = await axios.get(`${API_URL}api/v1/staff-penalties`, {
+      const response = await axios.get(`${API_URL}api/staff-penalties`, {
         ...authConfig,
         params: filters,
       })
