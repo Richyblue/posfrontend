@@ -57,3 +57,13 @@ export const clockOut = (data) => {
     { headers },
   )
 }
+
+export const getAttendanceDashboardKPIs = async () => {
+  const token = localStorage.getItem('token')
+
+  return axios.get(`${API_URL}api/v1/attendance/dashboard`, {
+    headers: {
+      Authorization: `Bearer ${token}`,
+    },
+  })
+}

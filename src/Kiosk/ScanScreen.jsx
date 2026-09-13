@@ -5,7 +5,7 @@ import { CSpinner } from '@coreui/react'
 import LiveClock from '../components/LiveClock'
 import QRScanner from '../components/QRScanner'
 
-import { scanQR } from '../services/kioskApi'
+import { scanQR, getAttendanceDashboardKPIs } from '../services/kioskApi'
 
 const ScanScreen = ({
   setScreen,
@@ -16,6 +16,17 @@ const ScanScreen = ({
 }) => {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
+  const [kpiLoading, setKpiLoading] = useState(true)
+
+  const [kioskStats2, setKioskStats] = useState({
+    presentToday: 0,
+    lateToday: 0,
+    absentToday: 0,
+    currentlyOutside: 0,
+    clockedOutToday: 0,
+    averageWorkingHours: 0,
+    overtimeHours: 0,
+  })
 
   const handleScan = async (qrCode) => {
     if (loading) return
@@ -30,6 +41,7 @@ const ScanScreen = ({
 
       setStaff(response.data.staff)
       setNextAction(response.data.nextAction)
+      await loadKioskKPIs()
 
       setScreen('action')
     } catch (err) {
@@ -44,6 +56,39 @@ const ScanScreen = ({
       setLoading(false)
     }
   }
+
+  const loadKioskKPIs = async () => {
+    try {
+      setKpiLoading(true)
+
+      const response = await getAttendanceDashboardKPIs()
+
+      const data = response.data?.data || {}
+
+      setKioskStats({
+        presentToday: Number(data.presentToday || 0),
+        lateToday: Number(data.lateToday || 0),
+        absentToday: Number(data.absentToday || 0),
+        currentlyOutside: Number(data.currentlyOutside || 0),
+        clockedOutToday: Number(data.clockedOutToday || 0),
+        averageWorkingHours: Number(data.averageWorkingHours || 0),
+        overtimeHours: Number(data.overtimeHours || 0),
+      })
+    } catch (error) {
+      console.error('Failed to load attendance KPIs:', error)
+    } finally {
+      setKpiLoading(false)
+    }
+  }
+  useEffect(() => {
+    loadKioskKPIs()
+
+    const interval = setInterval(() => {
+      loadKioskKPIs()
+    }, 30000)
+
+    return () => clearInterval(interval)
+  }, [])
 
   const formatActivityTime = (date) => {
     if (!date) return '--'
@@ -776,7 +821,9 @@ const ScanScreen = ({
                 <div className="princess-kpi-card">
                   <div className="princess-kpi-label">Present Today</div>
 
-                  <div className="princess-kpi-value">{kioskStats.presentToday ?? '--'}</div>
+                  <div className="princess-kpi-value">
+                    {kpiLoading ? '—' : kioskStats2.presentToday}
+                  </div>
 
                   <div className="princess-kpi-caption">On the floor</div>
                 </div>
@@ -784,7 +831,9 @@ const ScanScreen = ({
                 <div className="princess-kpi-card">
                   <div className="princess-kpi-label">Clocked In</div>
 
-                  <div className="princess-kpi-value">{kioskStats.clockedIn ?? '--'}</div>
+                  <div className="princess-kpi-value">
+                    {kpiLoading ? '—' : kioskStats2.absentToday}
+                  </div>
 
                   <div className="princess-kpi-caption">Active staff</div>
                 </div>
@@ -792,15 +841,63 @@ const ScanScreen = ({
                 <div className="princess-kpi-card">
                   <div className="princess-kpi-label">Late Arrivals</div>
 
-                  <div className="princess-kpi-value">{kioskStats.lateToday ?? '--'}</div>
+                  <div className="princess-kpi-value">
+                    {kpiLoading ? '—' : kioskStats2.lateToday}
+                  </div>
 
                   <div className="princess-kpi-caption">Logged today</div>
                 </div>
 
                 <div className="princess-kpi-card">
-                  <div className="princess-kpi-label">Total Staff</div>
+                  <div className="princess-kpi-label">Outside</div>
 
-                  <div className="princess-kpi-value">{kioskStats.totalStaff ?? '--'}</div>
+                  <div className="princess-kpi-value">
+                    {kpiLoading ? '—' : kioskStats2.currentlyOutside}
+                  </div>
+
+                  <div className="princess-kpi-caption">Registered</div>
+                </div>
+              </div>
+            </div>
+
+            <div>
+              <div className="princess-kpi-grid">
+                <div className="princess-kpi-card">
+                  <div className="princess-kpi-label">Clocked Out Today</div>
+
+                  <div className="princess-kpi-value">
+                    {kpiLoading ? '—' : kioskStats2.clockedOutToday}
+                  </div>
+
+                  <div className="princess-kpi-caption">On the floor</div>
+                </div>
+
+                <div className="princess-kpi-card">
+                  <div className="princess-kpi-label">Average Working Hours</div>
+
+                  <div className="princess-kpi-value">
+                    {kpiLoading ? '—' : `${kioskStats2.averageWorkingHours}h`}
+                  </div>
+
+                  <div className="princess-kpi-caption">Active staff</div>
+                </div>
+
+                <div className="princess-kpi-card">
+                  <div className="princess-kpi-label">Late Arrivals</div>
+
+                  <div className="princess-kpi-value">
+                    {kpiLoading ? '—' : `${kioskStats2.overtimeHours}h`}
+                  </div>
+
+                  <div className="princess-kpi-caption">Logged today</div>
+                </div>
+
+                <div className="princess-kpi-card">
+                  <div className="princess-kpi-label">Total Outside</div>
+
+                  <div className="princess-kpi-value">
+                    {kpiLoading ? '—' : kioskStats2.currentlyOutside}
+                  </div>
 
                   <div className="princess-kpi-caption">Registered</div>
                 </div>
