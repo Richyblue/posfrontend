@@ -136,7 +136,7 @@ export default function PaymentModal({
             <CFormSelect value={standTag} onChange={(e) => setStandTag(e.target.value)}>
               <option value="">Select Stand</option>
 
-              {[...Array(10)].map((_, i) => (
+              {[...Array(20)].map((_, i) => (
                 <option key={i + 1} value={`Stand ${i + 1}`}>
                   Stand {i + 1}
                 </option>
