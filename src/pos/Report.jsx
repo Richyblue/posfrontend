@@ -4,8 +4,6 @@ import axios from 'axios'
 
 import * as XLSX from 'xlsx'
 
-import { saveAs } from 'file-saver'
-
 import CIcon from '@coreui/icons-react'
 import ReturnModal from './ReturnModal'
 
@@ -31,6 +29,7 @@ import {
   CInputGroupText,
   CSpinner,
 } from '@coreui/react'
+
 const Report = () => {
   const API_URL = import.meta.env.VITE_BACKEND_URL
 
@@ -53,15 +52,44 @@ const Report = () => {
   const [period, setPeriod] = useState('today')
   const [report, setReport] = useState({})
 
-  // FILTER FIRST
+  // ==========================================
+  // GET UNIQUE SERVICE PROVIDERS
+  // ==========================================
+
+  const serviceProviders = [
+    ...new Map(
+      sales
+        .map((sale) => {
+          const provider =
+            sale.ServiceProvider?.fullname || sale.ServiceProvider?.User?.fullname || ''
+
+          if (!provider) return null
+
+          return [provider, provider]
+        })
+        .filter(Boolean),
+    ).values(),
+  ]
+
+  // ==========================================
+  // FILTER SALES
+  // ==========================================
+
   const filteredSales = sales.filter((sale) => {
     const keyword = search.toLowerCase()
 
-    return (
+    const provider = sale.ServiceProvider?.fullname || sale.ServiceProvider?.User?.fullname || ''
+
+    const matchesSearch =
       sale.receiptNumber?.toLowerCase().includes(keyword) ||
+      sale.invoiceNumber?.toLowerCase().includes(keyword) ||
       sale.Customer?.fullname?.toLowerCase().includes(keyword) ||
-      sale.RecordedBy?.fullname?.toLowerCase().includes(keyword)
-    )
+      sale.RecordedBy?.fullname?.toLowerCase().includes(keyword) ||
+      provider.toLowerCase().includes(keyword)
+
+    const matchesProvider = providerFilter === '' || provider === providerFilter
+
+    return matchesSearch && matchesProvider
   })
 
   const handleReturn = (sale) => {
@@ -71,37 +99,10 @@ const Report = () => {
 
     setShowReturnModal(true)
   }
-  // KPI CALCULATIONS AFTER FILTER
-  // const totalSales = filteredSales.reduce((sum, sale) => sum + Number(sale.totalAmount || 0), 0)
 
-  // const totalTransactions = filteredSales.length
-
-  // const totalServiceSales = filteredSales.reduce((sum, sale) => {
-  //   const serviceTotal =
-  //     sale.items?.reduce(
-  //       (itemSum, item) =>
-  //         item.saleType === 'service' ? itemSum + Number(item.subtotal || 0) : itemSum,
-  //       0,
-  //     ) || 0
-
-  //   return sum + serviceTotal
-  // }, 0)
-
-  // const productProfit = filteredSales.reduce((sum, sale) => {
-  //   const profit =
-  //     sale.items?.reduce((itemSum, item) => {
-  //       if (item.saleType !== 'product') return itemSum
-
-  //       return itemSum + (Number(item.price) - Number(item.costPrice)) * Number(item.quantity)
-  //     }, 0) || 0
-
-  //   return sum + profit
-  // }, 0)
-
-  // const ownerProfit = totalServiceSales * 0.7
-
-  // const staffCommissionPool = totalServiceSales * 0.3
-  // const totalProfits = ownerProfit + productProfit
+  // ==========================================
+  // REPORT VALUES FROM BACKEND
+  // ==========================================
 
   const grossSales = report.grossSales || 0
 
@@ -124,6 +125,11 @@ const Report = () => {
   const totalProfits = report.totalProfit || 0
 
   const averageSale = totalTransactions > 0 ? netSales / totalTransactions : 0
+
+  // ==========================================
+  // GET SALES REPORT
+  // ==========================================
+
   const getSalesReport = async () => {
     try {
       setLoading(true)
@@ -144,52 +150,25 @@ const Report = () => {
 
       setReport(response.data)
 
-      setSales(response.data.sales)
+      setSales(response.data.sales || [])
     } catch (error) {
       console.error(error)
     } finally {
       setLoading(false)
     }
   }
+
   useEffect(() => {
     const fetchData = async () => {
       await getSalesReport()
     }
+
     fetchData()
   }, [])
 
-  const filteredSaless = sales.filter((sale) => {
-    const provider = sale.ServiceProvider?.User?.fullname || ''
-
-    const cashier = sale.RecordedBy?.fullname || ''
-
-    return true
-  })
-
-  const matchesProvider =
-    providerFilter === '' ? true : provider.toLowerCase().includes(providerFilter.toLowerCase())
-
-  // const totalSales = filteredSales.reduce((sum, sale) => sum + Number(sale.totalAmount || 0), 0)
-
-  const totalProfit = sales.reduce((sum, sale) => sum + Number(sale.profit || 0), 0)
-
-  // const totalTransactions = sales.length
-
-  // const averageSale = totalTransactions > 0 ? totalSales / totalTransactions : 0
-
-  // const totalServiceSales = filteredSales.reduce((sum, sale) => {
-  //   const serviceTotal =
-  //     sale.items?.reduce(
-  //       (itemSum, item) =>
-  //         item.itemType === 'service' ? itemSum + Number(item.subtotal || 0) : itemSum,
-  //       0,
-  //     ) || 0
-
-  //   return sum + serviceTotal
-  // }, 0)
-
-  // const ownerProfit = totalServiceSales * 0.6
-  // const staffCommissionPool = totalServiceSales * 0.4
+  // ==========================================
+  // PRODUCT SALES
+  // ==========================================
 
   const productSales = filteredSales.reduce((sum, sale) => {
     const productTotal =
@@ -202,8 +181,44 @@ const Report = () => {
     return sum + productTotal
   }, 0)
 
+  // ==========================================
+  // EXPORT EXCEL
+  // ==========================================
+
   const exportExcel = () => {
-    const worksheet = XLSX.utils.json_to_sheet(filteredSales)
+    const exportData = filteredSales.map((sale) => {
+      const provider = sale.ServiceProvider?.fullname || sale.ServiceProvider?.User?.fullname || '-'
+
+      const services =
+        sale.items
+          ?.filter((item) => item.itemType === 'service' || item.saleType === 'service')
+          .map((item) => {
+            return (
+              item.Service?.name ||
+              item.service?.name ||
+              item.serviceName ||
+              item.name ||
+              item.productName ||
+              '-'
+            )
+          })
+          .join(', ') || '-'
+
+      return {
+        Invoice: sale.invoiceNumber || sale.receiptNumber || '-',
+        Customer: sale.Customer?.fullname || '-',
+        'Sales By': sale.RecordedBy?.fullname || '-',
+        'Service Provider': provider,
+        Services: services,
+        'Card Number': sale.CardNumber || '-',
+        'Stand Tag': sale.StandTag || '-',
+        Amount: Number(sale.totalAmount || 0),
+        Status: sale.approvalStatus || '-',
+        Date: sale.createdAt ? new Date(sale.createdAt).toLocaleDateString() : '-',
+      }
+    })
+
+    const worksheet = XLSX.utils.json_to_sheet(exportData)
 
     const workbook = XLSX.utils.book_new()
 
@@ -225,6 +240,10 @@ const Report = () => {
 
   return (
     <>
+      {/* ==========================================
+          KPI CARDS
+      ========================================== */}
+
       <CRow className="mb-4">
         <CCol md={3}>
           <CCard>
@@ -266,6 +285,7 @@ const Report = () => {
           </CCard>
         </CCol>
       </CRow>
+
       <CRow className="mb-4">
         <CCol md={3}>
           <CCard>
@@ -308,8 +328,12 @@ const Report = () => {
         </CCol>
       </CRow>
 
+      {/* ==========================================
+          FILTERS
+      ========================================== */}
+
       <CRow className="mb-3">
-        <CCol md={3}>
+        <CCol md={2}>
           <CFormInput
             type="date"
             value={startDate}
@@ -317,11 +341,11 @@ const Report = () => {
           />
         </CCol>
 
-        <CCol md={3}>
+        <CCol md={2}>
           <CFormInput type="date" value={endDate} onChange={(e) => setEndDate(e.target.value)} />
         </CCol>
 
-        <CCol md={3}>
+        <CCol md={2}>
           <CFormSelect value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)}>
             <option value="">All Status</option>
 
@@ -333,23 +357,82 @@ const Report = () => {
           </CFormSelect>
         </CCol>
 
+        {/* SERVICE PROVIDER FILTER */}
         <CCol md={3}>
-          <CButton color="primary" onClick={getSalesReport}>
-            Apply Filter
+          <CFormSelect value={providerFilter} onChange={(e) => setProviderFilter(e.target.value)}>
+            <option value="">All Service Providers</option>
+
+            {serviceProviders.map((provider) => (
+              <option key={provider} value={provider}>
+                {provider}
+              </option>
+            ))}
+          </CFormSelect>
+        </CCol>
+
+        <CCol md={3}>
+          <CButton color="primary" onClick={getSalesReport} disabled={loading}>
+            {loading ? (
+              <>
+                <CSpinner size="sm" className="me-2" />
+                Loading...
+              </>
+            ) : (
+              'Apply Filter'
+            )}
           </CButton>
+
+          {providerFilter && (
+            <CButton color="secondary" className="ms-2" onClick={() => setProviderFilter('')}>
+              Clear Staff
+            </CButton>
+          )}
         </CCol>
       </CRow>
 
+      {/* ==========================================
+          SEARCH
+      ========================================== */}
+
       <CFormInput
-        placeholder="Search Invoice..."
+        placeholder="Search Invoice, Customer, Staff or Service Provider..."
         value={search}
         onChange={(e) => setSearch(e.target.value)}
         className="mb-3"
       />
 
-      <CButton color="success" onClick={exportExcel}>
+      {/* ==========================================
+          CURRENT FILTER INFORMATION
+      ========================================== */}
+
+      {providerFilter && (
+        <CCard className="mb-3">
+          <CCardBody>
+            <strong>Viewing Sales For:</strong> <CBadge color="primary">{providerFilter}</CBadge>
+            <span className="ms-3">
+              <strong>Transactions:</strong> {filteredSales.length}
+            </span>
+            <span className="ms-3">
+              <strong>Sales:</strong> ₦
+              {filteredSales
+                .reduce((sum, sale) => sum + Number(sale.totalAmount || 0), 0)
+                .toLocaleString()}
+            </span>
+          </CCardBody>
+        </CCard>
+      )}
+
+      {/* ==========================================
+          EXPORT
+      ========================================== */}
+
+      <CButton color="success" onClick={exportExcel} className="mb-3">
         Export Excel
       </CButton>
+
+      {/* ==========================================
+          SALES TABLE
+      ========================================== */}
 
       <CTable hover responsive bordered>
         <CTableHead>
@@ -357,9 +440,13 @@ const Report = () => {
             <CTableHeaderCell>Invoice</CTableHeaderCell>
 
             <CTableHeaderCell>Customer</CTableHeaderCell>
+
             <CTableHeaderCell>Sales By</CTableHeaderCell>
 
-            <CTableHeaderCell>Attended By</CTableHeaderCell>
+            <CTableHeaderCell>Service Provider</CTableHeaderCell>
+
+            <CTableHeaderCell>Service Rendered</CTableHeaderCell>
+
             <CTableHeaderCell>Card/Stand Tag</CTableHeaderCell>
 
             <CTableHeaderCell>Amount</CTableHeaderCell>
@@ -373,46 +460,122 @@ const Report = () => {
         </CTableHead>
 
         <CTableBody>
-          {filteredSales.map((sale) => (
-            <CTableRow key={sale.id}>
-              <CTableDataCell> {sale.invoiceNumber || sale.receiptNumber}</CTableDataCell>
+          {filteredSales.length > 0 ? (
+            filteredSales.map((sale) => {
+              const provider =
+                sale.ServiceProvider?.fullname || sale.ServiceProvider?.User?.fullname || '-'
 
-              <CTableDataCell>{sale.Customer?.fullname}</CTableDataCell>
-              <CTableDataCell>{sale.RecordedBy?.fullname}</CTableDataCell>
+              // Get all services rendered on this sale
+              const services =
+                sale.items?.filter(
+                  (item) => item.itemType === 'service' || item.saleType === 'service',
+                ) || []
 
-              <CTableDataCell>
-                {sale.ServiceProvider?.fullname || sale.ServiceProvider?.User?.fullname || '-'}
-              </CTableDataCell>
+              return (
+                <CTableRow key={sale.id}>
+                  {/* INVOICE */}
+                  <CTableDataCell>{sale.invoiceNumber || sale.receiptNumber}</CTableDataCell>
 
-              <CTableDataCell>
-                <strong>Card:</strong> {sale.CardNumber || '-'}
+                  {/* CUSTOMER */}
+                  <CTableDataCell>{sale.Customer?.fullname || '-'}</CTableDataCell>
+
+                  {/* SALES BY / CASHIER */}
+                  <CTableDataCell>{sale.RecordedBy?.fullname || '-'}</CTableDataCell>
+
+                  {/* SERVICE PROVIDER */}
+                  <CTableDataCell>
+                    <CBadge color="info">{provider}</CBadge>
+                  </CTableDataCell>
+
+                  {/* SERVICES RENDERED */}
+                  <CTableDataCell>
+                    {services.length > 0 ? (
+                      services.map((item, index) => {
+                        const serviceName =
+                          item.Service?.name ||
+                          item.service?.name ||
+                          item.serviceName ||
+                          item.name ||
+                          item.productName ||
+                          'Service'
+
+                        return (
+                          <div key={item.id || index}>
+                            <strong>{serviceName}</strong>
+
+                            {item.quantity && Number(item.quantity) > 1 && (
+                              <small className="text-muted ms-1">× {item.quantity}</small>
+                            )}
+
+                            {item.subtotal && (
+                              <small className="text-muted ms-2">
+                                ₦{Number(item.subtotal).toLocaleString()}
+                              </small>
+                            )}
+                          </div>
+                        )
+                      })
+                    ) : (
+                      <span className="text-muted">No service</span>
+                    )}
+                  </CTableDataCell>
+
+                  {/* CARD / STAND */}
+                  <CTableDataCell>
+                    <strong>Card:</strong> {sale.CardNumber || '-'}
+                    <br />
+                    <small className="text-muted">Stand: {sale.StandTag || '-'}</small>
+                  </CTableDataCell>
+
+                  {/* AMOUNT */}
+                  <CTableDataCell>₦{Number(sale.totalAmount || 0).toLocaleString()}</CTableDataCell>
+
+                  {/* STATUS */}
+                  <CTableDataCell>
+                    <CBadge color={sale.approvalStatus === 'approved' ? 'success' : 'warning'}>
+                      {sale.approvalStatus}
+                    </CBadge>
+                  </CTableDataCell>
+
+                  {/* DATE */}
+                  <CTableDataCell>
+                    {sale.createdAt ? new Date(sale.createdAt).toLocaleDateString() : '-'}
+                  </CTableDataCell>
+
+                  {/* ACTION */}
+                  <CTableDataCell>
+                    <CButton
+                      color="warning"
+                      size="sm"
+                      disabled={sale.status === 'refunded'}
+                      onClick={() => handleReturn(sale)}
+                    >
+                      {sale.status === 'refunded' ? 'Returned' : 'Return'}
+                    </CButton>
+                  </CTableDataCell>
+                </CTableRow>
+              )
+            })
+          ) : (
+            <CTableRow>
+              <CTableDataCell colSpan="10" className="text-center py-4">
+                <strong>No sales found</strong>
+
                 <br />
-                <small className="text-muted">Stand: {sale.StandTag || '-'}</small>
-              </CTableDataCell>
 
-              <CTableDataCell>₦{Number(sale.totalAmount).toLocaleString()}</CTableDataCell>
-
-              <CTableDataCell>
-                <CBadge color={sale.approvalStatus === 'approved' ? 'success' : 'warning'}>
-                  {sale.approvalStatus}
-                </CBadge>
-              </CTableDataCell>
-
-              <CTableDataCell>{new Date(sale.createdAt).toLocaleDateString()}</CTableDataCell>
-              <CTableDataCell>
-                <CButton
-                  color="warning"
-                  size="sm"
-                  disabled={sale.status === 'refunded'}
-                  onClick={() => handleReturn(sale)}
-                >
-                  {sale.status === 'refunded' ? 'Returned' : 'Return'}
-                </CButton>
+                <small className="text-muted">
+                  Try selecting another service provider or changing your filters.
+                </small>
               </CTableDataCell>
             </CTableRow>
-          ))}
+          )}
         </CTableBody>
       </CTable>
+
+      {/* ==========================================
+          RETURN MODAL
+      ========================================== */}
+
       <ReturnModal
         show={showReturnModal}
         onHide={() => setShowReturnModal(false)}
