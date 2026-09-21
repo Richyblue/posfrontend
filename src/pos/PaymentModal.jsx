@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 
 import {
   CModal,
@@ -8,12 +8,12 @@ import {
   CModalFooter,
   CButton,
   CFormSelect,
-  CFormInput,
   CFormTextarea,
   CRow,
   CCol,
   CCard,
   CCardBody,
+  CAlert,
 } from '@coreui/react'
 
 export default function PaymentModal({
@@ -27,19 +27,72 @@ export default function PaymentModal({
 }) {
   const [paymentMethod, setPaymentMethod] = useState('cash')
   const [serviceProviderId, setServiceProviderId] = useState('')
+  const [serviceType, setServiceType] = useState('in_salon')
   const [note, setNote] = useState('')
   const [standTag, setStandTag] = useState('')
   const [cardNumber, setCardNumber] = useState('')
+
+  // =========================================================
+  // DETERMINE IF HOME SERVICE
+  // =========================================================
+
+  const isHomeService = serviceType === 'home_service'
+
+  // =========================================================
+  // WHEN HOME SERVICE IS SELECTED
+  // CLEAR STAND + CARD
+  // =========================================================
+
+  useEffect(() => {
+    if (isHomeService) {
+      setStandTag('')
+      setCardNumber('')
+    }
+  }, [isHomeService])
+
+  // =========================================================
+  // RESET FORM WHEN MODAL OPENS
+  // =========================================================
+
+  useEffect(() => {
+    if (show) {
+      setPaymentMethod('cash')
+      setServiceProviderId('')
+      setServiceType('in_salon')
+      setNote('')
+      setStandTag('')
+      setCardNumber('')
+    }
+  }, [show])
+
+  // =========================================================
+  // HANDLE SUBMIT
+  // =========================================================
 
   const handleSubmit = () => {
     onSubmit({
       paymentMethod,
       serviceProviderId,
-      standTag,
-      cardNumber,
+
+      // Home service automatically sends empty values
+      standTag: isHomeService ? '' : standTag,
+      cardNumber: isHomeService ? '' : cardNumber,
+
       note,
+
+      // VERY IMPORTANT
+      serviceType,
     })
   }
+
+  // =========================================================
+  // ACTIVE STAFF
+  // =========================================================
+
+  const activeStaff = staff.filter(
+    (item) =>
+      (item.User?.isActive === true || item.User?.isActive === 1) && item.User?.fullname?.trim(),
+  )
 
   return (
     <CModal visible={show} onClose={onHide} alignment="center" size="lg">
@@ -48,7 +101,9 @@ export default function PaymentModal({
       </CModalHeader>
 
       <CModalBody>
-        {/* PAYMENT SUMMARY */}
+        {/* =====================================================
+            PAYMENT SUMMARY
+        ====================================================== */}
 
         <CCard className="border-0 bg-light mb-4">
           <CCardBody>
@@ -68,7 +123,41 @@ export default function PaymentModal({
           </CCardBody>
         </CCard>
 
-        {/* PAYMENT METHOD */}
+        {/* =====================================================
+            SERVICE TYPE
+        ====================================================== */}
+
+        <CRow className="mb-3">
+          <CCol md={12}>
+            <label className="form-label fw-semibold">Service Type</label>
+
+            <CFormSelect value={serviceType} onChange={(e) => setServiceType(e.target.value)}>
+              <option value="in_salon">In-Salon Service</option>
+
+              <option value="home_service">Home Service</option>
+            </CFormSelect>
+
+            <small className="text-muted">Select where the service will be provided.</small>
+          </CCol>
+        </CRow>
+
+        {/* =====================================================
+            HOME SERVICE NOTICE
+        ====================================================== */}
+
+        {isHomeService && (
+          <CAlert color="warning" className="mb-3">
+            <strong>Home Service Selected</strong>
+
+            <div className="small mt-1">
+              Stand number and card number are not required for home services.
+            </div>
+          </CAlert>
+        )}
+
+        {/* =====================================================
+            PAYMENT METHOD
+        ====================================================== */}
 
         <CRow className="mb-3">
           <CCol md={12}>
@@ -86,24 +175,13 @@ export default function PaymentModal({
           </CCol>
         </CRow>
 
-        {/* SERVICE PROVIDER */}
+        {/* =====================================================
+            SERVICE PROVIDER
+        ====================================================== */}
 
         <CRow className="mb-3">
           <CCol md={12}>
             <label className="form-label fw-semibold">Service Provider</label>
-
-            {/* <CFormSelect
-              value={serviceProviderId}
-              onChange={(e) => setServiceProviderId(e.target.value)}
-            >
-              <option value="">Select Staff</option>
-
-              {staff.map((item) => (
-                <option key={item.id} value={item.id}>
-                  {item.User?.fullname}
-                </option>
-              ))}
-            </CFormSelect> */}
 
             <CFormSelect
               value={serviceProviderId}
@@ -111,55 +189,65 @@ export default function PaymentModal({
             >
               <option value="">Select Staff</option>
 
-              {staff
-                .filter(
-                  (item) =>
-                    (item.User?.isActive === true || item.User?.isActive === 1) &&
-                    item.User?.fullname?.trim(),
-                )
-                .map((item) => (
-                  <option key={item.id} value={item.id}>
-                    {item.User.fullname.trim()}
-                  </option>
-                ))}
+              {activeStaff.map((item) => (
+                <option key={item.id} value={item.id}>
+                  {item.User.fullname.trim()}
+                </option>
+              ))}
             </CFormSelect>
+
             <small className="text-muted">Staff that attended to the customer</small>
           </CCol>
         </CRow>
 
-        {/* STAND TAG */}
+        {/* =====================================================
+            STAND + CARD
+            ONLY SHOW FOR IN-SALON
+        ====================================================== */}
 
-        <CRow className="mb-3">
-          <CCol md={6}>
-            <label className="form-label fw-semibold">Stand Tag</label>
+        {!isHomeService && (
+          <CRow className="mb-3">
+            {/* STAND */}
 
-            <CFormSelect value={standTag} onChange={(e) => setStandTag(e.target.value)}>
-              <option value="">Select Stand</option>
+            <CCol md={6}>
+              <label className="form-label fw-semibold">Stand Tag</label>
 
-              {[...Array(20)].map((_, i) => (
-                <option key={i + 1} value={`Stand ${i + 1}`}>
-                  Stand {i + 1}
-                </option>
-              ))}
-            </CFormSelect>
-          </CCol>
+              <CFormSelect value={standTag} onChange={(e) => setStandTag(e.target.value)}>
+                <option value="">Select Stand</option>
 
-          <CCol md={6}>
-            <label className="form-label fw-semibold">Card Number</label>
+                {[...Array(20)].map((_, i) => (
+                  <option key={i + 1} value={`Stand ${i + 1}`}>
+                    Stand {i + 1}
+                  </option>
+                ))}
+              </CFormSelect>
+            </CCol>
 
-            <CFormSelect value={cardNumber} onChange={(e) => setCardNumber(e.target.value)}>
-              <option value="">Select Card</option>
+            {/* CARD */}
 
-              {[...Array(100)].map((_, i) => (
-                <option key={i + 1} value={String(i + 1).padStart(3, '0')}>
-                  Card #{String(i + 1).padStart(3, '0')}
-                </option>
-              ))}
-            </CFormSelect>
-          </CCol>
-        </CRow>
+            <CCol md={6}>
+              <label className="form-label fw-semibold">Card Number</label>
 
-        {/* NOTE */}
+              <CFormSelect value={cardNumber} onChange={(e) => setCardNumber(e.target.value)}>
+                <option value="">Select Card</option>
+
+                {[...Array(100)].map((_, i) => {
+                  const number = String(i + 1).padStart(3, '0')
+
+                  return (
+                    <option key={i + 1} value={number}>
+                      Card #{number}
+                    </option>
+                  )
+                })}
+              </CFormSelect>
+            </CCol>
+          </CRow>
+        )}
+
+        {/* =====================================================
+            REMARKS
+        ====================================================== */}
 
         <CRow>
           <CCol md={12}>
@@ -169,7 +257,7 @@ export default function PaymentModal({
               rows={3}
               value={note}
               onChange={(e) => setNote(e.target.value)}
-              placeholder="Optional note..."
+              placeholder={isHomeService ? 'Optional home service remarks...' : 'Optional note...'}
             />
           </CCol>
         </CRow>
