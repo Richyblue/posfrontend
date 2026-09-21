@@ -48,6 +48,8 @@ const Commission = () => {
   const [statusFilter, setStatusFilter] = useState('')
   const [monthFilter, setMonthFilter] = useState('')
   const [yearFilter, setYearFilter] = useState('')
+  const [dateFrom, setDateFrom] = useState('')
+  const [dateTo, setDateTo] = useState('')
   const [selectedStaff, setSelectedStaff] = useState('')
   const [staffs, setStaffs] = useState([])
 
@@ -169,7 +171,6 @@ const Commission = () => {
   // =========================================================
   // FILTERED COMMISSIONS
   // =========================================================
-
   const filteredCommissions = useMemo(() => {
     return commissions.filter((commission) => {
       const staffName =
@@ -195,10 +196,34 @@ const Commission = () => {
 
       const yearMatch = yearFilter === '' || (date && date.getFullYear() === Number(yearFilter))
 
-      return searchMatch && staffMatch && statusMatch && monthMatch && yearMatch
-    })
-  }, [commissions, search, selectedStaff, statusFilter, monthFilter, yearFilter])
+      // =====================================================
+      // DATE RANGE FILTER
+      // =====================================================
 
+      let dateFromMatch = true
+      let dateToMatch = true
+
+      if (dateFrom) {
+        const fromDate = new Date(`${dateFrom}T00:00:00`)
+        dateFromMatch = date && date >= fromDate
+      }
+
+      if (dateTo) {
+        const toDate = new Date(`${dateTo}T23:59:59.999`)
+        dateToMatch = date && date <= toDate
+      }
+
+      return (
+        searchMatch &&
+        staffMatch &&
+        statusMatch &&
+        monthMatch &&
+        yearMatch &&
+        dateFromMatch &&
+        dateToMatch
+      )
+    })
+  }, [commissions, search, selectedStaff, statusFilter, monthFilter, yearFilter, dateFrom, dateTo])
   // =========================================================
   // COMMISSION KPIs
   // =========================================================
@@ -671,6 +696,30 @@ const Commission = () => {
 
                 <option value="paid">Paid</option>
               </CFormSelect>
+            </CCol>
+            {/* FROM DATE */}
+
+            <CCol xs={12} sm={6} lg={2}>
+              <label className="form-label small fw-semibold">From Date</label>
+
+              <CFormInput
+                type="date"
+                value={dateFrom}
+                onChange={(e) => setDateFrom(e.target.value)}
+              />
+            </CCol>
+
+            {/* TO DATE */}
+
+            <CCol xs={12} sm={6} lg={2}>
+              <label className="form-label small fw-semibold">To Date</label>
+
+              <CFormInput
+                type="date"
+                value={dateTo}
+                min={dateFrom || undefined}
+                onChange={(e) => setDateTo(e.target.value)}
+              />
             </CCol>
 
             {/* MONTH */}
