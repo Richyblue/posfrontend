@@ -529,11 +529,19 @@ const POSPage = () => {
         items: cart,
 
         discount,
+
         standTag: paymentData.standTag,
+
         cardNumber: paymentData.cardNumber,
+
         serviceProviderId: paymentData.serviceProviderId,
 
         paymentMethod: paymentData.paymentMethod,
+
+        // ==========================================
+        // SERVICE TYPE
+        // ==========================================
+        serviceType: paymentData.serviceType,
 
         note: paymentData.note,
 
