@@ -72,6 +72,10 @@ const POSPage = () => {
   const [showPaymentModal, setShowPaymentModal] = useState(false)
 
   const [showReceiptModal, setShowReceiptModal] = useState(false)
+  const [showReceiptSearchModal, setShowReceiptSearchModal] = useState(false)
+  const [receiptSearch, setReceiptSearch] = useState('')
+  const [receiptResults, setReceiptResults] = useState([])
+  const [receiptSearchLoading, setReceiptSearchLoading] = useState(false)
   const [settings, setFormData] = useState(null)
   const [showHoldModal, setShowHoldModal] = useState(false)
   const [sale, setSale] = useState(null)
@@ -79,6 +83,7 @@ const POSPage = () => {
   const [products, setProducts] = useState([])
   const [staff, setStaffs] = useState([])
   const [loadingProducts, setLoadingProducts] = useState(false)
+  const [loading, setLoading] = useState(false)
   const [showPriceModal, setShowPriceModal] = useState(false)
 
   const [editingItem, setEditingItem] = useState(null)
@@ -611,67 +616,70 @@ const POSPage = () => {
     ? products.filter((product) => product?.name?.toLowerCase().includes(search.toLowerCase()))
     : []
 
-  const handleReprint = async (id) => {
+  // ==========================================================
+  // RECEIPT SEARCH / REPRINT
+  // ==========================================================
+
+  const searchReceipts = async () => {
+    const query = receiptSearch.trim()
+
+    if (!query) {
+      setReceiptResults([])
+      return
+    }
+
     try {
+      setReceiptSearchLoading(true)
+
       const token = localStorage.getItem('token')
 
-      const response = await axios.get(`${API_URL}api/v1/sales/${id}/reprints`, {
+      const response = await axios.get(`${API_URL}api/v1/sales/search`, {
+        params: { search: query },
         headers: {
           Authorization: `Bearer ${token}`,
         },
       })
 
-      const sale = response.data.sale
-
-      const html = `
-          <html>
-          <body>
-            <h3>PRINCESS SALON</h3>
-    
-            <p>
-              Receipt No:
-              ${sale.receiptNumber}
-            </p>
-    
-            <p>
-              Customer:
-              ${sale.customer?.fullname || 'Walk-in Customer'}
-            </p>
-    
-            <hr>
-    
-            ${sale.SaleItems.map(
-              (item) => `
-              <div>
-                ${item.Product?.name || item.Service?.name || 'Unknown Item'}
-                x ${item.quantity}
-                =
-                 ₦${Number(sale.subtotal).toLocaleString()}
-              </div>
-            `,
-            ).join('')}
-    
-            <hr>
-    
-            <h4>
-              Total:
-              ₦${sale.totalAmount}
-            </h4>
-    
-            <p>
-              *** REPRINT ***
-            </p>
-          </body>
-          </html>
-        `
-
-      await window.electronAPI.printReceipt(html)
+      setReceiptResults(response.data.sales || [])
     } catch (error) {
-      console.error(error)
+      console.error('RECEIPT SEARCH ERROR:', error)
 
-      alert('Failed to reprint receipt')
+      alert(error.response?.data?.message || 'Unable to search for receipts')
+
+      setReceiptResults([])
+    } finally {
+      setReceiptSearchLoading(false)
     }
   }
+
+  const openReceiptForReprint = async (saleId) => {
+    try {
+      setReceiptSearchLoading(true)
+
+      const token = localStorage.getItem('token')
+
+      const response = await axios.get(`${API_URL}api/v1/sales/reprint/${saleId}`, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      })
+
+      const selectedSale = response.data.sale || response.data
+
+      setSale(selectedSale)
+      setShowReceiptSearchModal(false)
+      setReceiptSearch('')
+      setReceiptResults([])
+      setShowReceiptModal(true)
+    } catch (error) {
+      console.error('LOAD RECEIPT ERROR:', error)
+
+      alert(error.response?.data?.message || 'Unable to load receipt')
+    } finally {
+      setReceiptSearchLoading(false)
+    }
+  }
+
   // hold sales
 
   const holdSale = async (note) => {
@@ -853,20 +861,21 @@ const POSPage = () => {
   }
 
   const actionCardStyle = {
-    height: '90px',
-    borderRadius: '18px',
-    border: 'none',
+    height: '68px',
+    borderRadius: '14px',
+    border: '1px solid rgba(255,255,255,.12)',
     color: '#fff',
     display: 'flex',
-    flexDirection: 'column',
+    flexDirection: 'row',
     justifyContent: 'center',
     alignItems: 'center',
-    gap: '6px',
-    transition: 'all .3s ease',
+    gap: '8px',
+    transition: 'all .2s ease',
     fontWeight: '600',
+    boxShadow: '0 5px 18px rgba(0,0,0,.08)',
   }
   return (
-    <CContainer fluid className="py-3 p-3">
+    <CContainer fluid className="py-2 px-3" style={{ background: '#f5f7fb', minHeight: '100vh' }}>
       <CCard
         className="border-0 shadow-sm mb-2"
         style={{
@@ -952,7 +961,7 @@ const POSPage = () => {
                   ...actionCardStyle,
                   background: 'linear-gradient(135deg,#fc466b,#3f5efb)',
                 }}
-                onClick={() => handleReprint(lastSale?.id)}
+                onClick={() => setShowReceiptSearchModal(true)}
               >
                 <CIcon icon={cilPrint} size="xl" />
                 <small>Reprint</small>
@@ -1020,7 +1029,7 @@ const POSPage = () => {
       </CCard>
       <CRow style={{ width: '100%', marginLeft: '0px' }}>
         <CCol md={6}>
-          <CCard className="vh-100 shadow-sm border-0 ">
+          <CCard className="shadow-sm border-0 h-100" style={{ borderRadius: '18px' }}>
             <CCardBody>
               <CFormInput
                 className="mb-3"
@@ -1358,7 +1367,7 @@ const POSPage = () => {
               <div
                 className="border rounded shadow-sm"
                 style={{
-                  maxHeight: '450px',
+                  maxHeight: 'calc(100vh - 360px)',
                   overflowY: 'auto',
                   background: '#fff',
                 }}
@@ -1759,6 +1768,152 @@ const POSPage = () => {
         staff={staff}
         currentUser={currentUser}
       />
+
+      <CModal
+        visible={showReceiptSearchModal}
+        onClose={() => {
+          setShowReceiptSearchModal(false)
+          setReceiptSearch('')
+          setReceiptResults([])
+        }}
+        size="lg"
+        alignment="center"
+      >
+        <CModalHeader>
+          <CModalTitle className="fw-bold">
+            <CIcon icon={cilPrint} className="me-2" />
+            Reprint Receipt
+          </CModalTitle>
+        </CModalHeader>
+
+        <CModalBody className="p-4">
+          <div
+            className="p-4 mb-4"
+            style={{
+              background: '#f8fafc',
+              borderRadius: '16px',
+              border: '1px solid #e9ecef',
+            }}
+          >
+            <h6 className="fw-bold mb-1">Find a previous sale</h6>
+
+            <small className="text-medium-emphasis d-block mb-3">
+              Search by receipt number, customer name or sale ID.
+            </small>
+
+            <div className="d-flex gap-2">
+              <CFormInput
+                size="lg"
+                value={receiptSearch}
+                placeholder="e.g. REC-000125 or John Doe"
+                onChange={(e) => setReceiptSearch(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') searchReceipts()
+                }}
+              />
+
+              <CButton
+                color="primary"
+                size="lg"
+                onClick={searchReceipts}
+                disabled={receiptSearchLoading || !receiptSearch.trim()}
+              >
+                <CIcon icon={cilChart} className="me-2" />
+                Search
+              </CButton>
+            </div>
+          </div>
+
+          {receiptSearchLoading && (
+            <div className="text-center py-4">
+              <div className="spinner-border text-primary" role="status" />
+              <div className="mt-2 text-medium-emphasis">Searching sales...</div>
+            </div>
+          )}
+
+          {!receiptSearchLoading && receiptSearch && receiptResults.length === 0 && (
+            <div className="text-center py-5">
+              <div
+                style={{
+                  width: '70px',
+                  height: '70px',
+                  borderRadius: '50%',
+                  background: '#f1f5f9',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  margin: '0 auto 15px',
+                  fontSize: '28px',
+                }}
+              >
+                🔍
+              </div>
+
+              <h6 className="fw-bold">No sales found</h6>
+
+              <small className="text-medium-emphasis">
+                Try another receipt number or customer name.
+              </small>
+            </div>
+          )}
+
+          {receiptResults.length > 0 && (
+            <div>
+              <div className="d-flex justify-content-between align-items-center mb-3">
+                <h6 className="fw-bold mb-0">Search Results</h6>
+
+                <span className="badge bg-primary">
+                  {receiptResults.length} sale
+                  {receiptResults.length !== 1 ? 's' : ''}
+                </span>
+              </div>
+
+              <div style={{ maxHeight: '400px', overflowY: 'auto' }}>
+                {receiptResults.map((item) => (
+                  <div
+                    key={item.id}
+                    className="p-3 mb-2"
+                    style={{
+                      border: '1px solid #e9ecef',
+                      borderRadius: '14px',
+                    }}
+                  >
+                    <div className="d-flex justify-content-between align-items-center">
+                      <div>
+                        <div className="fw-bold">{item.receiptNumber || `SALE-${item.id}`}</div>
+
+                        <div className="small text-medium-emphasis">
+                          {item.customer?.fullname || item.Customer?.fullname || 'Walk-in Customer'}
+                        </div>
+
+                        <div className="small text-medium-emphasis">
+                          {item.createdAt ? new Date(item.createdAt).toLocaleString() : '-'}
+                        </div>
+                      </div>
+
+                      <div className="text-end">
+                        <div className="fw-bold text-success mb-2">
+                          ₦{Number(item.totalAmount || 0).toLocaleString()}
+                        </div>
+
+                        <CButton
+                          color="dark"
+                          size="sm"
+                          onClick={() => openReceiptForReprint(item.id)}
+                          disabled={receiptSearchLoading}
+                        >
+                          <CIcon icon={cilPrint} className="me-1" />
+                          Reprint
+                        </CButton>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+        </CModalBody>
+      </CModal>
 
       <ReceiptModal
         show={showReceiptModal}
