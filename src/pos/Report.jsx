@@ -566,6 +566,18 @@ const Report = () => {
 
     const ownerProfit = productProfit + ownerServiceProfit
 
+    // =======================================================
+    // EXPENSES
+    // =======================================================
+
+    const totalExpenses = Number(report.totalExpenses || 0)
+
+    // =======================================================
+    // NET PROFIT AFTER EXPENSES
+    // =======================================================
+
+    const netProfit = ownerProfit - totalExpenses
+
     const totalProfit = ownerProfit
 
     // =======================================================
@@ -578,31 +590,23 @@ const Report = () => {
 
     return {
       grossSales,
-
       totalReturns,
-
       netSales,
-
       totalTransactions,
-
       totalServiceSales,
-
       totalProductSales,
-
       productProfit,
-
       staffShare,
-
       ownerServiceProfit,
-
       ownerProfit,
 
+      // NEW
+      totalExpenses,
+      netProfit,
+
       totalProfit,
-
       averageSale,
-
       homeServiceSales,
-
       inSalonServiceSales,
     }
   }, [filteredSales, report])
@@ -1017,6 +1021,49 @@ const Report = () => {
 
                 <div className="rounded-circle bg-success bg-opacity-10 p-3">
                   <CIcon icon={cilChart} className="text-success" size="xl" />
+                </div>
+              </div>
+            </CCardBody>
+          </CCard>
+        </CCol>
+
+        {/* NET PROFIT */}
+
+        <CCol xs={12} sm={6} xl={3}>
+          <CCard className="border-0 shadow-sm h-100">
+            <CCardBody>
+              <div className="d-flex justify-content-between align-items-start">
+                <div>
+                  <div className="text-medium-emphasis small mb-2">Net Profit</div>
+
+                  <h3 className="fw-bold text-success mb-1">{money(kpis.netProfit)}</h3>
+
+                  <small className="text-medium-emphasis">Owner profit − expenses</small>
+                </div>
+
+                <div className="rounded-circle bg-success bg-opacity-10 p-3">
+                  <CIcon icon={cilChart} className="text-success" size="xl" />
+                </div>
+              </div>
+            </CCardBody>
+          </CCard>
+        </CCol>
+        {/* EXPENSES */}
+
+        <CCol xs={12} sm={6} xl={3}>
+          <CCard className="border-0 shadow-sm h-100">
+            <CCardBody>
+              <div className="d-flex justify-content-between align-items-start">
+                <div>
+                  <div className="text-medium-emphasis small mb-2">Expenses</div>
+
+                  <h3 className="fw-bold text-danger mb-1">{money(kpis.totalExpenses)}</h3>
+
+                  <small className="text-medium-emphasis">Business expenses</small>
+                </div>
+
+                <div className="rounded-circle bg-danger bg-opacity-10 p-3">
+                  <CIcon icon={cilMoney} className="text-danger" size="xl" />
                 </div>
               </div>
             </CCardBody>
