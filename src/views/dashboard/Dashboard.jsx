@@ -333,14 +333,7 @@ const Dashboard = () => {
   }
 
   return (
-    <div
-      className="dashboard-page"
-      style={{
-        background: '#f5f7fb',
-        minHeight: '100%',
-        paddingBottom: '30px',
-      }}
-    >
+    <div className="dashboard-page p-2">
       {/* =====================================================
           HEADER
       ====================================================== */}
