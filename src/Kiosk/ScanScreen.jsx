@@ -75,7 +75,7 @@ const ScanScreen = ({
 
       const response = await getAttendanceDashboardKPIs()
 
-      const data = response.data?.data || response.data || {}
+      const data = response?.data?.data || response?.data || {}
 
       setKioskStats({
         presentToday: Number(data.presentToday || 0),
@@ -94,16 +94,88 @@ const ScanScreen = ({
   }
 
   // =========================================================
+  // BUSINESS HOURS
+  // Uses the actual BusinessHours model fields:
+  //
+  // dayOfWeek
+  // openingTime
+  // closingTime
+  // isOpen
+  // gracePeriod
+  // =========================================================
+
+  const loadTodayBusinessHours = async () => {
+    try {
+      setBusinessHoursLoading(true)
+
+      const response = await getTodayBusinessHours()
+
+      console.log('Today BusinessHours API response:', response?.data)
+
+      const responseData = response?.data
+
+      /*
+       * Support the possible response structures:
+       *
+       * {
+       *   data: {...}
+       * }
+       *
+       * {
+       *   data: {
+       *     data: {...}
+       *   }
+       * }
+       *
+       * {
+       *   data: {
+       *     businessHours: {...}
+       *   }
+       * }
+       *
+       * {
+       *   businessHours: {...}
+       * }
+       */
+
+      let data =
+        responseData?.data?.businessHours ||
+        responseData?.data?.hours ||
+        responseData?.data?.data ||
+        responseData?.data ||
+        responseData?.businessHours ||
+        responseData?.hours ||
+        responseData
+
+      // If backend returns an array, use the first record
+      if (Array.isArray(data)) {
+        data = data[0]
+      }
+
+      if (!data || typeof data !== 'object') {
+        console.warn('No valid BusinessHours record returned:', responseData)
+
+        setBusinessHours(null)
+
+        return
+      }
+
+      console.log('Normalized BusinessHours:', data)
+
+      setBusinessHours(data)
+    } catch (err) {
+      console.error('Failed to load today business hours:', err)
+
+      setBusinessHours(null)
+    } finally {
+      setBusinessHoursLoading(false)
+    }
+  }
+
+  // =========================================================
   // TIME HELPERS
   // =========================================================
 
-  /**
-   * Convert HH:mm into minutes.
-   *
-   * Example:
-   * 08:00 -> 480
-   * 17:30 -> 1050
-   */
   const timeToMinutes = (time) => {
     if (!time) return null
 
@@ -126,10 +198,10 @@ const ScanScreen = ({
   }
 
   /**
-   * Get current time specifically in Africa/Lagos.
+   * Current time in Nigeria.
    *
-   * This prevents the kiosk from using the computer/server
-   * timezone accidentally.
+   * This deliberately uses Africa/Lagos so the kiosk does
+   * not depend on the computer/server timezone.
    */
   const getLagosTimeInMinutes = () => {
     const parts = new Intl.DateTimeFormat('en-GB', {
@@ -146,13 +218,6 @@ const ScanScreen = ({
     return hour * 60 + minute
   }
 
-  /**
-   * Format business time for display.
-   *
-   * Example:
-   * 08:00 -> 08:00 AM
-   * 17:30 -> 05:30 PM
-   */
   const formatTime12Hour = (time) => {
     if (!time) return '--'
 
@@ -183,110 +248,127 @@ const ScanScreen = ({
     })
   }
 
-  /**
-   * Check whether the business is currently open.
-   *
-   * Handles:
-   *
-   * 08:00 - 20:00
-   *
-   * and overnight schedules:
-   *
-   * 20:00 - 02:00
-   */
+  // =========================================================
+  // CHECK BUSINESS OPEN/CLOSED
+  // =========================================================
+
   const isCurrentlyWithinBusinessHours = () => {
-    if (!businessHours) return false
+    if (!businessHours) {
+      return false
+    }
 
-    const openTime = timeToMinutes(businessHours.openTime)
-    const closeTime = timeToMinutes(businessHours.closeTime)
+    // BusinessHours.isOpen controls whether the day is enabled
+    if (businessHours.isOpen === false) {
+      return false
+    }
 
-    if (openTime === null || closeTime === null) {
+    // IMPORTANT:
+    // These are the exact fields from your model.
+    const openingTime = timeToMinutes(businessHours.openingTime)
+
+    const closingTime = timeToMinutes(businessHours.closingTime)
+
+    if (openingTime === null || closingTime === null) {
       return false
     }
 
     const currentTime = getLagosTimeInMinutes()
 
-    // Normal same-day schedule
-    if (closeTime > openTime) {
-      return currentTime >= openTime && currentTime <= closeTime
+    // Normal business day
+    // Example: 09:00 - 21:00
+    if (closingTime > openingTime) {
+      return currentTime >= openingTime && currentTime <= closingTime
     }
 
-    // Overnight schedule
-    if (closeTime < openTime) {
-      return currentTime >= openTime || currentTime <= closeTime
+    // Overnight business hours
+    // Example: 20:00 - 02:00
+    if (closingTime < openingTime) {
+      return currentTime >= openingTime || currentTime <= closingTime
     }
 
-    // Same opening and closing time
     return false
   }
 
   // =========================================================
-  // LOAD TODAY'S BUSINESS HOURS
+  // BUSINESS STATUS
   // =========================================================
 
-  const loadTodayBusinessHours = async () => {
-    try {
-      setBusinessHoursLoading(true)
-
-      const response = await getTodayBusinessHours()
-
-      console.log('Today business hours response:', response.data)
-
-      const responseData = response?.data
-
-      /**
-       * Support several possible API response formats.
-       *
-       * Format 1:
-       * { data: {...} }
-       *
-       * Format 2:
-       * { data: { data: {...} } }
-       *
-       * Format 3:
-       * { data: { businessHours: {...} } }
-       *
-       * Format 4:
-       * { businessHours: {...} }
-       */
-      let data =
-        responseData?.data?.businessHours ||
-        responseData?.data?.hours ||
-        responseData?.data ||
-        responseData?.businessHours ||
-        responseData?.hours ||
-        responseData
-
-      /**
-       * Some APIs return today's schedule as an array.
-       * If so, use the first record.
-       */
-      if (Array.isArray(data)) {
-        data = data[0]
-      }
-
-      if (!data || typeof data !== 'object') {
-        console.warn('No valid business hours returned from API:', responseData)
-
-        setBusinessHours(null)
-
-        return
-      }
-
-      console.log('Normalized business hours:', data)
-
-      setBusinessHours(data)
-    } catch (err) {
-      console.error('Failed to load today business hours:', err)
-
-      setBusinessHours(null)
-    } finally {
-      setBusinessHoursLoading(false)
+  const getBusinessStatus = () => {
+    if (businessHoursLoading) {
+      return 'Checking today’s business schedule...'
     }
+
+    if (!businessHours) {
+      return 'Business hours unavailable'
+    }
+
+    if (businessHours.isOpen === false) {
+      return 'Business is closed today'
+    }
+
+    if (!businessHours.openingTime || !businessHours.closingTime) {
+      return 'Business hours are not configured'
+    }
+
+    return isCurrentlyWithinBusinessHours()
+      ? 'Business is currently open'
+      : 'Business is currently closed'
   }
 
   // =========================================================
-  // INITIAL LOAD + REFRESH
+  // SHIFT TITLE
+  // =========================================================
+
+  const getShiftTitle = () => {
+    if (businessHoursLoading) {
+      return 'Loading business hours...'
+    }
+
+    if (!businessHours) {
+      return 'Business hours unavailable'
+    }
+
+    if (businessHours.isOpen === false) {
+      return 'Business Closed Today'
+    }
+
+    if (!businessHours.openingTime || !businessHours.closingTime) {
+      return 'Business hours unavailable'
+    }
+
+    const openingTime = formatTime12Hour(businessHours.openingTime)
+
+    const closingTime = formatTime12Hour(businessHours.closingTime)
+
+    return `Today's Grooming Shift: ${openingTime} – ${closingTime}`
+  }
+
+  // =========================================================
+  // GRACE PERIOD
+  // =========================================================
+
+  const getGracePeriodText = () => {
+    if (businessHoursLoading) {
+      return 'Checking today’s business schedule...'
+    }
+
+    if (!businessHours) {
+      return 'Unable to retrieve today’s schedule'
+    }
+
+    if (businessHours.isOpen === false) {
+      return 'Business is closed today'
+    }
+
+    if (businessHours.gracePeriod !== undefined && businessHours.gracePeriod !== null) {
+      return `Grace period: ${businessHours.gracePeriod} minutes`
+    }
+
+    return getBusinessStatus()
+  }
+
+  // =========================================================
+  // INITIAL LOAD
   // =========================================================
 
   useEffect(() => {
@@ -302,86 +384,6 @@ const ScanScreen = ({
       clearInterval(interval)
     }
   }, [])
-
-  // =========================================================
-  // BUSINESS HOURS DISPLAY
-  // =========================================================
-
-  const getShiftTitle = () => {
-    if (businessHoursLoading) {
-      return 'Loading business hours...'
-    }
-
-    if (!businessHours) {
-      return 'Business hours unavailable'
-    }
-
-    const openTime = businessHours.openTime
-    const closeTime = businessHours.closeTime
-
-    if (!openTime || !closeTime) {
-      return 'Business hours unavailable'
-    }
-
-    const shiftName =
-      businessHours.shiftName ||
-      businessHours.name ||
-      businessHours.shift ||
-      'Today’s Grooming Shift'
-
-    const openingTime = formatTime12Hour(openTime)
-    const closingTime = formatTime12Hour(closeTime)
-
-    return `${shiftName}: ${openingTime} – ${closingTime}`
-  }
-
-  // =========================================================
-  // BUSINESS STATUS
-  // =========================================================
-
-  const getBusinessStatus = () => {
-    if (businessHoursLoading) {
-      return 'Checking today’s business schedule...'
-    }
-
-    if (!businessHours) {
-      return 'Unable to retrieve today’s schedule'
-    }
-
-    if (!businessHours.openTime || !businessHours.closeTime) {
-      return 'Business hours are not configured'
-    }
-
-    return isCurrentlyWithinBusinessHours()
-      ? 'Business is currently open'
-      : 'Business is currently closed'
-  }
-
-  // =========================================================
-  // GRACE PERIOD DISPLAY
-  // =========================================================
-
-  const getGracePeriodText = () => {
-    if (businessHoursLoading) {
-      return 'Checking today’s business schedule...'
-    }
-
-    if (!businessHours) {
-      return 'Unable to retrieve today’s schedule'
-    }
-
-    const gracePeriod =
-      businessHours.gracePeriodMinutes ??
-      businessHours.graceMinutes ??
-      businessHours.lateGraceMinutes ??
-      businessHours.gracePeriod
-
-    if (gracePeriod !== undefined && gracePeriod !== null && gracePeriod !== '') {
-      return `Grace period: ${gracePeriod} minutes`
-    }
-
-    return getBusinessStatus()
-  }
 
   // =========================================================
   // ACTIVITY HELPERS
@@ -1039,9 +1041,7 @@ const ScanScreen = ({
       </style>
 
       <div className="princess-kiosk-shell">
-        {/* =====================================================
-            HEADER
-        ====================================================== */}
+        {/* HEADER */}
 
         <header className="princess-kiosk-header">
           <div className="princess-brand">
@@ -1080,17 +1080,12 @@ const ScanScreen = ({
           </div>
         </header>
 
-        {/* =====================================================
-            MAIN CONTENT
-        ====================================================== */}
+        {/* MAIN */}
 
         <main className="princess-kiosk-content">
-          {/* ===================================================
-              LEFT SIDE
-          ==================================================== */}
+          {/* LEFT */}
 
           <section className="princess-left-panel">
-            {/* WELCOME */}
             <div>
               <div className="princess-pill">
                 <span>●</span>
@@ -1109,6 +1104,7 @@ const ScanScreen = ({
               </p>
 
               {/* BUSINESS HOURS */}
+
               <div className="princess-hours-card">
                 <div className="princess-hours-icon">◷</div>
 
@@ -1120,9 +1116,7 @@ const ScanScreen = ({
               </div>
             </div>
 
-            {/* =================================================
-                KPI SECTION
-            ================================================== */}
+            {/* KPI SECTION */}
 
             <div>
               <div className="princess-section-heading">
@@ -1132,7 +1126,6 @@ const ScanScreen = ({
               </div>
 
               <div className="princess-kpi-grid">
-                {/* PRESENT */}
                 <div className="princess-kpi-card">
                   <div className="princess-kpi-label">Present Today</div>
 
@@ -1143,7 +1136,6 @@ const ScanScreen = ({
                   <div className="princess-kpi-caption">On the floor</div>
                 </div>
 
-                {/* CLOCKED IN */}
                 <div className="princess-kpi-card">
                   <div className="princess-kpi-label">Clocked In</div>
 
@@ -1154,7 +1146,6 @@ const ScanScreen = ({
                   <div className="princess-kpi-caption">Active staff</div>
                 </div>
 
-                {/* LATE */}
                 <div className="princess-kpi-card">
                   <div className="princess-kpi-label">Late Arrivals</div>
 
@@ -1165,7 +1156,6 @@ const ScanScreen = ({
                   <div className="princess-kpi-caption">Logged today</div>
                 </div>
 
-                {/* OUTSIDE */}
                 <div className="princess-kpi-card">
                   <div className="princess-kpi-label">Outside</div>
 
@@ -1178,13 +1168,10 @@ const ScanScreen = ({
               </div>
             </div>
 
-            {/* =================================================
-                SECOND KPI ROW
-            ================================================== */}
+            {/* SECOND KPI ROW */}
 
             <div>
               <div className="princess-kpi-grid">
-                {/* CLOCKED OUT */}
                 <div className="princess-kpi-card">
                   <div className="princess-kpi-label">Clocked Out Today</div>
 
@@ -1195,7 +1182,6 @@ const ScanScreen = ({
                   <div className="princess-kpi-caption">Completed shifts</div>
                 </div>
 
-                {/* AVERAGE HOURS */}
                 <div className="princess-kpi-card">
                   <div className="princess-kpi-label">Average Working Hours</div>
 
@@ -1206,7 +1192,6 @@ const ScanScreen = ({
                   <div className="princess-kpi-caption">Staff average</div>
                 </div>
 
-                {/* OVERTIME */}
                 <div className="princess-kpi-card">
                   <div className="princess-kpi-label">Overtime Hours</div>
 
@@ -1217,7 +1202,6 @@ const ScanScreen = ({
                   <div className="princess-kpi-caption">Logged today</div>
                 </div>
 
-                {/* TOTAL OUTSIDE */}
                 <div className="princess-kpi-card">
                   <div className="princess-kpi-label">Total Outside</div>
 
@@ -1230,9 +1214,7 @@ const ScanScreen = ({
               </div>
             </div>
 
-            {/* =================================================
-                RECENT ACTIVITY
-            ================================================== */}
+            {/* RECENT ACTIVITY */}
 
             <div>
               <div className="princess-section-heading">
@@ -1245,7 +1227,9 @@ const ScanScreen = ({
                 {recentActivities.length > 0 ? (
                   recentActivities.slice(0, 5).map((activity, index) => {
                     const name = getActivityName(activity)
+
                     const position = getActivityPosition(activity)
+
                     const status = getActivityStatus(activity)
 
                     const statusStyle = getStatusColor(status)
@@ -1296,9 +1280,7 @@ const ScanScreen = ({
             </div>
           </section>
 
-          {/* ===================================================
-              RIGHT SIDE
-          ==================================================== */}
+          {/* RIGHT */}
 
           <section className="princess-right-panel">
             <div className="princess-scanner-shell">
@@ -1338,10 +1320,8 @@ const ScanScreen = ({
                 )}
               </div>
 
-              {/* ERROR */}
               {error && <div className="princess-error">{error}</div>}
 
-              {/* ACTION BUTTONS */}
               <div className="princess-action-buttons">
                 <button
                   type="button"
@@ -1375,9 +1355,7 @@ const ScanScreen = ({
           </section>
         </main>
 
-        {/* =====================================================
-            FOOTER
-        ====================================================== */}
+        {/* FOOTER */}
 
         <footer className="princess-kiosk-footer">
           <div>Princess Cutz Terminal OS v1.0</div>
