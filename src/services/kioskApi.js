@@ -2,78 +2,84 @@ import axios from 'axios'
 
 const API = import.meta.env.VITE_BACKEND_URL
 
-const token = localStorage.getItem('token')
+// =========================================================
+// GET AUTH HEADERS
+// =========================================================
 
-const headers = {
-  Authorization: `Bearer ${token}`,
-}
-
-export const scanQR = (data) => {
-  return axios.post(
-    `${API}api/v1/kiosk/scan`,
-
-    data,
-
-    { headers },
-  )
-}
-
-export const clockIn = (data) => {
-  return axios.post(
-    `${API}api/v1/kiosk/clock-in`,
-
-    data,
-
-    { headers },
-  )
-}
-
-export const goOut = (data) => {
-  return axios.post(
-    `${API}api/v1/kiosk/go-out`,
-
-    data,
-
-    { headers },
-  )
-}
-
-export const returnBack = (data) => {
-  return axios.post(
-    `${API}api/v1/kiosk/return`,
-
-    data,
-
-    { headers },
-  )
-}
-
-export const clockOut = (data) => {
-  return axios.post(
-    `${API}api/v1/kiosk/clock-out`,
-
-    data,
-
-    { headers },
-  )
-}
-
-export const getAttendanceDashboardKPIs = async () => {
+const getHeaders = () => {
   const token = localStorage.getItem('token')
 
-  return axios.get(`${API}api/v1/attendance/dashboard`, {
-    headers: {
-      Authorization: `Bearer ${token}`,
-    },
+  return {
+    Authorization: `Bearer ${token}`,
+  }
+}
+
+// =========================================================
+// SCAN QR
+// =========================================================
+
+export const scanQR = (data) => {
+  return axios.post(`${API}api/v1/kiosk/scan`, data, {
+    headers: getHeaders(),
   })
 }
 
-export const getTodayBusinessHours = async () => {
-  const token = localStorage.getItem('token')
+// =========================================================
+// CLOCK IN
+// =========================================================
 
-  return axios.get(`${API}api/v1/business-hours/today`, {
-    headers: {
-      Authorization: `Bearer ${token}`,
-    },
+export const clockIn = (data) => {
+  return axios.post(`${API}api/v1/kiosk/clock-in`, data, {
+    headers: getHeaders(),
+  })
+}
+
+// =========================================================
+// GO OUT
+// =========================================================
+
+export const goOut = (data) => {
+  return axios.post(`${API}api/v1/kiosk/go-out`, data, {
+    headers: getHeaders(),
+  })
+}
+
+// =========================================================
+// RETURN BACK
+// =========================================================
+
+export const returnBack = (data) => {
+  return axios.post(`${API}api/v1/kiosk/return`, data, {
+    headers: getHeaders(),
+  })
+}
+
+// =========================================================
+// CLOCK OUT
+// =========================================================
+
+export const clockOut = (data) => {
+  return axios.post(`${API}api/v1/kiosk/clock-out`, data, {
+    headers: getHeaders(),
+  })
+}
+
+// =========================================================
+// ATTENDANCE DASHBOARD KPIs
+// =========================================================
+
+export const getAttendanceDashboardKPIs = async () => {
+  return axios.get(`${API}api/v1/attendance/dashboard`, {
+    headers: getHeaders(),
+  })
+}
+
+// =========================================================
+// TODAY'S BUSINESS HOURS
+// =========================================================
+
+export const getTodayBusinessHours = async () => {
+  return axios.get(`${API}api/v1/business-hours/`, {
+    headers: getHeaders(),
   })
 }
