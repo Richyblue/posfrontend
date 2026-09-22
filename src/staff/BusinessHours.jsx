@@ -63,9 +63,14 @@ const BusinessHours = () => {
 
       const response = await axios.get(`${API_URL}api/v1/business-hours`, authConfig)
 
-      setHours(response.data.businessHours || response.data.hours || [])
+      console.log('Business hours response:', response.data)
+
+      const businessHours = response.data.businessHours || []
+
+      setHours(Array.isArray(businessHours) ? businessHours : [])
     } catch (error) {
-      console.error(error)
+      console.error('Get business hours error:', error.response?.data || error)
+
       setError(error.response?.data?.message || 'Unable to load business hours.')
     } finally {
       setLoading(false)
@@ -81,7 +86,7 @@ const BusinessHours = () => {
 
     setFormData((previous) => ({
       ...previous,
-      [name]: type === 'checkbox' ? checked : value,
+      [name]: type === 'checkbox' ? checked : type === 'number' ? Number(value) : value,
     }))
   }
 
@@ -118,17 +123,59 @@ const BusinessHours = () => {
   const saveBusinessHour = async (e) => {
     e.preventDefault()
 
+    if (!formData.dayOfWeek) {
+      Swal.fire({
+        icon: 'warning',
+        title: 'Select a day',
+        text: 'Please select a day of the week.',
+      })
+
+      return
+    }
+
     try {
       setSaving(true)
 
+      let updatedBusinessHours
+
       if (editingHour) {
-        await axios.put(`${API_URL}api/v1/business-hours/${editingHour.id}`, formData, authConfig)
+        updatedBusinessHours = hours.map((item) =>
+          item.id === editingHour.id
+            ? {
+                ...item,
+                ...formData,
+              }
+            : item,
+        )
       } else {
-        await axios.post(`${API_URL}api/v1/business-hours`, formData, authConfig)
+        const alreadyExists = hours.some((item) => item.dayOfWeek === formData.dayOfWeek)
+
+        if (alreadyExists) {
+          Swal.fire({
+            icon: 'warning',
+            title: 'Day already exists',
+            text: `${formData.dayOfWeek} already has business hours. Edit the existing record instead.`,
+          })
+
+          return
+        }
+
+        updatedBusinessHours = [...hours, formData]
       }
 
+      const payload = {
+        businessHours: updatedBusinessHours,
+      }
+
+      console.log('Business hours payload:', payload)
+
+      const response = await axios.put(`${API_URL}api/v1/business-hours`, payload, authConfig)
+
+      console.log('Save business hours response:', response.data)
+
+      setHours(updatedBusinessHours)
       setVisible(false)
-      await getBusinessHours()
+      setEditingHour(null)
 
       Swal.fire({
         icon: 'success',
@@ -139,47 +186,18 @@ const BusinessHours = () => {
         confirmButtonColor: '#321fdb',
       })
     } catch (error) {
-      console.error(error)
+      console.error('Save business hours error:', error.response?.data || error)
 
       Swal.fire({
         icon: 'error',
         title: 'Error',
-        text: error.response?.data?.message || 'Unable to save business hours.',
+        text:
+          error.response?.data?.message ||
+          error.response?.data?.error ||
+          'Unable to save business hours.',
       })
     } finally {
       setSaving(false)
-    }
-  }
-
-  const deleteBusinessHour = async (id) => {
-    const result = await Swal.fire({
-      icon: 'warning',
-      title: 'Delete business hours?',
-      text: 'This action cannot be reversed.',
-      showCancelButton: true,
-      confirmButtonText: 'Yes, delete',
-      cancelButtonText: 'Cancel',
-      confirmButtonColor: '#d33',
-    })
-
-    if (!result.isConfirmed) return
-
-    try {
-      await axios.delete(`${API_URL}api/v1/business-hours/${id}`, authConfig)
-
-      await getBusinessHours()
-
-      Swal.fire({
-        icon: 'success',
-        title: 'Deleted',
-        text: 'Business hours deleted successfully.',
-      })
-    } catch (error) {
-      Swal.fire({
-        icon: 'error',
-        title: 'Error',
-        text: error.response?.data?.message || 'Unable to delete business hours.',
-      })
     }
   }
 
@@ -197,6 +215,7 @@ const BusinessHours = () => {
         <CCardHeader className="d-flex justify-content-between align-items-center">
           <div>
             <h5 className="mb-1">Business Hours</h5>
+
             <small className="text-medium-emphasis">
               Manage opening times, closing times and staff grace periods.
             </small>
@@ -232,7 +251,7 @@ const BusinessHours = () => {
                 </CTableRow>
               ) : (
                 hours.map((item) => (
-                  <CTableRow key={item.id}>
+                  <CTableRow key={item.id || item.dayOfWeek}>
                     <CTableDataCell>
                       <strong>{item.dayOfWeek}</strong>
                     </CTableDataCell>
@@ -241,9 +260,9 @@ const BusinessHours = () => {
 
                     <CTableDataCell>{item.closingTime || '--:--'}</CTableDataCell>
 
-                    <CTableDataCell>{item.workingHours || 0} hours</CTableDataCell>
+                    <CTableDataCell>{item.workingHours ?? 0} hours</CTableDataCell>
 
-                    <CTableDataCell>{item.gracePeriod || 0} minutes</CTableDataCell>
+                    <CTableDataCell>{item.gracePeriod ?? 0} minutes</CTableDataCell>
 
                     <CTableDataCell>
                       {item.isOpen ? (
@@ -254,25 +273,14 @@ const BusinessHours = () => {
                     </CTableDataCell>
 
                     <CTableDataCell>
-                      <div className="d-flex gap-2">
-                        <CButton
-                          size="sm"
-                          color="info"
-                          variant="outline"
-                          onClick={() => openEditModal(item)}
-                        >
-                          Edit
-                        </CButton>
-
-                        <CButton
-                          size="sm"
-                          color="danger"
-                          variant="outline"
-                          onClick={() => deleteBusinessHour(item.id)}
-                        >
-                          Delete
-                        </CButton>
-                      </div>
+                      <CButton
+                        size="sm"
+                        color="info"
+                        variant="outline"
+                        onClick={() => openEditModal(item)}
+                      >
+                        Edit
+                      </CButton>
                     </CTableDataCell>
                   </CTableRow>
                 ))
@@ -361,7 +369,12 @@ const BusinessHours = () => {
           </CModalBody>
 
           <CModalFooter>
-            <CButton color="secondary" variant="outline" onClick={() => setVisible(false)}>
+            <CButton
+              color="secondary"
+              variant="outline"
+              type="button"
+              onClick={() => setVisible(false)}
+            >
               Cancel
             </CButton>
 
