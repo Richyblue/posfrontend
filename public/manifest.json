@@ -1,15 +1,31 @@
 {
-  "short_name": "CoreUI-React",
-  "name": "CoreUI-React sample",
+  "name": "Princess Cutz Kiosk",
+  "short_name": "Princess Cutz",
+  "description": "Princess Cutz Customer Kiosk",
+  "start_url": "/#/kiosk",
+  "scope": "/",
+  "display": "fullscreen",
+ "orientation": "landscape",
+  "theme_color": "#000000",
+  "background_color": "#ffffff",
   "icons": [
     {
-      "src": "./assets/img/favicon.png",
-      "sizes": "100x100",
-      "type": "image/png"
+      "src": "/assets/img/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/assets/img/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/assets/img/icon-512-maskable.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
     }
-  ],
-  "start_url": ".",
-  "display": "standalone",
-  "theme_color": "#000000",
-  "background_color": "#ffffff"
+  ]
 }
