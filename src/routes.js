@@ -49,7 +49,7 @@ const returnSales = React.lazy(() => import('./pos/Returns'))
 const attendanceDashboard = React.lazy(() => import('./staff/AttendanceDashboard'))
 const businessHours = React.lazy(() => import('./staff/BusinessHours'))
 const staffPenalties = React.lazy(() => import('./staff/StaffPenalties'))
-const FormControl = React.lazy(() => import('./views/forms/form-control/FormControl'))
+const serviceCommission = React.lazy(() => import('./staff/ServiceCommission'))
 const InputGroup = React.lazy(() => import('./views/forms/input-group/InputGroup'))
 const Layout = React.lazy(() => import('./views/forms/layout/Layout'))
 const Range = React.lazy(() => import('./views/forms/range/Range'))
@@ -95,8 +95,6 @@ export const routes = [
   },
 
   { path: '/charts', name: 'Charts', element: Charts },
-  { path: '/forms', name: 'Forms', element: FormControl, exact: true },
-  { path: '/forms/form-control', name: 'Form Control', element: FormControl },
   { path: '/forms/select', name: 'Select', element: Select },
   { path: '/setting', name: 'Settings', element: Settings, roles: ['admin'] },
   { path: '/report', name: 'Report', element: Reports, roles: ['admin'] },
@@ -210,6 +208,13 @@ export const routes = [
     path: '/staffPenalty',
     name: 'Staff Penalty',
     element: staffPenalties,
+    roles: ['admin', 'manager'],
+  },
+
+  {
+    path: '/serviceCommission',
+    name: 'Service Commission Settings',
+    element: serviceCommission,
     roles: ['admin', 'manager'],
   },
   // { path: '/pos', name: 'Pos', element: Pos },
