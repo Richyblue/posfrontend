@@ -303,49 +303,115 @@ const Report = () => {
   // COMMISSION
   // =========================================================
 
+  const getCommissions = (sale) => {
+    const commissions =
+      sale?.Commissions || sale?.commissions || sale?.Commission || sale?.commission || []
+
+    if (Array.isArray(commissions)) {
+      return commissions
+    }
+
+    return commissions ? [commissions] : []
+  }
+
   const getCommission = (sale) => {
-    return sale.Commission || sale.commission || null
+    const commissions = getCommissions(sale)
+
+    return commissions[0] || null
+  }
+
+  const getPendingCommissions = (sale) => {
+    return getCommissions(sale).filter(
+      (commission) => String(commission?.status || '').toLowerCase() === 'pending',
+    )
+  }
+
+  const getPaidCommissions = (sale) => {
+    return getCommissions(sale).filter(
+      (commission) => String(commission?.status || '').toLowerCase() === 'paid',
+    )
   }
 
   // =========================================================
   // STAFF SHARE
   // =========================================================
 
-  /*
-   * IMPORTANT:
-   *
-   * We no longer blindly use the original
-   * commissionAmount.
-   *
-   * We calculate the commission from the remaining
-   * service value so returned services do not remain
-   * inside Staff Share.
-   */
-
   const getStaffShare = (sale) => {
-    const commission = getCommission(sale)
+    return getPendingCommissions(sale).reduce((total, commission) => {
+      return (
+        total + Number(commission?.currentCommissionAmount ?? commission?.commissionAmount ?? 0)
+      )
+    }, 0)
+  }
 
-    if (commission?.status !== 'pending') {
-      return 0
-    }
+  const getCurrentCommission = (sale) => {
+    return getCommissions(sale).reduce((total, commission) => {
+      return (
+        total + Number(commission?.currentCommissionAmount ?? commission?.commissionAmount ?? 0)
+      )
+    }, 0)
+  }
 
-    const commissionRate = Number(commission.commissionRate || 0)
+  const getPaidCommission = (sale) => {
+    return getCommissions(sale).reduce(
+      (total, commission) => total + Number(commission?.paidAmount || 0),
+      0,
+    )
+  }
 
-    const remainingServiceRevenue = getRemainingServiceTotal(sale)
+  const getReturnedCommission = (sale) => {
+    return getCommissions(sale).reduce(
+      (total, commission) => total + Number(commission?.returnedCommissionAmount || 0),
+      0,
+    )
+  }
 
-    return (remainingServiceRevenue * commissionRate) / 100
+  const getOutstandingCommission = (sale) => {
+    return getCommissions(sale).reduce(
+      (total, commission) => total + Number(commission?.outstandingCommission || 0),
+      0,
+    )
   }
 
   const getCommissionRate = (sale) => {
-    const commission = getCommission(sale)
+    const commissions = getCommissions(sale)
 
-    if (commission) {
-      return Number(commission.commissionRate || 0)
+    if (!commissions.length) {
+      return 0
     }
 
-    return 0
+    const rates = [
+      ...new Set(
+        commissions
+          .map((commission) => Number(commission?.commissionRate || 0))
+          .filter((rate) => rate > 0),
+      ),
+    ]
+
+    return rates.length === 1 ? rates[0] : 0
   }
 
+  const getCommissionStatus = (sale) => {
+    const commissions = getCommissions(sale)
+
+    if (!commissions.length) {
+      return null
+    }
+
+    const statuses = [
+      ...new Set(commissions.map((commission) => String(commission?.status || '').toLowerCase())),
+    ]
+
+    if (statuses.length === 1) {
+      return statuses[0]
+    }
+
+    if (statuses.includes('pending') && statuses.includes('paid')) {
+      return 'partial'
+    }
+
+    return statuses[0] || null
+  }
   // =========================================================
   // SERVICE TYPE
   // =========================================================
@@ -387,9 +453,7 @@ const Report = () => {
   const getOwnerServiceProfit = (sale) => {
     const serviceRevenue = getRemainingServiceTotal(sale)
 
-    const commission = getCommission(sale)
-
-    const pendingCommission = commission?.status === 'pending' ? getStaffShare(sale) : 0
+    const pendingCommission = getStaffShare(sale)
 
     return Math.max(serviceRevenue - pendingCommission, 0)
   }
@@ -713,7 +777,14 @@ const Report = () => {
 
       setReport(response.data)
 
-      setSales(response.data.sales || [])
+      setSales(
+        (response.data.sales || []).map((sale) => ({
+          ...sale,
+
+          Commissions:
+            sale.Commissions || sale.commissions || (sale.Commission ? [sale.Commission] : []),
+        })),
+      )
     } catch (error) {
       console.error('Report Error:', error)
     } finally {
@@ -1504,19 +1575,27 @@ const Report = () => {
 
                   const commissionRate = getCommissionRate(sale)
 
+                  const currentCommission = getCurrentCommission(sale)
+
+                  const paidCommission = getPaidCommission(sale)
+
+                  const returnedCommission = getReturnedCommission(sale)
+
+                  const outstandingCommission = getOutstandingCommission(sale)
+
+                  const commissionStatus = getCommissionStatus(sale)
+
                   const ownerServiceProfit = getOwnerServiceProfit(sale)
 
                   const serviceType = getServiceType(sale)
 
                   const isHomeService = serviceType === 'home_service'
 
-                  const commissionIsPending = commission?.status === 'pending'
+                  const commissionIsPending = commissionStatus === 'pending'
 
-                  const commissionIsPaid = commission?.status === 'paid'
+                  const commissionIsPaid = commissionStatus === 'paid'
 
-                  const paidCommission = commissionIsPaid
-                    ? Number(commission?.commissionAmount || 0)
-                    : 0
+                  const commissionIsPartial = commissionStatus === 'partial'
 
                   /*
                    * Returned items
@@ -1718,8 +1797,36 @@ const Report = () => {
                             <div className="fw-bold text-warning">{money(staffShare)}</div>
 
                             <small className="text-medium-emphasis">
-                              {commissionRate}% Pending
+                              {commissionRate > 0 ? `${commissionRate}% Pending` : 'Pending'}
                             </small>
+
+                            {outstandingCommission > 0 && (
+                              <small className="text-muted d-block mt-1">
+                                Outstanding: {money(outstandingCommission)}
+                              </small>
+                            )}
+                          </>
+                        ) : commissionIsPartial ? (
+                          <>
+                            {staffShare > 0 && (
+                              <div className="fw-bold text-warning">{money(staffShare)}</div>
+                            )}
+
+                            {paidCommission > 0 && (
+                              <small className="text-success d-block">
+                                Paid: {money(paidCommission)}
+                              </small>
+                            )}
+
+                            {outstandingCommission > 0 && (
+                              <small className="text-warning d-block">
+                                Outstanding: {money(outstandingCommission)}
+                              </small>
+                            )}
+
+                            <CBadge color="warning" textColor="dark" className="mt-1">
+                              Partially Paid
+                            </CBadge>
                           </>
                         ) : commissionIsPaid && paidCommission > 0 ? (
                           <>
@@ -1729,11 +1836,22 @@ const Report = () => {
                               Paid
                             </CBadge>
                           </>
+                        ) : currentCommission > 0 ? (
+                          <>
+                            <div className="text-medium-emphasis">{money(currentCommission)}</div>
+
+                            <small className="text-muted d-block">Current commission</small>
+                          </>
                         ) : (
                           '-'
                         )}
-                      </CTableDataCell>
 
+                        {returnedCommission > 0 && (
+                          <small className="text-danger d-block mt-1">
+                            Returned: -{money(returnedCommission)}
+                          </small>
+                        )}
+                      </CTableDataCell>
                       {/* OWNER PROFIT */}
 
                       <CTableDataCell>
