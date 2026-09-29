@@ -304,90 +304,46 @@ const Report = () => {
   // =========================================================
 
   const getCommission = (sale) => {
-    const commissions =
-      sale?.SaleItems?.flatMap((item) => item?.Commissions || item?.commissions || []) || []
-
-    if (commissions.length > 0) {
-      return commissions[0]
-    }
-
-    // Keep backward compatibility with older backend responses
-    return sale?.Commission || sale?.commission || null
-  }
-
-  const getCommissionRate = (sale) => {
-    const commission = getCommission(sale)
-
-    return Number(commission?.commissionRate || 0)
+    return sale.Commission || sale.commission || null
   }
 
   // =========================================================
   // STAFF SHARE
   // =========================================================
 
-  const getStaffShare = (sale) => {
-    const serviceItems = getServiceItems(sale)
+  /*
+   * IMPORTANT:
+   *
+   * We no longer blindly use the original
+   * commissionAmount.
+   *
+   * We calculate the commission from the remaining
+   * service value so returned services do not remain
+   * inside Staff Share.
+   */
 
-    if (!serviceItems.length) {
+  const getStaffShare = (sale) => {
+    const commission = getCommission(sale)
+
+    if (commission?.status !== 'pending') {
       return 0
     }
 
-    let staffShare = 0
+    const commissionRate = Number(commission.commissionRate || 0)
 
-    serviceItems.forEach((item) => {
-      const itemCommission = item?.Commissions?.[0] || item?.commissions?.[0]
+    const remainingServiceRevenue = getRemainingServiceTotal(sale)
 
-      if (!itemCommission) {
-        return
-      }
+    return (remainingServiceRevenue * commissionRate) / 100
+  }
 
-      // Only pending commissions are still outstanding
-      if (itemCommission.status !== 'pending') {
-        return
-      }
+  const getCommissionRate = (sale) => {
+    const commission = getCommission(sale)
 
-      // IMPORTANT:
-      // Use the commission amount already calculated
-      // and stored by the POS.
-      const storedCommissionAmount = Number(itemCommission.commissionAmount || 0)
+    if (commission) {
+      return Number(commission.commissionRate || 0)
+    }
 
-      const originalQuantity = Number(item.quantity || 0)
-
-      if (storedCommissionAmount <= 0 || originalQuantity <= 0) {
-        return
-      }
-
-      // Check whether this service has been returned
-      const returnedQuantity = getReturnedServiceQuantity(sale, item.ServiceId)
-
-      const remainingQuantity = Math.max(originalQuantity - returnedQuantity, 0)
-
-      // Completely returned
-      if (remainingQuantity <= 0) {
-        return
-      }
-
-      // No return
-      if (returnedQuantity <= 0) {
-        staffShare += storedCommissionAmount
-        return
-      }
-
-      // Partial return
-      //
-      // Example:
-      // Original commission = ₦2,400
-      // Original quantity = 2
-      // Returned quantity = 1
-      //
-      // Remaining commission = ₦2,400 × 1/2
-      //
-      const remainingRatio = remainingQuantity / originalQuantity
-
-      staffShare += storedCommissionAmount * remainingRatio
-    })
-
-    return Math.max(staffShare, 0)
+    return 0
   }
 
   // =========================================================
@@ -397,18 +353,20 @@ const Report = () => {
   const getServiceType = (sale) => {
     /*
      * If Sale eventually stores serviceType directly,
-     * use it first.
+     * this will use it automatically.
      */
+
     if (sale.serviceType) {
       return sale.serviceType
     }
 
     /*
-     * Keep your existing fallback logic.
+     * Current system:
      *
      * 50% = Home Service
      * 30% = In-Salon
      */
+
     const rate = getCommissionRate(sale)
 
     if (rate === 50) {
@@ -429,10 +387,13 @@ const Report = () => {
   const getOwnerServiceProfit = (sale) => {
     const serviceRevenue = getRemainingServiceTotal(sale)
 
-    const staffShare = getStaffShare(sale)
+    const commission = getCommission(sale)
 
-    return Math.max(serviceRevenue - staffShare, 0)
+    const pendingCommission = commission?.status === 'pending' ? getStaffShare(sale) : 0
+
+    return Math.max(serviceRevenue - pendingCommission, 0)
   }
+
   // =========================================================
   // SERVICE PROVIDERS
   // =========================================================
@@ -1466,8 +1427,8 @@ const Report = () => {
       )}
 
       {/* =====================================================
-    SALES TABLE
-===================================================== */}
+          SALES TABLE
+      ===================================================== */}
 
       <CCard className="border-0 shadow-sm">
         <CCardHeader className="bg-transparent">
@@ -1526,9 +1487,10 @@ const Report = () => {
 
                   const services = getServiceItems(sale)
 
-                  // =====================================================
-                  // RETURN-AWARE VALUES
-                  // =====================================================
+                  /*
+                   * IMPORTANT:
+                   * These are now RETURN-AWARE.
+                   */
 
                   const serviceTotal = getRemainingServiceTotal(sale)
 
@@ -1536,99 +1498,43 @@ const Report = () => {
 
                   const returnAmount = getSaleReturnTotal(sale)
 
-                  // =====================================================
-                  // STAFF SHARE
-                  // =====================================================
-
-                  /*
-                   * getStaffShare() now reads the commission
-                   * already calculated and stored by the POS.
-                   *
-                   * It also handles multiple service items
-                   * and approved returns.
-                   */
                   const staffShare = getStaffShare(sale)
 
-                  // =====================================================
-                  // COMMISSIONS
-                  // =====================================================
+                  const commission = getCommission(sale)
 
-                  /*
-                   * A sale can contain multiple services,
-                   * therefore collect all commissions instead
-                   * of looking for sale.Commission only.
-                   */
-                  const commissions = services.flatMap(
-                    (item) => item?.Commissions || item?.commissions || [],
-                  )
-
-                  const pendingCommissions = commissions.filter(
-                    (commission) => commission?.status === 'pending',
-                  )
-
-                  const paidCommissions = commissions.filter(
-                    (commission) => commission?.status === 'paid',
-                  )
-
-                  const commissionIsPending = pendingCommissions.length > 0
-
-                  const commissionIsPaid = paidCommissions.length > 0
-
-                  /*
-                   * Display the first available commission rate.
-                   *
-                   * Staff Share itself is calculated from every
-                   * service commission by getStaffShare().
-                   */
-                  const commissionRate =
-                    commissions.length > 0
-                      ? Number(commissions[0]?.commissionRate || 0)
-                      : getCommissionRate(sale)
-
-                  /*
-                   * Paid commission amount.
-                   *
-                   * This uses the stored historical amount,
-                   * not a recalculated percentage.
-                   */
-                  const paidCommission = paidCommissions.reduce(
-                    (sum, commission) => sum + Number(commission?.commissionAmount || 0),
-                    0,
-                  )
-
-                  // =====================================================
-                  // OWNER SERVICE PROFIT
-                  // =====================================================
+                  const commissionRate = getCommissionRate(sale)
 
                   const ownerServiceProfit = getOwnerServiceProfit(sale)
-
-                  // =====================================================
-                  // SERVICE TYPE
-                  // =====================================================
 
                   const serviceType = getServiceType(sale)
 
                   const isHomeService = serviceType === 'home_service'
 
-                  // =====================================================
-                  // RETURNED ITEMS
-                  // =====================================================
+                  const commissionIsPending = commission?.status === 'pending'
+
+                  const commissionIsPaid = commission?.status === 'paid'
+
+                  const paidCommission = commissionIsPaid
+                    ? Number(commission?.commissionAmount || 0)
+                    : 0
+
+                  /*
+                   * Returned items
+                   */
 
                   const hasReturnedService = getReturnedServiceItems(sale).length > 0
 
                   const hasReturnedProduct = getReturnedProductItems(sale).length > 0
 
-                  // =====================================================
-                  // SALE NET AMOUNT
-                  // =====================================================
+                  /*
+                   * Sale net amount
+                   */
 
                   const saleNetAmount = Math.max(Number(sale.totalAmount || 0) - returnAmount, 0)
 
                   return (
                     <CTableRow key={sale.id}>
-                      {/* =================================================
-                    INVOICE
-                ================================================= */}
+                      {/* INVOICE */}
 
                       <CTableDataCell>
                         <strong>{sale.invoiceNumber || sale.receiptNumber || '-'}</strong>
@@ -1647,29 +1553,21 @@ const Report = () => {
                         )}
                       </CTableDataCell>
 
-                      {/* =================================================
-                    CUSTOMER
-                ================================================= */}
+                      {/* CUSTOMER */}
 
                       <CTableDataCell>{getCustomerName(sale)}</CTableDataCell>
 
-                      {/* =================================================
-                    CASHIER
-                ================================================= */}
+                      {/* CASHIER */}
 
                       <CTableDataCell>{getCashierName(sale)}</CTableDataCell>
 
-                      {/* =================================================
-                    PROVIDER
-                ================================================= */}
+                      {/* PROVIDER */}
 
                       <CTableDataCell>
                         {provider !== '-' ? <CBadge color="info">{provider}</CBadge> : '-'}
                       </CTableDataCell>
 
-                      {/* =================================================
-                    SERVICE RENDERED
-                ================================================= */}
+                      {/* SERVICE */}
 
                       <CTableDataCell>
                         {services.length > 0 ? (
@@ -1683,12 +1581,6 @@ const Report = () => {
                               'Service'
 
                             const returnStatus = getServiceReturnStatus(sale, item)
-
-                            /*
-                             * Get this particular service's
-                             * stored commission.
-                             */
-                            const itemCommission = item?.Commissions?.[0] || item?.commissions?.[0]
 
                             return (
                               <div key={item.id || index} className="mb-2">
@@ -1755,13 +1647,6 @@ const Report = () => {
                                     )}
                                   </div>
                                 )}
-
-                                {/* Commission information */}
-                                {itemCommission && (
-                                  <div className="small mt-1 text-medium-emphasis">
-                                    Staff commission: {money(itemCommission.commissionAmount)}
-                                  </div>
-                                )}
                               </div>
                             )
                           })
@@ -1783,9 +1668,7 @@ const Report = () => {
                         )}
                       </CTableDataCell>
 
-                      {/* =================================================
-                    SERVICE TYPE
-                ================================================= */}
+                      {/* SERVICE TYPE */}
 
                       <CTableDataCell>
                         {services.length > 0 ? (
@@ -1803,9 +1686,7 @@ const Report = () => {
                         )}
                       </CTableDataCell>
 
-                      {/* =================================================
-                    REVENUE
-                ================================================= */}
+                      {/* REVENUE */}
 
                       <CTableDataCell>
                         <div className="fw-bold">{money(saleNetAmount)}</div>
@@ -1829,9 +1710,7 @@ const Report = () => {
                         )}
                       </CTableDataCell>
 
-                      {/* =================================================
-                    STAFF SHARE
-                ================================================= */}
+                      {/* STAFF SHARE */}
 
                       <CTableDataCell>
                         {commissionIsPending && staffShare > 0 ? (
@@ -1855,9 +1734,7 @@ const Report = () => {
                         )}
                       </CTableDataCell>
 
-                      {/* =================================================
-                    OWNER PROFIT
-                ================================================= */}
+                      {/* OWNER PROFIT */}
 
                       <CTableDataCell>
                         {serviceTotal > 0 ? (
@@ -1867,9 +1744,7 @@ const Report = () => {
                         )}
                       </CTableDataCell>
 
-                      {/* =================================================
-                    CARD / STAND
-                ================================================= */}
+                      {/* CARD / STAND */}
 
                       <CTableDataCell>
                         {isHomeService ? (
@@ -1887,9 +1762,7 @@ const Report = () => {
                         )}
                       </CTableDataCell>
 
-                      {/* =================================================
-                    STATUS
-                ================================================= */}
+                      {/* STATUS */}
 
                       <CTableDataCell>
                         <CBadge
@@ -1918,17 +1791,13 @@ const Report = () => {
                         )}
                       </CTableDataCell>
 
-                      {/* =================================================
-                    DATE
-                ================================================= */}
+                      {/* DATE */}
 
                       <CTableDataCell>
                         {sale.createdAt ? new Date(sale.createdAt).toLocaleDateString() : '-'}
                       </CTableDataCell>
 
-                      {/* =================================================
-                    ACTION
-                ================================================= */}
+                      {/* ACTION */}
 
                       <CTableDataCell>
                         <CButton
@@ -1960,6 +1829,7 @@ const Report = () => {
           </CTable>
         </CCardBody>
       </CCard>
+
       {/* =====================================================
           RETURN MODAL
       ===================================================== */}
