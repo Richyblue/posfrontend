@@ -25,6 +25,7 @@ import Swal from 'sweetalert2'
 import * as XLSX from 'xlsx'
 
 import CIcon from '@coreui/icons-react'
+
 import {
   cilSearch,
   cilReload,
@@ -44,6 +45,10 @@ const Commission = () => {
 
   const [commissions, setCommissions] = useState([])
   const [loading, setLoading] = useState(false)
+
+  // Bulk payment loading state
+  const [bulkPaying, setBulkPaying] = useState(false)
+
   const [search, setSearch] = useState('')
   const [statusFilter, setStatusFilter] = useState('')
   const [monthFilter, setMonthFilter] = useState('')
@@ -148,6 +153,7 @@ const Commission = () => {
     }
 
     const original = getOriginalCommission(item)
+
     const current = getCurrentCommission(item)
 
     return Math.max(original - current, 0)
@@ -155,6 +161,7 @@ const Commission = () => {
 
   const isReturned = (item) => {
     if (item.returned === true) return true
+
     if (item.isReturned === true) return true
 
     if (Number(item.returnedServiceTotal || 0) > 0) {
@@ -171,6 +178,7 @@ const Commission = () => {
   // =========================================================
   // FILTERED COMMISSIONS
   // =========================================================
+
   const filteredCommissions = useMemo(() => {
     return commissions.filter((commission) => {
       const staffName =
@@ -196,20 +204,18 @@ const Commission = () => {
 
       const yearMatch = yearFilter === '' || (date && date.getFullYear() === Number(yearFilter))
 
-      // =====================================================
-      // DATE RANGE FILTER
-      // =====================================================
-
       let dateFromMatch = true
       let dateToMatch = true
 
       if (dateFrom) {
         const fromDate = new Date(`${dateFrom}T00:00:00`)
+
         dateFromMatch = date && date >= fromDate
       }
 
       if (dateTo) {
         const toDate = new Date(`${dateTo}T23:59:59.999`)
+
         dateToMatch = date && date <= toDate
       }
 
@@ -224,43 +230,64 @@ const Commission = () => {
       )
     })
   }, [commissions, search, selectedStaff, statusFilter, monthFilter, yearFilter, dateFrom, dateTo])
-  // =========================================================
-  // COMMISSION KPIs
-  // =========================================================
 
   // =========================================================
-  // 1. CURRENT COMMISSION
+  // PENDING COMMISSIONS FOR BULK PAYMENT
   // =========================================================
-  // Total commission currently applicable to all records
-  // after service returns have been accounted for.
   //
-  // Example:
-  // Original = ₦10,000
-  // Return adjustment = ₦3,000
-  // Current = ₦7,000
+  // IMPORTANT:
+  // This is based on the currently filtered records.
   //
-  // Current Commission = ₦7,000
+  // Therefore:
+  //
+  // Staff = John
+  // Status = Pending
+  // Month = September
+  //
+  // Pay All Pending will ONLY pay John's pending
+  // September commissions.
+  //
+  // =========================================================
+
+  const pendingFilteredCommissions = useMemo(() => {
+    return filteredCommissions.filter(
+      (item) => item.status === 'pending' && getCurrentCommission(item) > 0,
+    )
+  }, [filteredCommissions])
+
+  // =========================================================
+  // BULK PENDING TOTAL
+  // =========================================================
+
+  const bulkPendingTotal = useMemo(() => {
+    return pendingFilteredCommissions.reduce((sum, item) => sum + getCurrentCommission(item), 0)
+  }, [pendingFilteredCommissions])
+
+  // =========================================================
+  // SELECTED STAFF NAME
+  // =========================================================
+
+  const selectedStaffName = useMemo(() => {
+    if (!selectedStaff) {
+      return 'All Staff'
+    }
+
+    const staff = staffs.find((item) => String(item.id) === String(selectedStaff))
+
+    if (!staff) {
+      return 'Selected Staff'
+    }
+
+    return staff.User?.fullname || staff.User?.name || staff.name || `Staff #${staff.id}`
+  }, [selectedStaff, staffs])
+
+  // =========================================================
+  // COMMISSION KPIs
   // =========================================================
 
   const totalCommission = filteredCommissions.reduce((sum, item) => {
     return sum + Number(item.currentCommissionAmount ?? item.commissionAmount ?? 0)
   }, 0)
-
-  // =========================================================
-  // 2. CURRENT PENDING COMMISSION
-  // =========================================================
-  // Only commissions that are still pending.
-  //
-  // IMPORTANT:
-  // This uses the CURRENT amount after returns.
-  //
-  // Example:
-  // Original commission = ₦10,000
-  // Return adjustment  = ₦3,000
-  // Current pending    = ₦7,000
-  //
-  // Pending KPI = ₦7,000
-  // =========================================================
 
   const pendingCommission = filteredCommissions.reduce((sum, item) => {
     if (item.status !== 'pending') {
@@ -270,15 +297,6 @@ const Commission = () => {
     return sum + Number(item.currentCommissionAmount ?? item.commissionAmount ?? 0)
   }, 0)
 
-  // =========================================================
-  // 3. PAID COMMISSION
-  // =========================================================
-  // Only commissions whose status is paid.
-  //
-  // These are commissions that have already been paid
-  // to the service provider.
-  // =========================================================
-
   const paidCommission = filteredCommissions.reduce((sum, item) => {
     if (item.status !== 'paid') {
       return sum
@@ -286,21 +304,6 @@ const Commission = () => {
 
     return sum + Number(item.currentCommissionAmount ?? item.commissionAmount ?? 0)
   }, 0)
-
-  // =========================================================
-  // 4. RETURN ADJUSTMENTS
-  // =========================================================
-  // Total commission removed because services were returned.
-  //
-  // Example:
-  // Original commission = ₦10,000
-  // Current commission  = ₦7,000
-  // Return adjustment   = ₦3,000
-  //
-  // Return Adjustment KPI = ₦3,000
-  //
-  // This value comes from the backend calculation.
-  // =========================================================
 
   const returnedCommission = filteredCommissions.reduce((sum, item) => {
     return sum + Number(item.returnedCommissionAmount || 0)
@@ -316,12 +319,15 @@ const Commission = () => {
     setMonthFilter('')
     setYearFilter('')
     setSelectedStaff('')
+    setDateFrom('')
+    setDateTo('')
   }
 
-  const hasFilters = search || statusFilter || monthFilter || yearFilter || selectedStaff
+  const hasFilters =
+    search || statusFilter || monthFilter || yearFilter || selectedStaff || dateFrom || dateTo
 
   // =========================================================
-  // MARK COMMISSION AS PAID
+  // MARK SINGLE COMMISSION AS PAID
   // =========================================================
 
   const markPaid = async (id, amount) => {
@@ -368,7 +374,7 @@ const Commission = () => {
         showConfirmButton: false,
       })
 
-      getCommissions()
+      await getCommissions()
     } catch (error) {
       console.error(error)
 
@@ -377,6 +383,163 @@ const Commission = () => {
         title: 'Payment Failed',
         text: error?.response?.data?.message || 'Unable to mark commission as paid.',
       })
+    }
+  }
+
+  // =========================================================
+  // PAY ALL FILTERED PENDING COMMISSIONS
+  // =========================================================
+
+  const payAllPending = async () => {
+    if (pendingFilteredCommissions.length === 0) {
+      Swal.fire({
+        icon: 'info',
+        title: 'Nothing to Pay',
+        text: 'There are no pending commissions matching the current filters.',
+      })
+
+      return
+    }
+
+    // -------------------------------------------------------
+    // Build IDs
+    // -------------------------------------------------------
+
+    const commissionIds = pendingFilteredCommissions.map((item) => item.id)
+
+    // -------------------------------------------------------
+    // Confirmation
+    // -------------------------------------------------------
+
+    const result = await Swal.fire({
+      title: 'Pay All Pending Commissions?',
+      html: `
+          <div style="text-align:left">
+            <div style="margin-bottom:10px">
+              <strong>Staff:</strong>
+              ${selectedStaffName}
+            </div>
+
+            <div style="margin-bottom:10px">
+              <strong>Pending Records:</strong>
+              ${pendingFilteredCommissions.length}
+            </div>
+
+            <div style="
+              padding:14px;
+              border-radius:8px;
+              background:#f8f9fa;
+              margin-top:12px;
+            ">
+              <div style="
+                font-size:12px;
+                color:#6c757d;
+                margin-bottom:4px;
+              ">
+                TOTAL PAYMENT
+              </div>
+
+              <div style="
+                font-size:24px;
+                font-weight:700;
+                color:#198754;
+              ">
+                ${formatCurrency(bulkPendingTotal)}
+              </div>
+            </div>
+
+            <div style="
+              margin-top:15px;
+              font-size:13px;
+              color:#6c757d;
+            ">
+              All matching pending commission
+              records will be marked as paid.
+            </div>
+          </div>
+        `,
+      icon: 'question',
+      showCancelButton: true,
+      confirmButtonText: 'Yes, Pay All',
+      cancelButtonText: 'Cancel',
+      confirmButtonColor: '#198754',
+      reverseButtons: true,
+    })
+
+    if (!result.isConfirmed) {
+      return
+    }
+
+    try {
+      setBulkPaying(true)
+
+      const token = localStorage.getItem('token')
+
+      // -----------------------------------------------------
+      // IMPORTANT
+      //
+      // Backend endpoint:
+      //
+      // PUT /api/v1/commissions/pay-bulk
+      //
+      // Body:
+      //
+      // {
+      //   commissionIds: [...]
+      // }
+      // -----------------------------------------------------
+
+      const response = await axios.put(
+        `${API_URL}api/v1/commissions/pay-bulk`,
+        {
+          commissionIds,
+        },
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+            'Content-Type': 'application/json',
+          },
+        },
+      )
+
+      const paidCount = response.data?.paidCount ?? commissionIds.length
+
+      const paidAmount = response.data?.paidAmount ?? bulkPendingTotal
+
+      await getCommissions()
+
+      await Swal.fire({
+        icon: 'success',
+        title: 'Payment Completed',
+        html: `
+          <div>
+            <p class="mb-2">
+              <strong>${paidCount}</strong>
+              commission record${paidCount !== 1 ? 's' : ''} marked as paid.
+            </p>
+
+            <div style="
+              font-size:24px;
+              font-weight:700;
+              color:#198754;
+              margin-top:10px;
+            ">
+              ${formatCurrency(paidAmount)}
+            </div>
+          </div>
+        `,
+        confirmButtonColor: '#198754',
+      })
+    } catch (error) {
+      console.error('Bulk Commission Payment Error:', error)
+
+      Swal.fire({
+        icon: 'error',
+        title: 'Bulk Payment Failed',
+        text: error?.response?.data?.message || 'Unable to process the bulk commission payment.',
+      })
+    } finally {
+      setBulkPaying(false)
     }
   }
 
@@ -486,13 +649,17 @@ const Commission = () => {
                 color="light"
                 className="me-2 border"
                 onClick={getCommissions}
-                disabled={loading}
+                disabled={loading || bulkPaying}
               >
                 <CIcon icon={cilReload} className="me-2" />
                 Refresh
               </CButton>
 
-              <CButton color="primary" onClick={exportExcel} disabled={!filteredCommissions.length}>
+              <CButton
+                color="primary"
+                onClick={exportExcel}
+                disabled={!filteredCommissions.length || bulkPaying}
+              >
                 <CIcon icon={cilCloudDownload} className="me-2" />
                 Export Excel
               </CButton>
@@ -697,6 +864,7 @@ const Commission = () => {
                 <option value="paid">Paid</option>
               </CFormSelect>
             </CCol>
+
             {/* FROM DATE */}
 
             <CCol xs={12} sm={6} lg={2}>
@@ -774,6 +942,107 @@ const Commission = () => {
           </CRow>
         </CCardBody>
       </CCard>
+
+      {/* =====================================================
+          BULK PAYMENT PANEL
+      ====================================================== */}
+
+      {statusFilter === 'pending' && pendingFilteredCommissions.length > 0 && (
+        <CCard
+          className="border-0 shadow-sm mb-4"
+          style={{
+            borderLeft: '4px solid #198754',
+          }}
+        >
+          <CCardBody className="p-4">
+            <CRow className="align-items-center">
+              <CCol md={7}>
+                <div className="d-flex align-items-center">
+                  <div
+                    className="rounded-circle bg-success bg-opacity-10 d-flex align-items-center justify-content-center me-3"
+                    style={{
+                      width: 52,
+                      height: 52,
+                    }}
+                  >
+                    <CIcon icon={cilCheckCircle} size="xl" className="text-success" />
+                  </div>
+
+                  <div>
+                    <h5 className="fw-bold mb-1">Pending Commission Payments</h5>
+
+                    <div className="text-body-secondary">
+                      <strong>{pendingFilteredCommissions.length}</strong> pending record
+                      {pendingFilteredCommissions.length !== 1 ? 's' : ''} for{' '}
+                      <strong>{selectedStaffName}</strong>
+                    </div>
+                  </div>
+                </div>
+              </CCol>
+
+              <CCol md={5} className="text-md-end mt-3 mt-md-0">
+                <div className="mb-2">
+                  <small className="text-body-secondary d-block">TOTAL TO PAY</small>
+
+                  <span
+                    className="fw-bold text-success"
+                    style={{
+                      fontSize: '24px',
+                    }}
+                  >
+                    {formatCurrency(bulkPendingTotal)}
+                  </span>
+                </div>
+
+                <CButton
+                  color="success"
+                  size="lg"
+                  disabled={bulkPaying || pendingFilteredCommissions.length === 0}
+                  onClick={payAllPending}
+                >
+                  {bulkPaying ? (
+                    <>
+                      <CSpinner size="sm" className="me-2" />
+                      Processing Payment...
+                    </>
+                  ) : (
+                    <>
+                      <CIcon icon={cilCheckCircle} className="me-2" />
+                      Pay All Pending
+                    </>
+                  )}
+                </CButton>
+              </CCol>
+            </CRow>
+
+            {/* FILTER SUMMARY */}
+
+            <div className="mt-3 pt-3 border-top">
+              <small className="text-body-secondary">
+                Payment includes all pending commission records currently matching your filters.
+                {selectedStaff && (
+                  <>
+                    {' '}
+                    Staff: <strong>{selectedStaffName}</strong>.
+                  </>
+                )}
+                {dateFrom && (
+                  <>
+                    {' '}
+                    From: <strong>{dateFrom}</strong>.
+                  </>
+                )}
+                {dateTo && (
+                  <>
+                    {' '}
+                    To: <strong>{dateTo}</strong>.
+                  </>
+                )}
+              </small>
+            </div>
+          </CCardBody>
+        </CCard>
+      )}
 
       {/* =====================================================
           TABLE
@@ -988,7 +1257,7 @@ const Commission = () => {
                               size="sm"
                               color="success"
                               variant="outline"
-                              disabled={current <= 0}
+                              disabled={current <= 0 || bulkPaying}
                               onClick={() => markPaid(item.id, current)}
                             >
                               <CIcon icon={cilCheckCircle} className="me-1" />
@@ -1012,7 +1281,7 @@ const Commission = () => {
       </CCard>
 
       {/* =====================================================
-          SMALL FOOTER SUMMARY
+          FOOTER SUMMARY
       ====================================================== */}
 
       {!loading && filteredCommissions.length > 0 && (
