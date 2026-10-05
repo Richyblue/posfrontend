@@ -11,14 +11,7 @@
  * - Footer with toggle button
  * - Dark color scheme
  * - Fixed positioning
- *
- * @component
- * @example
- * return (
- *   <AppSidebar />
- * )
  */
-
 import React from 'react'
 import { useSelector, useDispatch } from 'react-redux'
 
@@ -40,49 +33,209 @@ import { sygnet } from 'src/assets/brand/sygnet'
 // sidebar nav config
 import navigation from '../_nav'
 
-/**
- * AppSidebar functional component
- *
- * Manages sidebar state with Redux:
- * - sidebarShow: Controls sidebar visibility
- * - sidebarUnfoldable: Controls narrow/wide mode
- *
- * Renders navigation from _nav.js configuration file.
- * Memoized to prevent unnecessary re-renders.
- *
- * @returns {React.ReactElement} Sidebar with navigation
- */
 const AppSidebar = () => {
   const dispatch = useDispatch()
+
   const unfoldable = useSelector((state) => state.sidebarUnfoldable)
   const sidebarShow = useSelector((state) => state.sidebarShow)
 
   return (
     <CSidebar
-      className="border-end"
+      className="border-end onishakara-sidebar"
       colorScheme="dark"
       position="fixed"
       unfoldable={unfoldable}
       visible={sidebarShow}
       onVisibleChange={(visible) => {
-        dispatch({ type: 'set', sidebarShow: visible })
+        dispatch({
+          type: 'set',
+          sidebarShow: visible,
+        })
+      }}
+      style={{
+        background: 'linear-gradient(180deg, #111827 0%, #0f172a 55%, #111827 100%)',
+        borderRight: '1px solid rgba(232, 189, 53, 0.16)',
+        boxShadow: '8px 0 30px rgba(0, 0, 0, 0.18)',
       }}
     >
-      <CSidebarHeader className="border-bottom">
-        {/* <CSidebarBrand to="/">
-          <CIcon customClassName="sidebar-brand-full" icon={logo} height={32} />
-          <CIcon customClassName="sidebar-brand-narrow" icon={sygnet} height={32} />
-        </CSidebarBrand> */}
+      {/* =====================================================
+          SIDEBAR HEADER
+      ====================================================== */}
+
+      <CSidebarHeader
+        className="border-bottom"
+        style={{
+          minHeight: '74px',
+          padding: '0 18px',
+          borderBottom: '1px solid rgba(255,255,255,0.08)',
+          background: 'linear-gradient(180deg, rgba(255,255,255,0.035), rgba(255,255,255,0))',
+        }}
+      >
+        {/* =====================================================
+            DESKTOP BRAND
+        ====================================================== */}
+
+        <CSidebarBrand
+          to="/"
+          className="d-flex align-items-center"
+          style={{
+            textDecoration: 'none',
+            width: '100%',
+            minHeight: '72px',
+          }}
+        >
+          <div
+            className="sidebar-brand-full d-flex align-items-center"
+            style={{
+              gap: '11px',
+            }}
+          >
+            {/* Brand Logo */}
+
+            <div
+              style={{
+                width: '40px',
+                height: '40px',
+                borderRadius: '12px',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                background: 'linear-gradient(135deg, #e8bd35 0%, #c9a227 100%)',
+                boxShadow: '0 6px 18px rgba(232, 189, 53, 0.22)',
+                overflow: 'hidden',
+                flexShrink: 0,
+              }}
+            >
+              <CIcon
+                icon={logo}
+                height={27}
+                style={{
+                  maxWidth: '31px',
+                }}
+              />
+            </div>
+
+            {/* =================================================
+                ONISHAKARA BRAND
+            ================================================== */}
+
+            <div
+              style={{
+                lineHeight: 1.1,
+              }}
+            >
+              <div
+                style={{
+                  color: '#ffffff',
+                  fontSize: '15px',
+                  fontWeight: 800,
+                  letterSpacing: '0.5px',
+                }}
+              >
+                PRINCESS CUTZ
+              </div>
+
+              <div
+                style={{
+                  color: '#e8bd35',
+                  fontSize: '9px',
+                  fontWeight: 700,
+                  letterSpacing: '1.5px',
+                  marginTop: '4px',
+                }}
+              >
+                UNISEX SALON
+              </div>
+            </div>
+          </div>
+
+          {/* =====================================================
+              NARROW BRAND
+          ====================================================== */}
+
+          <div
+            className="sidebar-brand-narrow"
+            style={{
+              width: '100%',
+              justifyContent: 'center',
+            }}
+          >
+            <div
+              style={{
+                width: '38px',
+                height: '38px',
+                borderRadius: '11px',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                background: 'linear-gradient(135deg, #e8bd35 0%, #c9a227 100%)',
+                boxShadow: '0 6px 18px rgba(232, 189, 53, 0.22)',
+              }}
+            >
+              <CIcon icon={sygnet} height={25} />
+            </div>
+          </div>
+        </CSidebarBrand>
+
+        {/* =====================================================
+            MOBILE CLOSE
+        ====================================================== */}
+
         <CCloseButton
           className="d-lg-none"
           dark
-          onClick={() => dispatch({ type: 'set', sidebarShow: false })}
+          onClick={() =>
+            dispatch({
+              type: 'set',
+              sidebarShow: false,
+            })
+          }
+          style={{
+            opacity: 0.8,
+          }}
         />
       </CSidebarHeader>
-      <AppSidebarNav items={navigation} />
-      <CSidebarFooter className="border-top d-none d-lg-flex">
+
+      {/* =====================================================
+          NAVIGATION
+      ====================================================== */}
+
+      <div
+        style={{
+          flex: 1,
+          overflowY: 'auto',
+          overflowX: 'hidden',
+          paddingTop: '10px',
+          paddingBottom: '10px',
+        }}
+      >
+        <AppSidebarNav items={navigation} />
+      </div>
+
+      {/* =====================================================
+          SIDEBAR FOOTER
+      ====================================================== */}
+
+      <CSidebarFooter
+        className="border-top d-none d-lg-flex"
+        style={{
+          minHeight: '54px',
+          padding: '8px 10px',
+          borderTop: '1px solid rgba(255,255,255,0.08)',
+          background: 'linear-gradient(180deg, rgba(255,255,255,0.02), rgba(0,0,0,0.12))',
+        }}
+      >
         <CSidebarToggler
-          onClick={() => dispatch({ type: 'set', sidebarUnfoldable: !unfoldable })}
+          onClick={() =>
+            dispatch({
+              type: 'set',
+              sidebarUnfoldable: !unfoldable,
+            })
+          }
+          style={{
+            color: '#e8bd35',
+            opacity: 0.9,
+          }}
         />
       </CSidebarFooter>
     </CSidebar>
