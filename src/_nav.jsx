@@ -118,11 +118,6 @@ const _nav = [
 
       {
         component: CNavItem,
-        name: 'Face Enrollment',
-        to: '/faceEnrollment',
-      },
-      {
-        component: CNavItem,
         name: 'Staff Penalty',
         to: '/staffPenalty',
       },

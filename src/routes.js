@@ -50,7 +50,7 @@ const attendanceDashboard = React.lazy(() => import('./staff/AttendanceDashboard
 const businessHours = React.lazy(() => import('./staff/BusinessHours'))
 const staffPenalties = React.lazy(() => import('./staff/StaffPenalties'))
 const serviceCommission = React.lazy(() => import('./staff/ServiceCommission'))
-const faceEnrollment = React.lazy(() => import('./kiosk/FaceEnrollmentCapture'))
+const InputGroup = React.lazy(() => import('./views/forms/input-group/InputGroup'))
 const Layout = React.lazy(() => import('./views/forms/layout/Layout'))
 const Range = React.lazy(() => import('./views/forms/range/Range'))
 const Select = React.lazy(() => import('./views/forms/select/Select'))
@@ -218,12 +218,6 @@ export const routes = [
     roles: ['admin', 'manager'],
   },
 
-  {
-    path: '/faceEnrollment',
-    name: 'Face Enrollment',
-    element: faceEnrollment,
-    roles: ['admin', 'manager'],
-  },
   // { path: '/pos', name: 'Pos', element: Pos },
 ]
 
