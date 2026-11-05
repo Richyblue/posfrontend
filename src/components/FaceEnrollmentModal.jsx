@@ -51,7 +51,7 @@ const loadFaceModels = async () => {
       // 2. Load face recognition models only after TensorFlow is ready.
       await Promise.all([
         faceapi.nets.tinyFaceDetector.loadFromUri(MODEL_URL),
-        faceapi.nets.faceLandmark68Net.loadFromUri(MODEL_URL),
+        faceapi.nets.faceLandmark68TinyNet.loadFromUri(MODEL_URL),
         faceapi.nets.faceRecognitionNet.loadFromUri(MODEL_URL),
       ])
 
@@ -234,7 +234,7 @@ const FaceEnrollmentModal = ({ visible, staff, onClose, onComplete }) => {
             scoreThreshold: 0.55,
           }),
         )
-        .withFaceLandmarks()
+        .withFaceLandmarks(true)
         .withFaceDescriptor()
 
       if (!detection) {
