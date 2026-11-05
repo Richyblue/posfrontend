@@ -3,7 +3,7 @@ import { useState } from 'react'
 import { CCard, CCardBody, CButton, CFormSelect, CSpinner, CAlert } from '@coreui/react'
 
 import { clockIn, goOut, returnBack, clockOut } from '../services/kioskApi'
-
+import Swal from 'sweetalert2'
 const ActionScreen = ({ staff, nextAction, verificationToken, setScreen, setSuccessData }) => {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
@@ -65,6 +65,54 @@ const ActionScreen = ({ staff, nextAction, verificationToken, setScreen, setSucc
       console.error('Kiosk action failed:', err)
 
       setError(err.response?.data?.message || err.message || 'Operation Failed')
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const performEmergencyClockOut = async () => {
+    if (loading) return
+
+    const result = await Swal.fire({
+      title: 'Emergency Clock Out?',
+      text: 'This will attempt to complete your attendance for today immediately.',
+      icon: 'warning',
+      showCancelButton: true,
+      confirmButtonText: 'Yes, Clock Out',
+      cancelButtonText: 'Cancel',
+      confirmButtonColor: '#dc3545',
+      reverseButtons: true,
+    })
+
+    if (!result.isConfirmed) return
+
+    try {
+      setLoading(true)
+      setError('')
+
+      if (!verificationToken) {
+        throw new Error('Face verification is required before attendance can continue.')
+      }
+
+      const payload = {
+        qrCode: staff.qrCode,
+        verificationToken,
+      }
+
+      const response = await clockOut(payload)
+
+      console.log('Emergency clock-out successful:', response)
+
+      setSuccessData({
+        action: 'clockout',
+        response: response.data,
+      })
+
+      setScreen('success')
+    } catch (err) {
+      console.error('Emergency clock-out failed:', err)
+
+      setError(err.response?.data?.message || err.message || 'Emergency clock-out failed.')
     } finally {
       setLoading(false)
     }
@@ -475,6 +523,36 @@ const ActionScreen = ({ staff, nextAction, verificationToken, setScreen, setSucc
             >
               Cancel
             </CButton>
+
+            {/* Emergency Clock Out */}
+            <CButton
+              color="danger"
+              variant="outline"
+              size="lg"
+              disabled={loading || !verificationToken}
+              onClick={performEmergencyClockOut}
+              style={{
+                width: '100%',
+                minHeight: 52,
+                marginTop: 18,
+                borderRadius: 14,
+                fontWeight: 700,
+                borderWidth: 1.5,
+              }}
+            >
+              {loading ? (
+                <>
+                  <CSpinner size="sm" className="me-2" />
+                  Processing...
+                </>
+              ) : (
+                'EMERGENCY CLOCK OUT'
+              )}
+            </CButton>
+
+            <div className="small text-body-secondary mt-2" style={{ textAlign: 'center' }}>
+              Use only when you need to end your attendance unexpectedly.
+            </div>
           </div>
         </CCardBody>
 

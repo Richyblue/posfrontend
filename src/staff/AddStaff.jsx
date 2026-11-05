@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react'
 import axios from 'axios'
 import Swal from 'sweetalert2'
@@ -192,15 +191,8 @@ const AddStaff = () => {
 
           <CRow className="mt-3">
             <CCol md={6}>
-              <CFormSelect
-                label="Role"
-                name="role"
-                value={formData.role}
-                onChange={handleChange}
-              >
-                {currentUser?.role === 'admin' && (
-                  <option value="admin">Admin</option>
-                )}
+              <CFormSelect label="Role" name="role" value={formData.role} onChange={handleChange}>
+                {currentUser?.role === 'admin' && <option value="admin">Admin</option>}
                 <option value="manager">Manager</option>
                 <option value="cashier">Cashier</option>
                 <option value="staff">Staff</option>
@@ -221,9 +213,7 @@ const AddStaff = () => {
                 onChange={(e) => handleFileChange(e, 'photo')}
               />
 
-              <small className="text-body-secondary">
-                JPG, PNG or WEBP. Maximum 5MB.
-              </small>
+              <small className="text-body-secondary">JPG, PNG or WEBP. Maximum 5MB.</small>
 
               {photoPreview && (
                 <div className="mt-3">

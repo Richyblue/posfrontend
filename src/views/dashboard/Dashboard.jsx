@@ -52,6 +52,19 @@ ChartJS.register(CategoryScale, LinearScale, PointElement, LineElement, Filler, 
 
 const Dashboard = () => {
   const API_URL = import.meta.env.VITE_BACKEND_URL
+  // =========================================================
+  // ADMIN ACCESS
+  // =========================================================
+
+  const [currentUser] = useState(() => {
+    try {
+      return JSON.parse(localStorage.getItem('user') || '{}')
+    } catch {
+      return {}
+    }
+  })
+
+  const isAdmin = currentUser?.role === 'admin'
 
   // =========================================================
   // DASHBOARD STATE
@@ -664,139 +677,143 @@ const Dashboard = () => {
           </div>
         </CCardBody>
       </CCard>
+      {isAdmin && (
+        <>
+          {/* =====================================================
+        MONTHLY PERFORMANCE
+    ====================================================== */}
 
-      {/* =====================================================
-          MONTHLY PERFORMANCE
-      ====================================================== */}
+          <div className="mb-3">
+            <h5 className="fw-bold mb-1">Monthly Performance</h5>
 
-      <div className="mb-3">
-        <h5 className="fw-bold mb-1">Monthly Performance</h5>
+            <small className="text-body-secondary">Current month's financial position</small>
+          </div>
 
-        <small className="text-body-secondary">Current month's financial position</small>
-      </div>
+          {/* =====================================================
+        MONTHLY KPI CARDS
+    ====================================================== */}
 
-      {/* =====================================================
-          MONTHLY KPI CARDS
-      ====================================================== */}
+          <CRow className="g-3 mb-4">
+            {/* MONTHLY SALES */}
 
-      <CRow className="g-3 mb-4">
-        {/* MONTHLY SALES */}
+            <CCol xs={12} sm={6} xl={3}>
+              <CCard className="border-0 shadow-sm h-100 w-100">
+                <CCardBody className="p-4">
+                  <div className="d-flex justify-content-between align-items-start">
+                    <div className="pe-2">
+                      <div className="text-body-secondary small mb-2">Monthly Sales</div>
 
-        <CCol xs={12} sm={6} xl={3}>
-          <CCard className="border-0 shadow-sm h-100 w-100">
-            <CCardBody className="p-4">
-              <div className="d-flex justify-content-between align-items-start">
-                <div className="pe-2">
-                  <div className="text-body-secondary small mb-2">Monthly Sales</div>
+                      <h3 className="fw-bold text-success mb-1">{money(dashboard.monthSales)}</h3>
 
-                  <h3 className="fw-bold text-success mb-1">{money(dashboard.monthSales)}</h3>
+                      <small className="text-body-secondary">Current month revenue</small>
+                    </div>
 
-                  <small className="text-body-secondary">Current month revenue</small>
-                </div>
+                    <div
+                      className="rounded-circle bg-success bg-opacity-10 d-flex align-items-center justify-content-center"
+                      style={{
+                        width: '52px',
+                        height: '52px',
+                        minWidth: '52px',
+                      }}
+                    >
+                      <CIcon icon={cilMoney} className="text-success" size="xl" />
+                    </div>
+                  </div>
+                </CCardBody>
+              </CCard>
+            </CCol>
 
-                <div
-                  className="rounded-circle bg-success bg-opacity-10 d-flex align-items-center justify-content-center"
-                  style={{
-                    width: '52px',
-                    height: '52px',
-                    minWidth: '52px',
-                  }}
-                >
-                  <CIcon icon={cilMoney} className="text-success" size="xl" />
-                </div>
-              </div>
-            </CCardBody>
-          </CCard>
-        </CCol>
+            {/* MONTHLY PROFIT */}
 
-        {/* MONTHLY PROFIT */}
+            <CCol xs={12} sm={6} xl={3}>
+              <CCard className="border-0 shadow-sm h-100 w-100">
+                <CCardBody className="p-4">
+                  <div className="d-flex justify-content-between align-items-start">
+                    <div className="pe-2">
+                      <div className="text-body-secondary small mb-2">Monthly Profit</div>
 
-        <CCol xs={12} sm={6} xl={3}>
-          <CCard className="border-0 shadow-sm h-100 w-100">
-            <CCardBody className="p-4">
-              <div className="d-flex justify-content-between align-items-start">
-                <div className="pe-2">
-                  <div className="text-body-secondary small mb-2">Monthly Profit</div>
+                      <h3 className="fw-bold text-primary mb-1">{money(dashboard.monthProfit)}</h3>
 
-                  <h3 className="fw-bold text-primary mb-1">{money(dashboard.monthProfit)}</h3>
+                      <small className="text-body-secondary">Current month profit</small>
+                    </div>
 
-                  <small className="text-body-secondary">Current month profit</small>
-                </div>
+                    <div
+                      className="rounded-circle bg-primary bg-opacity-10 d-flex align-items-center justify-content-center"
+                      style={{
+                        width: '52px',
+                        height: '52px',
+                        minWidth: '52px',
+                      }}
+                    >
+                      <CIcon icon={cilChartLine} className="text-primary" size="xl" />
+                    </div>
+                  </div>
+                </CCardBody>
+              </CCard>
+            </CCol>
 
-                <div
-                  className="rounded-circle bg-primary bg-opacity-10 d-flex align-items-center justify-content-center"
-                  style={{
-                    width: '52px',
-                    height: '52px',
-                    minWidth: '52px',
-                  }}
-                >
-                  <CIcon icon={cilChartLine} className="text-primary" size="xl" />
-                </div>
-              </div>
-            </CCardBody>
-          </CCard>
-        </CCol>
+            {/* MONTHLY EXPENSES */}
 
-        {/* MONTHLY EXPENSES */}
+            <CCol xs={12} sm={6} xl={3}>
+              <CCard className="border-0 shadow-sm h-100 w-100">
+                <CCardBody className="p-4">
+                  <div className="d-flex justify-content-between align-items-start">
+                    <div className="pe-2">
+                      <div className="text-body-secondary small mb-2">Monthly Expenses</div>
 
-        <CCol xs={12} sm={6} xl={3}>
-          <CCard className="border-0 shadow-sm h-100 w-100">
-            <CCardBody className="p-4">
-              <div className="d-flex justify-content-between align-items-start">
-                <div className="pe-2">
-                  <div className="text-body-secondary small mb-2">Monthly Expenses</div>
+                      <h3 className="fw-bold text-danger mb-1">{money(dashboard.monthExpenses)}</h3>
 
-                  <h3 className="fw-bold text-danger mb-1">{money(dashboard.monthExpenses)}</h3>
+                      <small className="text-body-secondary">Current month expenses</small>
+                    </div>
 
-                  <small className="text-body-secondary">Current month expenses</small>
-                </div>
+                    <div
+                      className="rounded-circle bg-danger bg-opacity-10 d-flex align-items-center justify-content-center"
+                      style={{
+                        width: '52px',
+                        height: '52px',
+                        minWidth: '52px',
+                      }}
+                    >
+                      <CIcon icon={cilWarning} className="text-danger" size="xl" />
+                    </div>
+                  </div>
+                </CCardBody>
+              </CCard>
+            </CCol>
 
-                <div
-                  className="rounded-circle bg-danger bg-opacity-10 d-flex align-items-center justify-content-center"
-                  style={{
-                    width: '52px',
-                    height: '52px',
-                    minWidth: '52px',
-                  }}
-                >
-                  <CIcon icon={cilWarning} className="text-danger" size="xl" />
-                </div>
-              </div>
-            </CCardBody>
-          </CCard>
-        </CCol>
+            {/* MONTHLY COMMISSION */}
 
-        {/* MONTHLY COMMISSION */}
+            <CCol xs={12} sm={6} xl={3}>
+              <CCard className="border-0 shadow-sm h-100 w-100">
+                <CCardBody className="p-4">
+                  <div className="d-flex justify-content-between align-items-start">
+                    <div className="pe-2">
+                      <div className="text-body-secondary small mb-2">Monthly Commission</div>
 
-        <CCol xs={12} sm={6} xl={3}>
-          <CCard className="border-0 shadow-sm h-100 w-100">
-            <CCardBody className="p-4">
-              <div className="d-flex justify-content-between align-items-start">
-                <div className="pe-2">
-                  <div className="text-body-secondary small mb-2">Monthly Commission</div>
+                      <h3 className="fw-bold text-warning mb-1">
+                        {money(dashboard.monthCommission)}
+                      </h3>
 
-                  <h3 className="fw-bold text-warning mb-1">{money(dashboard.monthCommission)}</h3>
+                      <small className="text-body-secondary">Staff commission</small>
+                    </div>
 
-                  <small className="text-body-secondary">Staff commission</small>
-                </div>
-
-                <div
-                  className="rounded-circle bg-warning bg-opacity-10 d-flex align-items-center justify-content-center"
-                  style={{
-                    width: '52px',
-                    height: '52px',
-                    minWidth: '52px',
-                  }}
-                >
-                  <CIcon icon={cilUser} className="text-warning" size="xl" />
-                </div>
-              </div>
-            </CCardBody>
-          </CCard>
-        </CCol>
-      </CRow>
-
+                    <div
+                      className="rounded-circle bg-warning bg-opacity-10 d-flex align-items-center justify-content-center"
+                      style={{
+                        width: '52px',
+                        height: '52px',
+                        minWidth: '52px',
+                      }}
+                    >
+                      <CIcon icon={cilUser} className="text-warning" size="xl" />
+                    </div>
+                  </div>
+                </CCardBody>
+              </CCard>
+            </CCol>
+          </CRow>
+        </>
+      )}
       {/* =====================================================
           REVENUE & PROFITABILITY
       ====================================================== */}
