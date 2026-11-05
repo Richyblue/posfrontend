@@ -14,15 +14,50 @@ import { enrollStaffFace } from '../services/kioskApi'
 
 const MODEL_URL = '/models/face-api'
 
+// Cache TensorFlow and model initialization across modal openings.
 let modelsPromise = null
 
-const loadFaceModels = () => {
+const loadFaceModels = async () => {
   if (!modelsPromise) {
-    modelsPromise = Promise.all([
-      faceapi.nets.tinyFaceDetector.loadFromUri(MODEL_URL),
-      faceapi.nets.faceLandmark68Net.loadFromUri(MODEL_URL),
-      faceapi.nets.faceRecognitionNet.loadFromUri(MODEL_URL),
-    ]).catch((error) => {
+    modelsPromise = (async () => {
+      // 1. Initialize TensorFlow backend before using face-api.
+      const tf = faceapi.tf
+
+      // Prefer WebGL, but fall back to CPU if WebGL is unavailable.
+      let backend = tf.getBackend()
+
+      if (!backend || backend === 'wasm') {
+        try {
+          await tf.setBackend('webgl')
+          await tf.ready()
+          backend = tf.getBackend()
+        } catch (webglError) {
+          console.warn('WebGL initialization failed. Trying CPU.', webglError)
+
+          await tf.setBackend('cpu')
+          await tf.ready()
+          backend = tf.getBackend()
+        }
+      } else {
+        await tf.ready()
+      }
+
+      if (!backend) {
+        throw new Error('TensorFlow backend could not be initialized.')
+      }
+
+      console.log('TensorFlow backend initialized:', backend)
+
+      // 2. Load face recognition models only after TensorFlow is ready.
+      await Promise.all([
+        faceapi.nets.tinyFaceDetector.loadFromUri(MODEL_URL),
+        faceapi.nets.faceLandmark68Net.loadFromUri(MODEL_URL),
+        faceapi.nets.faceRecognitionNet.loadFromUri(MODEL_URL),
+      ])
+
+      console.log('Face recognition models loaded successfully.')
+    })().catch((error) => {
+      // Allow a retry if initialization or model loading fails.
       modelsPromise = null
       throw error
     })
@@ -35,6 +70,7 @@ const FaceEnrollmentModal = ({ visible, staff, onClose, onComplete }) => {
   const videoRef = useRef(null)
   const streamRef = useRef(null)
   const activeRef = useRef(false)
+  const mountedRef = useRef(false)
 
   const [initializing, setInitializing] = useState(false)
   const [ready, setReady] = useState(false)
@@ -55,13 +91,27 @@ const FaceEnrollmentModal = ({ visible, staff, onClose, onComplete }) => {
       videoRef.current.srcObject = null
     }
 
-    setReady(false)
+    if (mountedRef.current) {
+      setReady(false)
+    }
   }
 
   useEffect(() => {
-    if (!visible || !staff?.id) return undefined
+    mountedRef.current = true
+
+    return () => {
+      mountedRef.current = false
+    }
+  }, [])
+
+  useEffect(() => {
+    if (!visible || !staff?.id) {
+      stopCamera()
+      return undefined
+    }
 
     let cancelled = false
+    let currentStream = null
 
     const initializeCamera = async () => {
       setInitializing(true)
@@ -80,11 +130,13 @@ const FaceEnrollmentModal = ({ visible, staff, onClose, onComplete }) => {
           throw new Error('Camera access is not supported by this browser.')
         }
 
+        // Wait for TensorFlow and all face models.
         await loadFaceModels()
 
         if (cancelled) return
 
-        const stream = await navigator.mediaDevices.getUserMedia({
+        // Request camera access only after model initialization.
+        currentStream = await navigator.mediaDevices.getUserMedia({
           video: {
             facingMode: 'user',
             width: { ideal: 640 },
@@ -94,24 +146,35 @@ const FaceEnrollmentModal = ({ visible, staff, onClose, onComplete }) => {
         })
 
         if (cancelled) {
-          stream.getTracks().forEach((track) => track.stop())
+          currentStream.getTracks().forEach((track) => track.stop())
           return
         }
 
-        streamRef.current = stream
+        streamRef.current = currentStream
         activeRef.current = true
 
         if (!videoRef.current) {
           throw new Error('Camera preview could not be initialized.')
         }
 
-        videoRef.current.srcObject = stream
+        videoRef.current.srcObject = currentStream
+
         await videoRef.current.play()
 
         if (!cancelled) {
           setReady(true)
         }
       } catch (err) {
+        if (currentStream) {
+          currentStream.getTracks().forEach((track) => track.stop())
+        }
+
+        if (streamRef.current === currentStream) {
+          streamRef.current = null
+        }
+
+        activeRef.current = false
+
         if (!cancelled) {
           setError(
             err.name === 'NotAllowedError'
@@ -122,7 +185,9 @@ const FaceEnrollmentModal = ({ visible, staff, onClose, onComplete }) => {
           )
         }
       } finally {
-        if (!cancelled) setInitializing(false)
+        if (!cancelled) {
+          setInitializing(false)
+        }
       }
     }
 
@@ -130,17 +195,36 @@ const FaceEnrollmentModal = ({ visible, staff, onClose, onComplete }) => {
 
     return () => {
       cancelled = true
-      stopCamera()
+
+      if (currentStream) {
+        currentStream.getTracks().forEach((track) => track.stop())
+      }
+
+      if (streamRef.current === currentStream) {
+        streamRef.current = null
+      }
+
+      activeRef.current = false
+
+      if (videoRef.current) {
+        videoRef.current.pause()
+        videoRef.current.srcObject = null
+      }
     }
   }, [visible, staff?.id])
 
   const captureFace = async () => {
-    if (!videoRef.current || !ready || !staff?.id) return
+    if (!videoRef.current || !ready || !activeRef.current || !staff?.id || busy) {
+      return
+    }
 
     try {
       setBusy(true)
       setError('')
       setSuccess('')
+
+      // Ensure TensorFlow remains ready before detection.
+      await faceapi.tf.ready()
 
       const detection = await faceapi
         .detectSingleFace(
@@ -175,6 +259,7 @@ const FaceEnrollmentModal = ({ visible, staff, onClose, onComplete }) => {
       })
 
       setSuccess('Face enrollment completed successfully.')
+
       stopCamera()
 
       onComplete?.(staff)
@@ -238,7 +323,7 @@ const FaceEnrollmentModal = ({ visible, staff, onClose, onComplete }) => {
               {initializing ? (
                 <>
                   <CSpinner color="light" className="mb-3" />
-                  <div>Initializing camera and face recognition...</div>
+                  <div>Initializing TensorFlow, face recognition and camera...</div>
                 </>
               ) : (
                 <>
