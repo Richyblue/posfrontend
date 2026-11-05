@@ -34,6 +34,7 @@
     "@coreui/react-chartjs": "^3.0.0",
     "@coreui/utils": "^2.0.2",
     "@popperjs/core": "^2.11.8",
+    "@vladmandic/face-api": "^1.7.15",
     "axios": "^1.17.0",
     "chart.js": "^4.5.1",
     "classnames": "^2.5.1",

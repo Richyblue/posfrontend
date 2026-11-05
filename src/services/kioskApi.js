@@ -25,6 +25,26 @@ export const scanQR = (data) => {
 }
 
 // =========================================================
+// FACE VERIFICATION
+// =========================================================
+
+export const verifyStaffFace = (data) => {
+  return axios.post(`${API}api/v1/kiosk/face/verify`, data, {
+    headers: getHeaders(),
+  })
+}
+
+// =========================================================
+// FACE ENROLLMENT
+// =========================================================
+
+export const enrollStaffFace = (data) => {
+  return axios.post(`${API}api/v1/kiosk/face/enroll`, data, {
+    headers: getHeaders(),
+  })
+}
+
+// =========================================================
 // CLOCK IN
 // =========================================================
 
@@ -83,3 +103,5 @@ export const getTodayBusinessHours = async () => {
     headers: getHeaders(),
   })
 }
+
+

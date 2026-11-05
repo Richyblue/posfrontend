@@ -28,13 +28,6 @@ const ScanScreen = ({
     overtimeHours: 0,
   })
 
-  const [businessHours, setBusinessHours] = useState(null)
-  const [businessHoursLoading, setBusinessHoursLoading] = useState(true)
-
-  // =========================================================
-  // SCAN STAFF QR
-  // =========================================================
-
   const handleScan = async (qrCode) => {
     if (loading) return
 
@@ -48,12 +41,11 @@ const ScanScreen = ({
 
       setStaff(response.data.staff)
       setNextAction(response.data.nextAction)
-
       await loadKioskKPIs()
 
-      setScreen('action')
+      setScreen('face')
     } catch (err) {
-      console.error('QR scan failed:', err)
+      console.error(err)
 
       setError(err.response?.data?.message || 'Invalid Staff Card')
 
@@ -65,17 +57,13 @@ const ScanScreen = ({
     }
   }
 
-  // =========================================================
-  // LOAD ATTENDANCE KPIs
-  // =========================================================
-
   const loadKioskKPIs = async () => {
     try {
       setKpiLoading(true)
 
       const response = await getAttendanceDashboardKPIs()
 
-      const data = response?.data?.data || response?.data || {}
+      const data = response.data?.data || {}
 
       setKioskStats({
         presentToday: Number(data.presentToday || 0),
@@ -86,322 +74,31 @@ const ScanScreen = ({
         averageWorkingHours: Number(data.averageWorkingHours || 0),
         overtimeHours: Number(data.overtimeHours || 0),
       })
-    } catch (err) {
-      console.error('Failed to load attendance KPIs:', err)
+    } catch (error) {
+      console.error('Failed to load attendance KPIs:', error)
     } finally {
       setKpiLoading(false)
     }
   }
+  useEffect(() => {
+    loadKioskKPIs()
 
-  // =========================================================
-  // BUSINESS HOURS
-  // Uses the actual BusinessHours model fields:
-  //
-  // dayOfWeek
-  // openingTime
-  // closingTime
-  // isOpen
-  // gracePeriod
-  // =========================================================
+    const interval = setInterval(() => {
+      loadKioskKPIs()
+    }, 30000)
 
-  const loadTodayBusinessHours = async () => {
-    try {
-      setBusinessHoursLoading(true)
+    return () => clearInterval(interval)
+  }, [])
 
-      const response = await getTodayBusinessHours()
+  const formatActivityTime = (date) => {
+    if (!date) return '--'
 
-      console.log('Today BusinessHours API response:', response?.data)
-
-      const responseData = response?.data
-
-      /*
-       * Support the possible response structures:
-       *
-       * {
-       *   data: {...}
-       * }
-       *
-       * {
-       *   data: {
-       *     data: {...}
-       *   }
-       * }
-       *
-       * {
-       *   data: {
-       *     businessHours: {...}
-       *   }
-       * }
-       *
-       * {
-       *   businessHours: {...}
-       * }
-       */
-
-      let data =
-        responseData?.data?.businessHours ||
-        responseData?.data?.hours ||
-        responseData?.data?.data ||
-        responseData?.data ||
-        responseData?.businessHours ||
-        responseData?.hours ||
-        responseData
-
-      // If backend returns an array, use the first record
-      if (Array.isArray(data)) {
-        data = data[0]
-      }
-
-      if (!data || typeof data !== 'object') {
-        console.warn('No valid BusinessHours record returned:', responseData)
-
-        setBusinessHours(null)
-
-        return
-      }
-
-      console.log('Normalized BusinessHours:', data)
-
-      setBusinessHours(data)
-    } catch (err) {
-      console.error('Failed to load today business hours:', err)
-
-      setBusinessHours(null)
-    } finally {
-      setBusinessHoursLoading(false)
-    }
-  }
-
-  // =========================================================
-  // TIME HELPERS
-  // =========================================================
-
-  const timeToMinutes = (time) => {
-    if (!time) return null
-
-    const value = String(time).substring(0, 5)
-
-    const [hours, minutes] = value.split(':').map(Number)
-
-    if (
-      Number.isNaN(hours) ||
-      Number.isNaN(minutes) ||
-      hours < 0 ||
-      hours > 23 ||
-      minutes < 0 ||
-      minutes > 59
-    ) {
-      return null
-    }
-
-    return hours * 60 + minutes
-  }
-
-  /**
-   * Current time in Nigeria.
-   *
-   * This deliberately uses Africa/Lagos so the kiosk does
-   * not depend on the computer/server timezone.
-   */
-  const getLagosTimeInMinutes = () => {
-    const parts = new Intl.DateTimeFormat('en-GB', {
-      timeZone: 'Africa/Lagos',
-      hour: '2-digit',
-      minute: '2-digit',
-      hour12: false,
-    }).formatToParts(new Date())
-
-    const hour = Number(parts.find((part) => part.type === 'hour')?.value || 0)
-
-    const minute = Number(parts.find((part) => part.type === 'minute')?.value || 0)
-
-    return hour * 60 + minute
-  }
-
-  const formatTime12Hour = (time) => {
-    if (!time) return '--'
-
-    const value = String(time).substring(0, 5)
-
-    const [hours, minutes] = value.split(':').map(Number)
-
-    if (
-      Number.isNaN(hours) ||
-      Number.isNaN(minutes) ||
-      hours < 0 ||
-      hours > 23 ||
-      minutes < 0 ||
-      minutes > 59
-    ) {
-      return '--'
-    }
-
-    const date = new Date()
-
-    date.setHours(hours, minutes, 0, 0)
-
-    return date.toLocaleTimeString('en-NG', {
+    return new Date(date).toLocaleTimeString('en-NG', {
       hour: '2-digit',
       minute: '2-digit',
       hour12: true,
       timeZone: 'Africa/Lagos',
     })
-  }
-
-  // =========================================================
-  // CHECK BUSINESS OPEN/CLOSED
-  // =========================================================
-
-  const isCurrentlyWithinBusinessHours = () => {
-    if (!businessHours) {
-      return false
-    }
-
-    // BusinessHours.isOpen controls whether the day is enabled
-    if (businessHours.isOpen === false) {
-      return false
-    }
-
-    // IMPORTANT:
-    // These are the exact fields from your model.
-    const openingTime = timeToMinutes(businessHours.openingTime)
-
-    const closingTime = timeToMinutes(businessHours.closingTime)
-
-    if (openingTime === null || closingTime === null) {
-      return false
-    }
-
-    const currentTime = getLagosTimeInMinutes()
-
-    // Normal business day
-    // Example: 09:00 - 21:00
-    if (closingTime > openingTime) {
-      return currentTime >= openingTime && currentTime <= closingTime
-    }
-
-    // Overnight business hours
-    // Example: 20:00 - 02:00
-    if (closingTime < openingTime) {
-      return currentTime >= openingTime || currentTime <= closingTime
-    }
-
-    return false
-  }
-
-  // =========================================================
-  // BUSINESS STATUS
-  // =========================================================
-
-  const getBusinessStatus = () => {
-    if (businessHoursLoading) {
-      return 'Checking today’s business schedule...'
-    }
-
-    if (!businessHours) {
-      return 'Business hours unavailable'
-    }
-
-    if (businessHours.isOpen === false) {
-      return 'Business is closed today'
-    }
-
-    if (!businessHours.openingTime || !businessHours.closingTime) {
-      return 'Business hours are not configured'
-    }
-
-    return isCurrentlyWithinBusinessHours()
-      ? 'Business is currently open'
-      : 'Business is currently closed'
-  }
-
-  // =========================================================
-  // SHIFT TITLE
-  // =========================================================
-
-  const getShiftTitle = () => {
-    if (businessHoursLoading) {
-      return 'Loading business hours...'
-    }
-
-    if (!businessHours) {
-      return 'Business hours unavailable'
-    }
-
-    if (businessHours.isOpen === false) {
-      return 'Business Closed Today'
-    }
-
-    if (!businessHours.openingTime || !businessHours.closingTime) {
-      return 'Business hours unavailable'
-    }
-
-    const openingTime = formatTime12Hour(businessHours.openingTime)
-
-    const closingTime = formatTime12Hour(businessHours.closingTime)
-
-    return `Today's Grooming Shift: ${openingTime} – ${closingTime}`
-  }
-
-  // =========================================================
-  // GRACE PERIOD
-  // =========================================================
-
-  const getGracePeriodText = () => {
-    if (businessHoursLoading) {
-      return 'Checking today’s business schedule...'
-    }
-
-    if (!businessHours) {
-      return 'Unable to retrieve today’s schedule'
-    }
-
-    if (businessHours.isOpen === false) {
-      return 'Business is closed today'
-    }
-
-    if (businessHours.gracePeriod !== undefined && businessHours.gracePeriod !== null) {
-      return `Grace period: ${businessHours.gracePeriod} minutes`
-    }
-
-    return getBusinessStatus()
-  }
-
-  // =========================================================
-  // INITIAL LOAD
-  // =========================================================
-
-  useEffect(() => {
-    loadKioskKPIs()
-    loadTodayBusinessHours()
-
-    const interval = setInterval(() => {
-      loadKioskKPIs()
-      loadTodayBusinessHours()
-    }, 30000)
-
-    return () => {
-      clearInterval(interval)
-    }
-  }, [])
-
-  // =========================================================
-  // ACTIVITY HELPERS
-  // =========================================================
-
-  const formatActivityTime = (date) => {
-    if (!date) return '--'
-
-    try {
-      return new Date(date).toLocaleTimeString('en-NG', {
-        hour: '2-digit',
-        minute: '2-digit',
-        hour12: true,
-        timeZone: 'Africa/Lagos',
-      })
-    } catch {
-      return '--'
-    }
   }
 
   const getActivityInitials = (name = '') => {
@@ -425,7 +122,79 @@ const ScanScreen = ({
       'Staff Member'
     )
   }
+  const [businessHours, setBusinessHours] = useState(null)
+  const [businessHoursLoading, setBusinessHoursLoading] = useState(true)
+  const formatTime12Hour = (time) => {
+    if (!time) return '--'
 
+    const [hours, minutes] = String(time).substring(0, 5).split(':').map(Number)
+
+    const date = new Date()
+
+    date.setHours(hours)
+    date.setMinutes(minutes)
+    date.setSeconds(0)
+
+    return date.toLocaleTimeString('en-NG', {
+      hour: '2-digit',
+      minute: '2-digit',
+      hour12: true,
+      timeZone: 'Africa/Lagos',
+    })
+  }
+
+  const loadTodayBusinessHours = async () => {
+    try {
+      setBusinessHoursLoading(true)
+
+      const response = await getTodayBusinessHours()
+
+      const data = response.data?.data || response.data
+
+      setBusinessHours(data || null)
+    } catch (error) {
+      console.error('Failed to load today business hours:', error)
+
+      setBusinessHours(null)
+    } finally {
+      setBusinessHoursLoading(false)
+    }
+  }
+  useEffect(() => {
+    loadKioskKPIs()
+    loadTodayBusinessHours()
+
+    const interval = setInterval(() => {
+      loadKioskKPIs()
+      loadTodayBusinessHours()
+    }, 30000)
+
+    return () => {
+      clearInterval(interval)
+    }
+  }, [])
+
+  const getShiftTitle = () => {
+    if (businessHoursLoading) {
+      return 'Loading business hours...'
+    }
+
+    if (!businessHours) {
+      return 'Business hours unavailable'
+    }
+
+    if (!businessHours.isOpen) {
+      return 'Business Closed Today'
+    }
+
+    const shiftName = businessHours.shiftName || businessHours.name || 'Today’s Grooming Shift'
+
+    const openingTime = formatTime12Hour(businessHours.openTime)
+
+    const closingTime = formatTime12Hour(businessHours.closeTime)
+
+    return `${shiftName}: ${openingTime} – ${closingTime}`
+  }
   const getActivityPosition = (activity) => {
     return activity?.staff?.position || activity?.position || activity?.role || 'Staff'
   }
@@ -435,7 +204,7 @@ const ScanScreen = ({
   }
 
   const getStatusColor = (status = '') => {
-    const normalizedStatus = String(status).toLowerCase()
+    const normalizedStatus = status.toLowerCase()
 
     if (normalizedStatus.includes('late') || normalizedStatus.includes('warning')) {
       return {
@@ -1042,7 +811,6 @@ const ScanScreen = ({
 
       <div className="princess-kiosk-shell">
         {/* HEADER */}
-
         <header className="princess-kiosk-header">
           <div className="princess-brand">
             <div className="princess-brand-logo">P</div>
@@ -1080,11 +848,9 @@ const ScanScreen = ({
           </div>
         </header>
 
-        {/* MAIN */}
-
+        {/* MAIN CONTENT */}
         <main className="princess-kiosk-content">
-          {/* LEFT */}
-
+          {/* LEFT SIDE */}
           <section className="princess-left-panel">
             <div>
               <div className="princess-pill">
@@ -1103,25 +869,21 @@ const ScanScreen = ({
                 Fast, secure, and effortless.
               </p>
 
-              {/* BUSINESS HOURS */}
-
               <div className="princess-hours-card">
                 <div className="princess-hours-icon">◷</div>
 
                 <div>
                   <div className="princess-hours-title">{getShiftTitle()}</div>
 
-                  <div className="princess-hours-subtitle">{getGracePeriodText()}</div>
+                  <div className="princess-hours-subtitle">Grace period until 08:15 AM</div>
                 </div>
               </div>
             </div>
 
             {/* KPI SECTION */}
-
             <div>
               <div className="princess-section-heading">
                 <span>Daily Station Telemetry</span>
-
                 <span>Real-time shift registry</span>
               </div>
 
@@ -1140,7 +902,7 @@ const ScanScreen = ({
                   <div className="princess-kpi-label">Clocked In</div>
 
                   <div className="princess-kpi-value">
-                    {kpiLoading ? '—' : kioskStats2.presentToday}
+                    {kpiLoading ? '—' : kioskStats2.absentToday}
                   </div>
 
                   <div className="princess-kpi-caption">Active staff</div>
@@ -1168,8 +930,6 @@ const ScanScreen = ({
               </div>
             </div>
 
-            {/* SECOND KPI ROW */}
-
             <div>
               <div className="princess-kpi-grid">
                 <div className="princess-kpi-card">
@@ -1179,7 +939,7 @@ const ScanScreen = ({
                     {kpiLoading ? '—' : kioskStats2.clockedOutToday}
                   </div>
 
-                  <div className="princess-kpi-caption">Completed shifts</div>
+                  <div className="princess-kpi-caption">On the floor</div>
                 </div>
 
                 <div className="princess-kpi-card">
@@ -1189,11 +949,11 @@ const ScanScreen = ({
                     {kpiLoading ? '—' : `${kioskStats2.averageWorkingHours}h`}
                   </div>
 
-                  <div className="princess-kpi-caption">Staff average</div>
+                  <div className="princess-kpi-caption">Active staff</div>
                 </div>
 
                 <div className="princess-kpi-card">
-                  <div className="princess-kpi-label">Overtime Hours</div>
+                  <div className="princess-kpi-label">Late Arrivals</div>
 
                   <div className="princess-kpi-value">
                     {kpiLoading ? '—' : `${kioskStats2.overtimeHours}h`}
@@ -1209,17 +969,15 @@ const ScanScreen = ({
                     {kpiLoading ? '—' : kioskStats2.currentlyOutside}
                   </div>
 
-                  <div className="princess-kpi-caption">Currently outside</div>
+                  <div className="princess-kpi-caption">Registered</div>
                 </div>
               </div>
             </div>
 
             {/* RECENT ACTIVITY */}
-
             <div>
               <div className="princess-section-heading">
                 <span>Live Entrance Stream</span>
-
                 <span>Last 15 minutes</span>
               </div>
 
@@ -1227,11 +985,8 @@ const ScanScreen = ({
                 {recentActivities.length > 0 ? (
                   recentActivities.slice(0, 5).map((activity, index) => {
                     const name = getActivityName(activity)
-
                     const position = getActivityPosition(activity)
-
                     const status = getActivityStatus(activity)
-
                     const statusStyle = getStatusColor(status)
 
                     return (
@@ -1280,8 +1035,7 @@ const ScanScreen = ({
             </div>
           </section>
 
-          {/* RIGHT */}
-
+          {/* RIGHT SIDE */}
           <section className="princess-right-panel">
             <div className="princess-scanner-shell">
               <div className="princess-scanner-header">
@@ -1356,7 +1110,6 @@ const ScanScreen = ({
         </main>
 
         {/* FOOTER */}
-
         <footer className="princess-kiosk-footer">
           <div>Princess Cutz Terminal OS v1.0</div>
 

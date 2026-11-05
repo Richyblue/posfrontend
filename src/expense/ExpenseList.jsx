@@ -38,14 +38,24 @@ import {
 const ExpenseList = () => {
   const API_URL = import.meta.env.VITE_BACKEND_URL
 
+  // ==========================================
+  // STATES
+  // ==========================================
+
   const [expenses, setExpenses] = useState([])
   const [loading, setLoading] = useState(false)
 
   const [search, setSearch] = useState('')
   const [categoryFilter, setCategoryFilter] = useState('')
+
+  // Existing date filters
   const [selectedDate, setSelectedDate] = useState('')
   const [selectedMonth, setSelectedMonth] = useState('')
   const [selectedYear, setSelectedYear] = useState('')
+
+  // New date range filters
+  const [startDate, setStartDate] = useState('')
+  const [endDate, setEndDate] = useState('')
 
   // ==========================================
   // CURRENCY FORMAT
@@ -56,6 +66,21 @@ const ExpenseList = () => {
       minimumFractionDigits: 2,
       maximumFractionDigits: 2,
     })}`
+  }
+
+  // ==========================================
+  // LOCAL DATE FORMAT
+  // Prevents UTC timezone date mismatches
+  // ==========================================
+
+  const getLocalDateString = (date) => {
+    if (!date || isNaN(date.getTime())) return ''
+
+    const year = date.getFullYear()
+    const month = String(date.getMonth() + 1).padStart(2, '0')
+    const day = String(date.getDate()).padStart(2, '0')
+
+    return `${year}-${month}-${day}`
   }
 
   // ==========================================
@@ -102,29 +127,55 @@ const ExpenseList = () => {
     return expenses.filter((expense) => {
       const expenseDate = expense.createdAt ? new Date(expense.createdAt) : null
 
+      const expenseDateString = expenseDate ? getLocalDateString(expenseDate) : ''
+
       const title = String(expense.title || '').toLowerCase()
 
       const category = String(expense.category || '').toLowerCase()
 
+      // Search filter
       const matchesSearch = !keyword || title.includes(keyword) || category.includes(keyword)
 
+      // Category filter
       const matchesCategory = !categoryFilter || expense.category === categoryFilter
 
-      const expenseDateString = expense.createdAt
-        ? new Date(expense.createdAt).toISOString().split('T')[0]
-        : ''
-
+      // Specific date filter
       const matchesDate = !selectedDate || expenseDateString === selectedDate
 
+      // Date From filter
+      const matchesStartDate = !startDate || (expenseDateString && expenseDateString >= startDate)
+
+      // Date To filter
+      const matchesEndDate = !endDate || (expenseDateString && expenseDateString <= endDate)
+
+      // Month filter
       const matchesMonth =
         selectedMonth === '' || (expenseDate && expenseDate.getMonth().toString() === selectedMonth)
 
+      // Year filter
       const matchesYear =
         !selectedYear || (expenseDate && expenseDate.getFullYear().toString() === selectedYear)
 
-      return matchesSearch && matchesCategory && matchesDate && matchesMonth && matchesYear
+      return (
+        matchesSearch &&
+        matchesCategory &&
+        matchesDate &&
+        matchesStartDate &&
+        matchesEndDate &&
+        matchesMonth &&
+        matchesYear
+      )
     })
-  }, [expenses, search, categoryFilter, selectedDate, selectedMonth, selectedYear])
+  }, [
+    expenses,
+    search,
+    categoryFilter,
+    selectedDate,
+    selectedMonth,
+    selectedYear,
+    startDate,
+    endDate,
+  ])
 
   // ==========================================
   // KPI CALCULATIONS
@@ -148,6 +199,8 @@ const ExpenseList = () => {
     setSelectedDate('')
     setSelectedMonth('')
     setSelectedYear('')
+    setStartDate('')
+    setEndDate('')
     setCategoryFilter('')
     setSearch('')
   }
@@ -189,13 +242,6 @@ const ExpenseList = () => {
   // ==========================================
   // DELETE EXPENSE
   // ==========================================
-  //
-  // The actual delete endpoint was not provided,
-  // so this function does not invent one.
-  //
-  // Add your backend delete endpoint here when
-  // you have it.
-  // ==========================================
 
   const handleDelete = async (expense) => {
     const confirmed = window.confirm(`Are you sure you want to delete "${expense.title}"?`)
@@ -205,22 +251,11 @@ const ExpenseList = () => {
     }
 
     /*
-     * Your current code does not provide the
-     * DELETE API endpoint, so I am deliberately
-     * not inventing one.
+     * Your existing backend DELETE endpoint
+     * was not provided.
      *
-     * Example when your backend endpoint is known:
-     *
-     * await axios.delete(
-     *   `${API_URL}api/v1/expenses/${expense.id}`,
-     *   {
-     *     headers: {
-     *       Authorization: `Bearer ${token}`,
-     *     },
-     *   },
-     * )
-     *
-     * await getExpenses()
+     * Keeping your original logic without
+     * inventing a new endpoint.
      */
 
     console.log('Delete requested for expense:', expense.id)
@@ -234,13 +269,16 @@ const ExpenseList = () => {
     /*
      * Keep your existing edit flow here.
      *
-     * The current code does not provide an edit
-     * modal or update endpoint, so we don't invent
-     * one.
+     * The current code does not provide an
+     * edit modal or update endpoint.
      */
 
     console.log('Edit requested for expense:', expense)
   }
+
+  // ==========================================
+  // RENDER
+  // ==========================================
 
   return (
     <>
@@ -358,26 +396,18 @@ const ExpenseList = () => {
                 onChange={(e) => setCategoryFilter(e.target.value)}
               >
                 <option value="">All Categories</option>
-
                 <option value="Rent">Rent</option>
-
                 <option value="Utilities">Utilities</option>
-
                 <option value="Salary">Salary</option>
-
                 <option value="Fuel">Fuel</option>
-
                 <option value="Maintenance">Maintenance</option>
-
                 <option value="Marketing">Marketing</option>
-
                 <option value="Supplies">Supplies</option>
-
                 <option value="Others">Others</option>
               </CFormSelect>
             </CCol>
 
-            {/* DATE */}
+            {/* SPECIFIC DATE */}
 
             <CCol xs={12} md={6} lg={2}>
               <label className="small fw-semibold mb-1">Specific Date</label>
@@ -389,9 +419,35 @@ const ExpenseList = () => {
               />
             </CCol>
 
-            {/* MONTH */}
+            {/* DATE FROM */}
 
             <CCol xs={12} md={6} lg={2}>
+              <label className="small fw-semibold mb-1">Date From</label>
+
+              <CFormInput
+                type="date"
+                value={startDate}
+                max={endDate || undefined}
+                onChange={(e) => setStartDate(e.target.value)}
+              />
+            </CCol>
+
+            {/* DATE TO */}
+
+            <CCol xs={12} md={6} lg={2}>
+              <label className="small fw-semibold mb-1">Date To</label>
+
+              <CFormInput
+                type="date"
+                value={endDate}
+                min={startDate || undefined}
+                onChange={(e) => setEndDate(e.target.value)}
+              />
+            </CCol>
+
+            {/* MONTH */}
+
+            <CCol xs={12} md={6} lg={3}>
               <label className="small fw-semibold mb-1">Month</label>
 
               <CFormSelect value={selectedMonth} onChange={(e) => setSelectedMonth(e.target.value)}>
@@ -414,7 +470,7 @@ const ExpenseList = () => {
 
             {/* YEAR */}
 
-            <CCol xs={12} md={6} lg={2}>
+            <CCol xs={12} md={6} lg={3}>
               <label className="small fw-semibold mb-1">Year</label>
 
               <CFormSelect value={selectedYear} onChange={(e) => setSelectedYear(e.target.value)}>
@@ -424,6 +480,7 @@ const ExpenseList = () => {
                 <option value="2025">2025</option>
                 <option value="2026">2026</option>
                 <option value="2027">2027</option>
+                <option value="2028">2028</option>
               </CFormSelect>
             </CCol>
           </CRow>
@@ -436,7 +493,7 @@ const ExpenseList = () => {
               records
             </small>
 
-            <div className="d-flex gap-2">
+            <div className="d-flex gap-2 flex-wrap">
               <CButton color="secondary" variant="outline" onClick={resetFilters}>
                 Reset Filters
               </CButton>
@@ -478,15 +535,10 @@ const ExpenseList = () => {
             <CTableHead>
               <CTableRow>
                 <CTableHeaderCell>#</CTableHeaderCell>
-
                 <CTableHeaderCell>Expense Title</CTableHeaderCell>
-
                 <CTableHeaderCell>Category</CTableHeaderCell>
-
                 <CTableHeaderCell>Amount</CTableHeaderCell>
-
                 <CTableHeaderCell>Date</CTableHeaderCell>
-
                 <CTableHeaderCell className="text-end">Actions</CTableHeaderCell>
               </CTableRow>
             </CTableHead>

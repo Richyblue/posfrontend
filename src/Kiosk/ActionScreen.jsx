@@ -4,7 +4,7 @@ import { CCard, CCardBody, CButton, CFormSelect, CSpinner, CAlert } from '@coreu
 
 import { clockIn, goOut, returnBack, clockOut } from '../services/kioskApi'
 
-const ActionScreen = ({ staff, nextAction, setScreen, setSuccessData }) => {
+const ActionScreen = ({ staff, nextAction, verificationToken, setScreen, setSuccessData }) => {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
 
@@ -18,8 +18,13 @@ const ActionScreen = ({ staff, nextAction, setScreen, setSuccessData }) => {
       setLoading(true)
       setError('')
 
+      if (!verificationToken) {
+        throw new Error('Face verification is required before attendance can continue.')
+      }
+
       const payload = {
         qrCode: staff.qrCode,
+        verificationToken,
       }
 
       let response
@@ -32,6 +37,7 @@ const ActionScreen = ({ staff, nextAction, setScreen, setSuccessData }) => {
         case 'goout':
           response = await goOut({
             qrCode: staff.qrCode,
+            verificationToken,
             reason,
             expectedReturn,
           })
