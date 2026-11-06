@@ -4,6 +4,9 @@ import { CAlert, CButton, CCard, CCardBody, CSpinner } from '@coreui/react'
 
 import * as faceapi from '@vladmandic/face-api'
 
+// Explicitly register TensorFlow CPU backend.
+import '@tensorflow/tfjs-backend-cpu'
+
 import { verifyStaffFace } from '../services/kioskApi'
 
 // =========================================================
@@ -12,13 +15,59 @@ import { verifyStaffFace } from '../services/kioskApi'
 
 const MODEL_URL = '/models/face-api'
 
-// Shared model-loading promise.
-// Prevents simultaneous model-loading requests.
+// Shared initialization promises.
+let tensorflowPromise = null
 let faceModelsPromise = null
 
 // =========================================================
-// LOAD FACE RECOGNITION MODELS
-// Same arrangement used by FaceEnrollmentCapture.
+// STEP 1: INITIALIZE TENSORFLOW
+// =========================================================
+
+const initializeTensorFlow = async () => {
+  if (!tensorflowPromise) {
+    tensorflowPromise = (async () => {
+      const tf = faceapi.tf
+
+      if (!tf) {
+        throw new Error('TensorFlow.js is unavailable.')
+      }
+
+      // Explicitly select CPU.
+      // This prevents TensorFlow from selecting an
+      // uninitialized WASM backend.
+
+      const backendReady = await tf.setBackend('cpu')
+
+      if (!backendReady) {
+        throw new Error(
+          'Unable to initialize TensorFlow CPU backend. Check the CPU backend installation.',
+        )
+      }
+
+      // Wait until TensorFlow finishes initialization.
+      await tf.ready()
+
+      const activeBackend = tf.getBackend()
+
+      if (activeBackend !== 'cpu') {
+        throw new Error(`Unexpected TensorFlow backend: ${activeBackend}. CPU backend is required.`)
+      }
+
+      console.log('[TENSORFLOW] Initialized successfully:', activeBackend)
+
+      return tf
+    })().catch((error) => {
+      tensorflowPromise = null
+      throw error
+    })
+  }
+
+  return tensorflowPromise
+}
+
+// =========================================================
+// STEP 2: LOAD FACE RECOGNITION MODELS
+// Same three models and directory as enrollment.
 // =========================================================
 
 const loadFaceModels = async (onProgress) => {
@@ -33,25 +82,36 @@ const loadFaceModels = async (onProgress) => {
 
   if (!faceModelsPromise) {
     faceModelsPromise = (async () => {
-      onProgress?.('Loading face detection model...')
+      // TensorFlow MUST be ready before loading models.
+      await initializeTensorFlow()
 
-      await faceapi.nets.tinyFaceDetector.loadFromUri(MODEL_URL)
+      // Load the same models used by FaceEnrollmentCapture.
+      // Promise.all also follows the enrollment loading pattern.
 
-      console.log('[FACE MODEL] Tiny face detector loaded.')
+      onProgress?.('Loading face recognition models...')
 
-      onProgress?.('Loading face landmark model...')
+      await Promise.all([
+        faceapi.nets.tinyFaceDetector.loadFromUri(MODEL_URL),
+        faceapi.nets.faceLandmark68Net.loadFromUri(MODEL_URL),
+        faceapi.nets.faceRecognitionNet.loadFromUri(MODEL_URL),
+      ])
 
-      await faceapi.nets.faceLandmark68Net.loadFromUri(MODEL_URL)
+      // Confirm all models loaded.
+      if (
+        !faceapi.nets.tinyFaceDetector.isLoaded ||
+        !faceapi.nets.faceLandmark68Net.isLoaded ||
+        !faceapi.nets.faceRecognitionNet.isLoaded
+      ) {
+        throw new Error('One or more face recognition models failed to load.')
+      }
 
-      console.log('[FACE MODEL] Face landmark model loaded.')
+      console.log('[FACE MODEL] All three models loaded successfully.')
 
-      onProgress?.('Loading face recognition model...')
+      // Final TensorFlow readiness check.
+      await faceapi.tf.ready()
 
-      await faceapi.nets.faceRecognitionNet.loadFromUri(MODEL_URL)
-
-      console.log('[FACE MODEL] Face recognition model loaded.')
+      console.log('[FACE MODEL] Active TensorFlow backend:', faceapi.tf.getBackend())
     })().catch((error) => {
-      // Allow another attempt if loading fails.
       faceModelsPromise = null
       throw error
     })
@@ -61,7 +121,7 @@ const loadFaceModels = async (onProgress) => {
 }
 
 // =========================================================
-// WAIT FOR CAMERA VIDEO
+// STEP 3: WAIT FOR CAMERA VIDEO
 // =========================================================
 
 const waitForVideoReady = async (video) => {
@@ -112,6 +172,7 @@ const FaceVerificationScreen = ({ staff, setVerificationToken, setScreen, onCanc
   // =======================================================
 
   const [status, setStatus] = useState('Initializing face recognition...')
+
   const [error, setError] = useState('')
   const [busy, setBusy] = useState(true)
 
@@ -133,7 +194,10 @@ const FaceVerificationScreen = ({ staff, setVerificationToken, setScreen, onCanc
     }
 
     if (streamRef.current) {
-      streamRef.current.getTracks().forEach((track) => track.stop())
+      streamRef.current.getTracks().forEach((track) => {
+        track.stop()
+      })
+
       streamRef.current = null
     }
 
@@ -190,13 +254,17 @@ const FaceVerificationScreen = ({ staff, setVerificationToken, setScreen, onCanc
 
         // Calculate face position.
         const faceCenter = found.box.x + found.box.width / 2
+
         const videoCenter = video.videoWidth / 2
+
         const offset = faceCenter - videoCenter
 
         // Record initial face position.
         if (startXRef.current === null) {
           startXRef.current = offset
+
           setStatus(`Gently turn your head to the ${challenge}.`)
+
           return
         }
 
@@ -250,8 +318,15 @@ const FaceVerificationScreen = ({ staff, setVerificationToken, setScreen, onCanc
           throw new Error('Camera access is unavailable in this browser.')
         }
 
-        // STEP 1: LOAD FACE MODELS.
-        // Same model-loading method as enrollment.
+        // STEP 1: INITIALIZE TENSORFLOW.
+
+        setStatus('Initializing TensorFlow CPU engine...')
+
+        await initializeTensorFlow()
+
+        if (!mounted || !activeRef.current) return
+
+        // STEP 2: LOAD FACE MODELS.
 
         setStatus('Loading face recognition models...')
 
@@ -261,7 +336,13 @@ const FaceVerificationScreen = ({ staff, setVerificationToken, setScreen, onCanc
 
         if (!mounted || !activeRef.current) return
 
-        // STEP 2: START CAMERA.
+        // STEP 3: CONFIRM BACKEND.
+
+        await faceapi.tf.ready()
+
+        console.log('[FACE VERIFICATION] TensorFlow backend:', faceapi.tf.getBackend())
+
+        // STEP 4: START CAMERA.
 
         setStatus('Face models loaded. Starting camera...')
 
@@ -295,14 +376,14 @@ const FaceVerificationScreen = ({ staff, setVerificationToken, setScreen, onCanc
 
         if (!mounted || !activeRef.current) return
 
-        // STEP 3: CAMERA READY.
+        // STEP 5: CAMERA READY.
 
         setCameraReady(true)
         setBusy(false)
 
         setStatus(`Look at the camera, then gently turn your head to the ${challenge}.`)
 
-        // STEP 4: START FACE DETECTION.
+        // STEP 6: START FACE DETECTION.
 
         startFaceDetection()
       } catch (err) {
@@ -311,6 +392,7 @@ const FaceVerificationScreen = ({ staff, setVerificationToken, setScreen, onCanc
           message: err.message,
           stack: err.stack,
           modelUrl: MODEL_URL,
+          tensorflowBackend: faceapi.tf?.getBackend?.(),
         })
 
         if (!mounted) return
@@ -364,8 +446,10 @@ const FaceVerificationScreen = ({ staff, setVerificationToken, setScreen, onCanc
         throw new Error('Camera is not ready. Please try again.')
       }
 
-      // Generate face descriptor.
+      // Confirm TensorFlow is ready before inference.
+      await faceapi.tf.ready()
 
+      // Generate face descriptor.
       const found = await faceapi
         .detectSingleFace(
           video,
