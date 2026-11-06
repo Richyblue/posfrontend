@@ -99,7 +99,7 @@ const loadFaceModels = async (onProgress) => {
       // Confirm all models loaded.
       if (
         !faceapi.nets.tinyFaceDetector.isLoaded ||
-        !faceapi.nets.faceLandmark68Net.isLoaded ||
+        !faceapi.nets.faceLandmark68TinyNet.isLoaded ||
         !faceapi.nets.faceRecognitionNet.isLoaded
       ) {
         throw new Error('One or more face recognition models failed to load.')
