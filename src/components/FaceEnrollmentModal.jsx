@@ -231,7 +231,7 @@ const FaceEnrollmentModal = ({ visible, staff, onClose, onComplete }) => {
           videoRef.current,
           new faceapi.TinyFaceDetectorOptions({
             inputSize: 320,
-            scoreThreshold: 0.55,
+            scoreThreshold: 0.4,
           }),
         )
         .withFaceLandmarks(true)

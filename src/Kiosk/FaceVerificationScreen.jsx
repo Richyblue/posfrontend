@@ -73,7 +73,7 @@ const initializeTensorFlow = async () => {
 const loadFaceModels = async (onProgress) => {
   if (
     faceapi.nets.tinyFaceDetector.isLoaded &&
-    faceapi.nets.faceLandmark68Net.isLoaded &&
+    faceapi.nets.faceLandmark68TinyNet.isLoaded &&
     faceapi.nets.faceRecognitionNet.isLoaded
   ) {
     console.log('[FACE MODEL] All models already loaded.')
@@ -241,7 +241,7 @@ const FaceVerificationScreen = ({ staff, setVerificationToken, setScreen, onCanc
           video,
           new faceapi.TinyFaceDetectorOptions({
             inputSize: 320,
-            scoreThreshold: 0.55,
+            scoreThreshold: 0.4,
           }),
         )
 
@@ -277,7 +277,7 @@ const FaceVerificationScreen = ({ staff, setVerificationToken, setScreen, onCanc
 
           setChallengePassed(true)
 
-          setStatus('Movement detected. You can now verify your identity.')
+          setStatus('Movement completed. Please face the camera directly and tap Verify My Face.')
 
           if (intervalRef.current) {
             window.clearInterval(intervalRef.current)
@@ -429,6 +429,10 @@ const FaceVerificationScreen = ({ staff, setVerificationToken, setScreen, onCanc
   // SUBMIT FACE VERIFICATION
   // =========================================================
 
+  // =========================================================
+  // SUBMIT FACE VERIFICATION - IMPROVED
+  // =========================================================
+
   const submitVerification = async () => {
     if (!challengePassed || !cameraReady || !videoRef.current || busy) {
       return
@@ -438,40 +442,11 @@ const FaceVerificationScreen = ({ staff, setVerificationToken, setScreen, onCanc
       setBusy(true)
       setError('')
 
-      setStatus('Capturing face descriptor...')
-
       const video = videoRef.current
 
       if (video.readyState < 2) {
         throw new Error('Camera is not ready. Please try again.')
       }
-
-      // Confirm TensorFlow is ready before inference.
-      await faceapi.tf.ready()
-
-      // Generate face descriptor.
-      const found = await faceapi
-        .detectSingleFace(
-          video,
-          new faceapi.TinyFaceDetectorOptions({
-            inputSize: 320,
-            scoreThreshold: 0.55,
-          }),
-        )
-        .withFaceLandmarks()
-        .withFaceDescriptor()
-
-      if (!found) {
-        throw new Error('Face not detected. Please position your face and try again.')
-      }
-
-      const descriptor = Array.from(found.descriptor)
-
-      if (descriptor.length !== 128) {
-        throw new Error('Invalid face descriptor generated.')
-      }
-
-      // Validate staff information.
 
       if (!staff?.id) {
         throw new Error('Staff identification is missing.')
@@ -481,7 +456,57 @@ const FaceVerificationScreen = ({ staff, setVerificationToken, setScreen, onCanc
         throw new Error('Staff QR identity is missing. Please scan the staff QR code again.')
       }
 
-      // Submit to backend.
+      setStatus('Please face the camera directly...')
+
+      await faceapi.tf.ready()
+
+      let found = null
+
+      // Give the user time to return to a forward-facing position.
+      await new Promise((resolve) => setTimeout(resolve, 400))
+
+      // Retry detection automatically.
+      for (let attempt = 1; attempt <= 6; attempt++) {
+        if (video.readyState < 2) {
+          await new Promise((resolve) => setTimeout(resolve, 250))
+          continue
+        }
+
+        setStatus(
+          attempt === 1 ? 'Detecting your face...' : `Adjusting face detection... (${attempt}/6)`,
+        )
+
+        found = await faceapi
+          .detectSingleFace(
+            video,
+            new faceapi.TinyFaceDetectorOptions({
+              inputSize: 320,
+              scoreThreshold: 0.35,
+            }),
+          )
+          // IMPORTANT: true selects the tiny landmark model.
+          .withFaceLandmarks(true)
+          .withFaceDescriptor()
+
+        if (found) {
+          break
+        }
+
+        // Allow the camera to capture another frame.
+        await new Promise((resolve) => setTimeout(resolve, 350))
+      }
+
+      if (!found) {
+        throw new Error(
+          'We could not get a clear face image. Please look directly at the camera, move slightly closer and try again.',
+        )
+      }
+
+      const descriptor = Array.from(found.descriptor)
+
+      if (descriptor.length !== 128) {
+        throw new Error('Unable to generate a valid face identity. Please try again.')
+      }
 
       setStatus('Verifying your identity...')
 
@@ -502,23 +527,19 @@ const FaceVerificationScreen = ({ staff, setVerificationToken, setScreen, onCanc
         throw new Error(response?.data?.message || 'Server did not return a verification token.')
       }
 
-      // Save verification token.
-
       setVerificationToken(verificationToken)
 
       setStatus('Identity verified successfully.')
 
-      // Stop camera.
-
       stopCamera()
-
-      // Continue to attendance action.
 
       setScreen('action')
     } catch (err) {
       console.error('[FACE VERIFICATION SUBMISSION ERROR]', err)
 
-      setError(err.response?.data?.message || err.message || 'Face verification failed.')
+      setError(
+        err.response?.data?.message || err.message || 'Face verification failed. Please try again.',
+      )
     } finally {
       setBusy(false)
     }
