@@ -1,6 +1,12 @@
 import axios from 'axios'
 
-const API = import.meta.env.VITE_BACKEND_URL
+// =========================================================
+// API CONFIGURATION
+// =========================================================
+
+const API_BASE_URL = (import.meta.env.VITE_BACKEND_URL || '').replace(/\/+$/, '')
+
+const API = `${API_BASE_URL}/api/v1`
 
 // =========================================================
 // GET AUTH HEADERS
@@ -10,8 +16,28 @@ const getHeaders = () => {
   const token = localStorage.getItem('token')
 
   return {
-    Authorization: `Bearer ${token}`,
+    ...(token ? { Authorization: `Bearer ${token}` } : {}),
+    'Content-Type': 'application/json',
+    Accept: 'application/json',
   }
+}
+
+// =========================================================
+// API REQUEST HELPER
+// =========================================================
+
+const post = (endpoint, data) => {
+  return axios.post(`${API}${endpoint}`, data, {
+    headers: getHeaders(),
+    timeout: 30000,
+  })
+}
+
+const get = (endpoint) => {
+  return axios.get(`${API}${endpoint}`, {
+    headers: getHeaders(),
+    timeout: 30000,
+  })
 }
 
 // =========================================================
@@ -19,9 +45,7 @@ const getHeaders = () => {
 // =========================================================
 
 export const scanQR = (data) => {
-  return axios.post(`${API}api/v1/kiosk/scan`, data, {
-    headers: getHeaders(),
-  })
+  return post('/kiosk/scan', data)
 }
 
 // =========================================================
@@ -29,8 +53,10 @@ export const scanQR = (data) => {
 // =========================================================
 
 export const verifyStaffFace = (data) => {
-  return axios.post(`${API}api/v1/kiosk/face/verify`, data, {
-    headers: getHeaders(),
+  return post('/kiosk/face/verify', {
+    staffId: data.staffId,
+    qrCode: data.qrCode,
+    descriptor: data.descriptor,
   })
 }
 
@@ -39,8 +65,9 @@ export const verifyStaffFace = (data) => {
 // =========================================================
 
 export const enrollStaffFace = (data) => {
-  return axios.post(`${API}api/v1/kiosk/face/enroll`, data, {
-    headers: getHeaders(),
+  return post('/kiosk/face/enroll', {
+    staffId: data.staffId,
+    descriptor: data.descriptor,
   })
 }
 
@@ -49,9 +76,7 @@ export const enrollStaffFace = (data) => {
 // =========================================================
 
 export const clockIn = (data) => {
-  return axios.post(`${API}api/v1/kiosk/clock-in`, data, {
-    headers: getHeaders(),
-  })
+  return post('/kiosk/clock-in', data)
 }
 
 // =========================================================
@@ -59,9 +84,7 @@ export const clockIn = (data) => {
 // =========================================================
 
 export const goOut = (data) => {
-  return axios.post(`${API}api/v1/kiosk/go-out`, data, {
-    headers: getHeaders(),
-  })
+  return post('/kiosk/go-out', data)
 }
 
 // =========================================================
@@ -69,9 +92,7 @@ export const goOut = (data) => {
 // =========================================================
 
 export const returnBack = (data) => {
-  return axios.post(`${API}api/v1/kiosk/return`, data, {
-    headers: getHeaders(),
-  })
+  return post('/kiosk/return', data)
 }
 
 // =========================================================
@@ -79,29 +100,21 @@ export const returnBack = (data) => {
 // =========================================================
 
 export const clockOut = (data) => {
-  return axios.post(`${API}api/v1/kiosk/clock-out`, data, {
-    headers: getHeaders(),
-  })
+  return post('/kiosk/clock-out', data)
 }
 
 // =========================================================
 // ATTENDANCE DASHBOARD KPIs
 // =========================================================
 
-export const getAttendanceDashboardKPIs = async () => {
-  return axios.get(`${API}api/v1/attendance/dashboard`, {
-    headers: getHeaders(),
-  })
+export const getAttendanceDashboardKPIs = () => {
+  return get('/attendance/dashboard')
 }
 
 // =========================================================
 // TODAY'S BUSINESS HOURS
 // =========================================================
 
-export const getTodayBusinessHours = async () => {
-  return axios.get(`${API}api/v1/business-hours/`, {
-    headers: getHeaders(),
-  })
+export const getTodayBusinessHours = () => {
+  return get('/business-hours/')
 }
-
-
