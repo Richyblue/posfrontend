@@ -11,14 +11,38 @@ const Kiosk = () => {
   const [verificationToken, setVerificationToken] = useState('')
   const [successData, setSuccessData] = useState(null)
   const resetKiosk = () => {
-    setStaff(null); setNextAction(''); setVerificationToken(''); setSuccessData(null); setScreen('scan')
+    setStaff(null)
+    setNextAction('')
+    setVerificationToken('')
+    setSuccessData(null)
+    setScreen('scan')
   }
   switch (screen) {
-    case 'scan': return <ScanScreen setScreen={setScreen} setStaff={setStaff} setNextAction={setNextAction} />
-    case 'face': return <FaceVerificationScreen staff={staff} setVerificationToken={setVerificationToken} setScreen={setScreen} onCancel={resetKiosk} />
-    case 'action': return <ActionScreen staff={staff} nextAction={nextAction} verificationToken={verificationToken} setScreen={setScreen} setSuccessData={setSuccessData} />
-    case 'success': return <SuccessScreen staff={staff} successData={successData} setScreen={resetKiosk} />
-    default: return null
+    case 'scan':
+      return <ScanScreen setScreen={setScreen} setStaff={setStaff} setNextAction={setNextAction} />
+    case 'face':
+      return (
+        <FaceVerificationScreen
+          staff={staff}
+          setVerificationToken={setVerificationToken}
+          setScreen={setScreen}
+          onCancel={resetKiosk}
+        />
+      )
+    case 'action':
+      return (
+        <ActionScreen
+          staff={staff}
+          nextAction={nextAction}
+          verificationToken={verificationToken}
+          setScreen={setScreen}
+          setSuccessData={setSuccessData}
+        />
+      )
+    case 'success':
+      return <SuccessScreen staff={staff} successData={successData} setScreen={resetKiosk} />
+    default:
+      return null
   }
 }
 export default Kiosk

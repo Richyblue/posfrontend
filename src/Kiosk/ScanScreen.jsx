@@ -80,16 +80,6 @@ const ScanScreen = ({
       setKpiLoading(false)
     }
   }
-  useEffect(() => {
-    loadKioskKPIs()
-
-    const interval = setInterval(() => {
-      loadKioskKPIs()
-    }, 30000)
-
-    return () => clearInterval(interval)
-  }, [])
-
   const formatActivityTime = (date) => {
     if (!date) return '--'
 
@@ -149,9 +139,9 @@ const ScanScreen = ({
 
       const response = await getTodayBusinessHours()
 
-      const data = response.data?.data || response.data
+      const data = response.data?.businessHours || null
 
-      setBusinessHours(data || null)
+      setBusinessHours(data)
     } catch (error) {
       console.error('Failed to load today business hours:', error)
 
@@ -175,25 +165,33 @@ const ScanScreen = ({
   }, [])
 
   const getShiftTitle = () => {
-    if (businessHoursLoading) {
-      return 'Loading business hours...'
-    }
+    if (businessHoursLoading) return 'Loading business hours...'
+    if (!businessHours) return 'Business hours unavailable'
+    if (!businessHours.isOpen) return 'Business Closed Today'
 
-    if (!businessHours) {
-      return 'Business hours unavailable'
-    }
+    const openingTime = formatTime12Hour(businessHours.openingTime)
+    const closingTime = formatTime12Hour(businessHours.closingTime)
 
-    if (!businessHours.isOpen) {
-      return 'Business Closed Today'
-    }
+    return `Today's Business Hours: ${openingTime} – ${closingTime}`
+  }
 
-    const shiftName = businessHours.shiftName || businessHours.name || 'Today’s Grooming Shift'
+  const getGracePeriodText = () => {
+    if (businessHoursLoading) return 'Loading grace period...'
+    if (!businessHours) return 'Grace period unavailable'
+    if (!businessHours.isOpen) return 'Business is closed today'
 
-    const openingTime = formatTime12Hour(businessHours.openTime)
+    const openingTime = String(businessHours.openingTime || '').substring(0, 5)
+    const gracePeriod = Math.max(0, Number(businessHours.gracePeriod || 0))
+    const match = openingTime.match(/^(\\d{1,2}):(\\d{2})$/)
 
-    const closingTime = formatTime12Hour(businessHours.closeTime)
+    if (!match) return `Grace period: ${gracePeriod} minutes`
 
-    return `${shiftName}: ${openingTime} – ${closingTime}`
+    const totalMinutes = (Number(match[1]) * 60) + Number(match[2]) + gracePeriod
+    const endHour = Math.floor((totalMinutes % (24 * 60)) / 60)
+    const endMinute = totalMinutes % 60
+    const graceEndTime = `${String(endHour).padStart(2, '0')}:${String(endMinute).padStart(2, '0')}:00`
+
+    return `Grace period until ${formatTime12Hour(graceEndTime)}`
   }
   const getActivityPosition = (activity) => {
     return activity?.staff?.position || activity?.position || activity?.role || 'Staff'
@@ -875,7 +873,7 @@ const ScanScreen = ({
                 <div>
                   <div className="princess-hours-title">{getShiftTitle()}</div>
 
-                  <div className="princess-hours-subtitle">Grace period until 08:15 AM</div>
+                  <div className="princess-hours-subtitle">{getGracePeriodText()}</div>
                 </div>
               </div>
             </div>

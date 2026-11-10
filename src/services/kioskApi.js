@@ -116,5 +116,5 @@ export const getAttendanceDashboardKPIs = () => {
 // =========================================================
 
 export const getTodayBusinessHours = () => {
-  return get('/business-hours/')
+  return get('/business-hours/today')
 }
