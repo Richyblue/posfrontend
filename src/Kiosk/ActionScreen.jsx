@@ -1,8 +1,11 @@
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
+import axios from 'axios'
 import { CAlert, CButton, CCard, CCardBody, CFormSelect, CSpinner } from '@coreui/react'
 import Swal from 'sweetalert2'
 
 import { clockIn, goOut, returnBack, clockOut } from '../services/kioskApi'
+
+const API_URL = import.meta.env.VITE_BACKEND_URL
 
 // =========================================================
 // ACTION CONFIGURATION
@@ -109,33 +112,6 @@ const getStaffPosition = (staff) => {
   )
 }
 
-const getStaffPhoto = (staff) => {
-  if (!staff || typeof staff !== 'object') return ''
-
-  return (
-    staff.photo ||
-    staff.profilePicture ||
-    staff.profileImage ||
-    staff.image ||
-    staff.avatar ||
-    staff.photoUrl ||
-    staff.imageUrl ||
-    staff.User?.photo ||
-    staff.User?.profilePicture ||
-    staff.User?.profileImage ||
-    staff.User?.image ||
-    staff.user?.photo ||
-    staff.user?.profilePicture ||
-    staff.user?.profileImage ||
-    staff.user?.image ||
-    staff.Staff?.photo ||
-    staff.Staff?.profilePicture ||
-    staff.staff?.photo ||
-    staff.staff?.profilePicture ||
-    ''
-  )
-}
-
 const getInitials = (name) => {
   if (!name || name === 'STAFF MEMBER') return 'SM'
 
@@ -158,11 +134,12 @@ const ActionScreen = ({ staff, nextAction, verificationToken, setScreen, setSucc
   const [reason, setReason] = useState('restroom')
   const [expectedReturn, setExpectedReturn] = useState(15)
 
-  const action = ACTION_CONFIG[nextAction]
-  const staffPhoto = useMemo(() => getStaffPhoto(staff), [staff])
+  // Staff photograph state
+  const [staffPhoto, setStaffPhoto] = useState(null)
   const [photoError, setPhotoError] = useState(false)
 
-  // Robust staff information extraction.
+  const action = ACTION_CONFIG[nextAction]
+
   const staffName = useMemo(() => getStaffName(staff), [staff])
   const staffPosition = useMemo(() => getStaffPosition(staff), [staff])
   const initials = useMemo(() => getInitials(staffName), [staffName])
@@ -176,6 +153,67 @@ const ActionScreen = ({ staff, nextAction, verificationToken, setScreen, setSucc
     }),
     [staff?.qrCode, verificationToken],
   )
+
+  // =======================================================
+  // FETCH STAFF PHOTOGRAPH
+  // Uses the same media endpoint as ViewStaff.jsx
+  // =======================================================
+
+  useEffect(() => {
+    let isMounted = true
+
+    const fetchStaffPhoto = async () => {
+      // Reset photo when the staff member changes
+      setStaffPhoto(null)
+      setPhotoError(false)
+
+      if (!staff?.id) {
+        console.warn('Cannot fetch staff photograph: staff ID is missing.')
+        return
+      }
+
+      try {
+        const token = localStorage.getItem('token')
+
+        if (!token) {
+          console.warn('Cannot fetch staff photograph: authentication token is missing.')
+          return
+        }
+
+        const config = {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        }
+
+        const { data } = await axios.get(
+          `${API_URL}api/v1/staff/${staff.id}/media`,
+          config,
+        )
+
+        if (isMounted) {
+          setStaffPhoto(data?.photo || null)
+          setPhotoError(false)
+        }
+      } catch (err) {
+        console.error(
+          `Unable to load photograph for staff ${staff.id}:`,
+          err.response?.data?.message || err.message,
+        )
+
+        if (isMounted) {
+          setStaffPhoto(null)
+          setPhotoError(true)
+        }
+      }
+    }
+
+    fetchStaffPhoto()
+
+    return () => {
+      isMounted = false
+    }
+  }, [staff?.id])
 
   // =======================================================
   // CONFIRM CLOCK OUT
@@ -420,32 +458,33 @@ const ActionScreen = ({ staff, nextAction, verificationToken, setScreen, setSucc
           margin-bottom: 19px;
         }
 
-       .luxury-avatar {
-  width: 112px;
-  height: 112px;
-  margin: 0 auto 20px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  overflow: hidden;
-  border-radius: 50%;
-  color: #15110a;
-  font-size: 37px;
-  font-weight: 900;
-  background: linear-gradient(145deg, #f4e3bb, #c6a15b 65%, #98713b);
-  border: 4px solid #c6a15b;
-  box-shadow:
-    0 0 0 5px rgba(198,161,91,.16),
-    0 12px 38px rgba(198,161,91,.25);
-}
+        .luxury-avatar {
+          width: 112px;
+          height: 112px;
+          margin: 0 auto 20px;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          overflow: hidden;
+          border-radius: 50%;
+          color: #15110a;
+          font-size: 37px;
+          font-weight: 900;
+          background: linear-gradient(145deg, #f4e3bb, #c6a15b 65%, #98713b);
+          border: 4px solid #c6a15b;
+          box-shadow:
+            0 0 0 5px rgba(198,161,91,.16),
+            0 12px 38px rgba(198,161,91,.25);
+        }
 
-.luxury-avatar img {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-  object-position: center;
-  border-radius: 50%;
-}
+        .luxury-avatar img {
+          display: block;
+          width: 100%;
+          height: 100%;
+          object-fit: cover;
+          object-position: center;
+          border-radius: 50%;
+        }
 
         .luxury-welcome {
           color: #b4aa98;
@@ -711,7 +750,6 @@ const ActionScreen = ({ staff, nextAction, verificationToken, setScreen, setSucc
 
             <div>
               <div className="luxury-brand-name">PRINCESS SALON</div>
-
               <div className="luxury-brand-subtitle">Staff Attendance Terminal</div>
             </div>
           </div>
@@ -732,7 +770,9 @@ const ActionScreen = ({ staff, nextAction, verificationToken, setScreen, setSucc
               <img
                 src={staffPhoto}
                 alt={`${staffName} profile`}
-                onError={() => setPhotoError(true)}
+                onError={() => {
+                  setPhotoError(true)
+                }}
               />
             ) : (
               initials
@@ -752,7 +792,9 @@ const ActionScreen = ({ staff, nextAction, verificationToken, setScreen, setSucc
           <div className="luxury-panel">
             <div className="luxury-panel-label">YOUR NEXT ATTENDANCE ACTION</div>
 
-            <div className="luxury-panel-title">{action?.title || 'ACTION UNAVAILABLE'}</div>
+            <div className="luxury-panel-title">
+              {action?.title || 'ACTION UNAVAILABLE'}
+            </div>
 
             <div className="luxury-panel-description">
               {action?.description ||
