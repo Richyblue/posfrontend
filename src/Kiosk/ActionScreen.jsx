@@ -186,10 +186,7 @@ const ActionScreen = ({ staff, nextAction, verificationToken, setScreen, setSucc
           },
         }
 
-        const { data } = await axios.get(
-          `${API_URL}api/v1/staff/${staff.id}/media`,
-          config,
-        )
+        const { data } = await axios.get(`${API_URL}api/v1/staff/${staff.id}/media`, config)
 
         if (isMounted) {
           setStaffPhoto(data?.photo || null)
@@ -792,9 +789,7 @@ const ActionScreen = ({ staff, nextAction, verificationToken, setScreen, setSucc
           <div className="luxury-panel">
             <div className="luxury-panel-label">YOUR NEXT ATTENDANCE ACTION</div>
 
-            <div className="luxury-panel-title">
-              {action?.title || 'ACTION UNAVAILABLE'}
-            </div>
+            <div className="luxury-panel-title">{action?.title || 'ACTION UNAVAILABLE'}</div>
 
             <div className="luxury-panel-description">
               {action?.description ||

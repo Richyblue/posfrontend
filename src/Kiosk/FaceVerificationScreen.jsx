@@ -158,7 +158,13 @@ const waitForVideoReady = (video) => {
 // MAIN COMPONENT
 // =========================================================
 
-const FaceVerificationScreen = ({ staff, setVerificationToken, setScreen, onCancel }) => {
+const FaceVerificationScreen = ({
+  staff,
+  cameraStream,
+  setVerificationToken,
+  setScreen,
+  onCancel,
+}) => {
   const videoRef = useRef(null)
   const streamRef = useRef(null)
   const timeoutRef = useRef(null)
@@ -179,7 +185,8 @@ const FaceVerificationScreen = ({ staff, setVerificationToken, setScreen, onCanc
     staff?.fullname || staff?.fullName || staff?.name || staff?.User?.fullname || 'Staff Member'
 
   // =======================================================
-  // STOP CAMERA AND DETECTION
+  // STOP FACE DETECTION / DETACH LOCAL VIDEO
+  // IMPORTANT: DO NOT STOP THE SHARED CAMERA STREAM
   // =======================================================
 
   const stopCamera = useCallback(() => {
@@ -190,11 +197,11 @@ const FaceVerificationScreen = ({ staff, setVerificationToken, setScreen, onCanc
       timeoutRef.current = null
     }
 
-    if (streamRef.current) {
-      streamRef.current.getTracks().forEach((track) => track.stop())
-      streamRef.current = null
-    }
+    // The camera stream belongs to the QR scanner.
+    // Never stop its tracks from this component.
+    streamRef.current = null
 
+    // Only detach the video element used by face verification.
     if (videoRef.current) {
       videoRef.current.pause()
       videoRef.current.srcObject = null
@@ -264,7 +271,10 @@ const FaceVerificationScreen = ({ staff, setVerificationToken, setScreen, onCanc
         setStatus('Identity verified successfully.')
         setVerificationToken(verificationToken)
 
+        // Stop face detection and detach this screen's video.
+        // The QR scanner still owns the live camera stream.
         stopCamera()
+
         setScreen('action')
       } catch (err) {
         console.error('[FACE VERIFICATION ERROR]', err)
@@ -326,8 +336,7 @@ const FaceVerificationScreen = ({ staff, setVerificationToken, setScreen, onCanc
         })
 
         /*
-         * Detect the face, landmarks and descriptor in one
-         * operation. This avoids running the detector twice.
+         * Detect face, landmarks and descriptor in one operation.
          */
 
         const found = await faceapi
@@ -399,8 +408,21 @@ const FaceVerificationScreen = ({ staff, setVerificationToken, setScreen, onCanc
           throw new Error('Face verification requires HTTPS or localhost.')
         }
 
-        if (!navigator.mediaDevices?.getUserMedia) {
-          throw new Error('Camera access is unavailable in this browser.')
+        // Reuse the stream supplied by the existing html5-qrcode scanner.
+        if (!cameraStream) {
+          throw new Error(
+            'The shared kiosk camera is unavailable. Return to the QR scanner and try again.',
+          )
+        }
+
+        const liveVideoTrack = cameraStream
+          .getVideoTracks?.()
+          .find((track) => track.readyState === 'live')
+
+        if (!liveVideoTrack) {
+          throw new Error(
+            'The kiosk camera stream has ended. Return to the QR scanner to restart the camera.',
+          )
         }
 
         // Initialize TensorFlow.
@@ -409,7 +431,7 @@ const FaceVerificationScreen = ({ staff, setVerificationToken, setScreen, onCanc
 
         if (!mounted || !activeRef.current) return
 
-        // Load models.
+        // Load face recognition models.
         setStatus('Preparing facial recognition models...')
 
         await loadFaceModels((message) => {
@@ -418,35 +440,11 @@ const FaceVerificationScreen = ({ staff, setVerificationToken, setScreen, onCanc
 
         if (!mounted || !activeRef.current) return
 
-        // Start camera.
-        setStatus('Starting camera...')
+        // Attach the EXISTING QR scanner stream.
+        // Do not call getUserMedia here.
+        setStatus('Connecting to kiosk camera...')
 
-        let stream
-
-        try {
-          stream = await navigator.mediaDevices.getUserMedia({
-            audio: false,
-            video: {
-              facingMode: 'user',
-              width: { ideal: 640 },
-              height: { ideal: 480 },
-              frameRate: { ideal: 24 },
-            },
-          })
-        } catch (cameraError) {
-          console.warn('[CAMERA] Trying fallback configuration.', cameraError)
-
-          stream = await navigator.mediaDevices.getUserMedia({
-            audio: false,
-            video: true,
-          })
-        }
-
-        if (!mounted || !activeRef.current) {
-          stream.getTracks().forEach((track) => track.stop())
-          return
-        }
-
+        const stream = cameraStream
         streamRef.current = stream
 
         const video = videoRef.current
@@ -490,6 +488,8 @@ const FaceVerificationScreen = ({ staff, setVerificationToken, setScreen, onCanc
         setStatus('Camera initialization unsuccessful.')
         setBusy(false)
 
+        // This only detaches the face video.
+        // It does not stop the shared camera stream.
         stopCamera()
       }
     }
@@ -500,7 +500,7 @@ const FaceVerificationScreen = ({ staff, setVerificationToken, setScreen, onCanc
       mounted = false
       stopCamera()
     }
-  }, [retryCount, startFaceDetection, stopCamera])
+  }, [retryCount, startFaceDetection, stopCamera, cameraStream])
 
   // =======================================================
   // RETRY
@@ -519,6 +519,7 @@ const FaceVerificationScreen = ({ staff, setVerificationToken, setScreen, onCanc
     setFaceDetected(false)
     setStatus('Restarting face verification...')
 
+    // Reuses cameraStream. It does not request another camera.
     setRetryCount((count) => count + 1)
   }
 

@@ -1,5 +1,4 @@
 import { useState, useEffect } from 'react'
-
 import { CSpinner } from '@coreui/react'
 
 import LiveClock from '../components/LiveClock'
@@ -11,6 +10,9 @@ const ScanScreen = ({
   setScreen,
   setStaff,
   setNextAction,
+  cameraStream,
+  setCameraStream,
+  scannerActive,
   kioskStats = {},
   recentActivities = [],
 }) => {
@@ -35,14 +37,12 @@ const ScanScreen = ({
       setLoading(true)
       setError('')
 
-      const response = await scanQR({
-        qrCode,
-      })
+      const response = await scanQR({ qrCode })
 
       setStaff(response.data.staff)
       setNextAction(response.data.nextAction)
-      await loadKioskKPIs()
 
+      await loadKioskKPIs()
       setScreen('face')
     } catch (err) {
       console.error(err)
@@ -57,12 +57,14 @@ const ScanScreen = ({
     }
   }
 
+  // QRScanner calls this handler when html5-qrcode decodes a staff card.
+  const handleQRSuccess = handleScan
+
   const loadKioskKPIs = async () => {
     try {
       setKpiLoading(true)
 
       const response = await getAttendanceDashboardKPIs()
-
       const data = response.data?.data || {}
 
       setKioskStats({
@@ -80,6 +82,7 @@ const ScanScreen = ({
       setKpiLoading(false)
     }
   }
+
   const formatActivityTime = (date) => {
     if (!date) return '--'
 
@@ -112,15 +115,16 @@ const ScanScreen = ({
       'Staff Member'
     )
   }
+
   const [businessHours, setBusinessHours] = useState(null)
   const [businessHoursLoading, setBusinessHoursLoading] = useState(true)
+
   const formatTime12Hour = (time) => {
     if (!time) return '--'
 
     const [hours, minutes] = String(time).substring(0, 5).split(':').map(Number)
 
     const date = new Date()
-
     date.setHours(hours)
     date.setMinutes(minutes)
     date.setSeconds(0)
@@ -138,18 +142,17 @@ const ScanScreen = ({
       setBusinessHoursLoading(true)
 
       const response = await getTodayBusinessHours()
-
       const data = response.data?.businessHours || null
 
       setBusinessHours(data)
     } catch (error) {
       console.error('Failed to load today business hours:', error)
-
       setBusinessHours(null)
     } finally {
       setBusinessHoursLoading(false)
     }
   }
+
   useEffect(() => {
     loadKioskKPIs()
     loadTodayBusinessHours()
@@ -182,17 +185,23 @@ const ScanScreen = ({
 
     const openingTime = String(businessHours.openingTime || '').substring(0, 5)
     const gracePeriod = Math.max(0, Number(businessHours.gracePeriod || 0))
-    const match = openingTime.match(/^(\\d{1,2}):(\\d{2})$/)
+    const match = openingTime.match(/^(\d{1,2}):(\d{2})$/)
 
     if (!match) return `Grace period: ${gracePeriod} minutes`
 
-    const totalMinutes = (Number(match[1]) * 60) + Number(match[2]) + gracePeriod
+    const totalMinutes = Number(match[1]) * 60 + Number(match[2]) + gracePeriod
+
     const endHour = Math.floor((totalMinutes % (24 * 60)) / 60)
     const endMinute = totalMinutes % 60
-    const graceEndTime = `${String(endHour).padStart(2, '0')}:${String(endMinute).padStart(2, '0')}:00`
+
+    const graceEndTime = `${String(endHour).padStart(2, '0')}:${String(endMinute).padStart(
+      2,
+      '0',
+    )}:00`
 
     return `Grace period until ${formatTime12Hour(graceEndTime)}`
   }
+
   const getActivityPosition = (activity) => {
     return activity?.staff?.position || activity?.position || activity?.role || 'Staff'
   }
@@ -815,7 +824,6 @@ const ScanScreen = ({
 
             <div>
               <div className="princess-brand-name">PRINCESS CUTZ</div>
-
               <div className="princess-brand-subtitle">Premium Grooming Experience</div>
             </div>
           </div>
@@ -823,7 +831,6 @@ const ScanScreen = ({
           <div className="princess-system-info">
             <div className="princess-system-item">
               <div className="princess-system-label">Current Time</div>
-
               <div className="princess-system-value">
                 <LiveClock />
               </div>
@@ -831,7 +838,6 @@ const ScanScreen = ({
 
             <div className="princess-system-item">
               <div className="princess-system-label">System Status</div>
-
               <div className="princess-system-value">
                 <span className="princess-online-dot" />
                 Kiosk Online
@@ -840,7 +846,6 @@ const ScanScreen = ({
 
             <div className="princess-system-item">
               <div className="princess-system-label">Time Zone</div>
-
               <div className="princess-system-value">Africa/Lagos</div>
             </div>
           </div>
@@ -872,7 +877,6 @@ const ScanScreen = ({
 
                 <div>
                   <div className="princess-hours-title">{getShiftTitle()}</div>
-
                   <div className="princess-hours-subtitle">{getGracePeriodText()}</div>
                 </div>
               </div>
@@ -888,41 +892,33 @@ const ScanScreen = ({
               <div className="princess-kpi-grid">
                 <div className="princess-kpi-card">
                   <div className="princess-kpi-label">Present Today</div>
-
                   <div className="princess-kpi-value">
                     {kpiLoading ? '—' : kioskStats2.presentToday}
                   </div>
-
                   <div className="princess-kpi-caption">On the floor</div>
                 </div>
 
                 <div className="princess-kpi-card">
                   <div className="princess-kpi-label">Clocked In</div>
-
                   <div className="princess-kpi-value">
                     {kpiLoading ? '—' : kioskStats2.absentToday}
                   </div>
-
                   <div className="princess-kpi-caption">Active staff</div>
                 </div>
 
                 <div className="princess-kpi-card">
                   <div className="princess-kpi-label">Late Arrivals</div>
-
                   <div className="princess-kpi-value">
                     {kpiLoading ? '—' : kioskStats2.lateToday}
                   </div>
-
                   <div className="princess-kpi-caption">Logged today</div>
                 </div>
 
                 <div className="princess-kpi-card">
                   <div className="princess-kpi-label">Outside</div>
-
                   <div className="princess-kpi-value">
                     {kpiLoading ? '—' : kioskStats2.currentlyOutside}
                   </div>
-
                   <div className="princess-kpi-caption">Registered</div>
                 </div>
               </div>
@@ -932,41 +928,33 @@ const ScanScreen = ({
               <div className="princess-kpi-grid">
                 <div className="princess-kpi-card">
                   <div className="princess-kpi-label">Clocked Out Today</div>
-
                   <div className="princess-kpi-value">
                     {kpiLoading ? '—' : kioskStats2.clockedOutToday}
                   </div>
-
                   <div className="princess-kpi-caption">On the floor</div>
                 </div>
 
                 <div className="princess-kpi-card">
                   <div className="princess-kpi-label">Average Working Hours</div>
-
                   <div className="princess-kpi-value">
                     {kpiLoading ? '—' : `${kioskStats2.averageWorkingHours}h`}
                   </div>
-
                   <div className="princess-kpi-caption">Active staff</div>
                 </div>
 
                 <div className="princess-kpi-card">
                   <div className="princess-kpi-label">Late Arrivals</div>
-
                   <div className="princess-kpi-value">
                     {kpiLoading ? '—' : `${kioskStats2.overtimeHours}h`}
                   </div>
-
                   <div className="princess-kpi-caption">Logged today</div>
                 </div>
 
                 <div className="princess-kpi-card">
                   <div className="princess-kpi-label">Total Outside</div>
-
                   <div className="princess-kpi-value">
                     {kpiLoading ? '—' : kioskStats2.currentlyOutside}
                   </div>
-
                   <div className="princess-kpi-caption">Registered</div>
                 </div>
               </div>
@@ -993,7 +981,6 @@ const ScanScreen = ({
 
                         <div className="princess-activity-main">
                           <div className="princess-activity-name">{name}</div>
-
                           <div className="princess-activity-position">{position}</div>
                         </div>
 
@@ -1038,14 +1025,29 @@ const ScanScreen = ({
             <div className="princess-scanner-shell">
               <div className="princess-scanner-header">
                 <div className="princess-scanner-title">QR Attendance Scanner</div>
-
                 <div className="princess-camera-status">● Camera Active</div>
               </div>
 
               <div className="princess-camera-frame">
                 <div className="princess-scanner-content">
-                  {loading ? (
-                    <div className="princess-scanner-loading">
+                  {/* Keep QRScanner mounted while loading.
+                      This prevents the camera from being destroyed. */}
+                  <QRScanner
+                    onSuccess={handleQRSuccess}
+                    onCameraStream={setCameraStream}
+                    active={scannerActive && !loading}
+                  />
+
+                  {loading && (
+                    <div
+                      className="princess-scanner-loading"
+                      style={{
+                        position: 'absolute',
+                        inset: 0,
+                        zIndex: 8,
+                        background: 'rgba(8, 13, 32, 0.94)',
+                      }}
+                    >
                       <CSpinner
                         color="light"
                         style={{
@@ -1060,8 +1062,6 @@ const ScanScreen = ({
                         Please wait while we record your attendance...
                       </div>
                     </div>
-                  ) : (
-                    <QRScanner onSuccess={handleScan} />
                   )}
                 </div>
 
@@ -1110,9 +1110,7 @@ const ScanScreen = ({
         {/* FOOTER */}
         <footer className="princess-kiosk-footer">
           <div>Princess Cutz Terminal OS v1.0</div>
-
           <div>Biometric & Optical QR Recognition</div>
-
           <div>Secure Staff Attendance</div>
         </footer>
       </div>
