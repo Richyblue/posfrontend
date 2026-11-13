@@ -4,15 +4,19 @@ import Swal from 'sweetalert2'
 
 import { clockIn, goOut, returnBack, clockOut } from '../services/kioskApi'
 
+// =========================================================
+// ACTION CONFIGURATION
+// =========================================================
+
 const ACTION_CONFIG = {
   clockin: {
     title: 'CLOCK IN',
-    description: 'Confirm your attendance and start your workday.',
+    description: 'Confirm your attendance and begin your workday.',
     color: 'success',
   },
   goout: {
     title: 'GO OUT',
-    description: 'Record that you are temporarily leaving the salon.',
+    description: 'Record your temporary departure from the salon.',
     color: 'warning',
   },
   return: {
@@ -27,6 +31,127 @@ const ACTION_CONFIG = {
   },
 }
 
+// =========================================================
+// STAFF INFORMATION HELPERS
+// =========================================================
+
+const getFirstValidText = (...values) => {
+  for (const value of values) {
+    if (typeof value === 'string' && value.trim()) {
+      return value.trim()
+    }
+
+    if (typeof value === 'number' && Number.isFinite(value)) {
+      return String(value)
+    }
+  }
+
+  return ''
+}
+
+const getStaffName = (staff) => {
+  if (!staff || typeof staff !== 'object') return 'STAFF MEMBER'
+
+  const name = getFirstValidText(
+    staff.fullname,
+    staff.fullName,
+    staff.name,
+    staff.staffName,
+    staff.displayName,
+    staff.employeeName,
+
+    staff.User?.fullname,
+    staff.User?.fullName,
+    staff.User?.name,
+
+    staff.user?.fullname,
+    staff.user?.fullName,
+    staff.user?.name,
+
+    staff.Staff?.fullname,
+    staff.Staff?.fullName,
+    staff.Staff?.name,
+
+    staff.staff?.fullname,
+    staff.staff?.fullName,
+    staff.staff?.name,
+
+    staff.employee?.fullname,
+    staff.employee?.fullName,
+    staff.employee?.name,
+  )
+
+  return name || 'STAFF MEMBER'
+}
+
+const getStaffPosition = (staff) => {
+  if (!staff || typeof staff !== 'object') return 'TEAM MEMBER'
+
+  return (
+    getFirstValidText(
+      staff.position,
+      staff.jobTitle,
+      staff.designation,
+      staff.roleName,
+      staff.role?.name,
+
+      staff.User?.position,
+      staff.User?.jobTitle,
+      staff.User?.designation,
+
+      staff.user?.position,
+      staff.user?.jobTitle,
+      staff.user?.designation,
+
+      staff.Staff?.position,
+      staff.staff?.position,
+    ) || 'TEAM MEMBER'
+  )
+}
+
+const getStaffPhoto = (staff) => {
+  if (!staff || typeof staff !== 'object') return ''
+
+  return (
+    staff.photo ||
+    staff.profilePicture ||
+    staff.profileImage ||
+    staff.image ||
+    staff.avatar ||
+    staff.photoUrl ||
+    staff.imageUrl ||
+    staff.User?.photo ||
+    staff.User?.profilePicture ||
+    staff.User?.profileImage ||
+    staff.User?.image ||
+    staff.user?.photo ||
+    staff.user?.profilePicture ||
+    staff.user?.profileImage ||
+    staff.user?.image ||
+    staff.Staff?.photo ||
+    staff.Staff?.profilePicture ||
+    staff.staff?.photo ||
+    staff.staff?.profilePicture ||
+    ''
+  )
+}
+
+const getInitials = (name) => {
+  if (!name || name === 'STAFF MEMBER') return 'SM'
+
+  return name
+    .trim()
+    .split(/\s+/)
+    .filter(Boolean)
+    .slice(0, 2)
+    .map((part) => part.charAt(0).toUpperCase())
+    .join('')
+}
+
+// =========================================================
+// MAIN COMPONENT
+// =========================================================
+
 const ActionScreen = ({ staff, nextAction, verificationToken, setScreen, setSuccessData }) => {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
@@ -34,9 +159,13 @@ const ActionScreen = ({ staff, nextAction, verificationToken, setScreen, setSucc
   const [expectedReturn, setExpectedReturn] = useState(15)
 
   const action = ACTION_CONFIG[nextAction]
-  const staffName = staff?.fullname || staff?.fullName || staff?.name || 'Staff Member'
+  const staffPhoto = useMemo(() => getStaffPhoto(staff), [staff])
+  const [photoError, setPhotoError] = useState(false)
 
-  const initials = staffName.trim().charAt(0).toUpperCase()
+  // Robust staff information extraction.
+  const staffName = useMemo(() => getStaffName(staff), [staff])
+  const staffPosition = useMemo(() => getStaffPosition(staff), [staff])
+  const initials = useMemo(() => getInitials(staffName), [staffName])
 
   const canEmergencyClockOut = ['goout', 'return'].includes(nextAction)
 
@@ -48,23 +177,32 @@ const ActionScreen = ({ staff, nextAction, verificationToken, setScreen, setSucc
     [staff?.qrCode, verificationToken],
   )
 
+  // =======================================================
+  // CONFIRM CLOCK OUT
+  // =======================================================
+
   const confirmClockOut = async (emergency = false) => {
     const result = await Swal.fire({
-      title: emergency ? 'Emergency clock-out?' : 'Confirm clock-out?',
+      title: emergency ? 'Emergency Clock-Out?' : 'Confirm Clock-Out?',
       text: emergency
         ? 'This will end your attendance for today immediately, even if you are not scheduled to leave yet.'
         : 'Are you sure you want to complete your attendance for today?',
       icon: 'warning',
       showCancelButton: true,
-      confirmButtonText: emergency ? 'Yes, clock out' : 'Confirm clock-out',
-      cancelButtonText: 'Go back',
-      confirmButtonColor: '#dc3545',
+      confirmButtonText: emergency ? 'Yes, Clock Out' : 'Confirm Clock-Out',
+      cancelButtonText: 'Go Back',
+      confirmButtonColor: '#b89552',
+      cancelButtonColor: '#475569',
       reverseButtons: true,
       focusCancel: true,
     })
 
     return result.isConfirmed
   }
+
+  // =======================================================
+  // SUBMIT ATTENDANCE ACTION
+  // =======================================================
 
   const submitAction = async ({ emergency = false } = {}) => {
     if (loading) return
@@ -76,6 +214,11 @@ const ActionScreen = ({ staff, nextAction, verificationToken, setScreen, setSucc
 
     if (!verificationToken) {
       setError('Face verification is required before attendance can continue.')
+      return
+    }
+
+    if (!action) {
+      setError('Invalid attendance action. Please scan your staff card again.')
       return
     }
 
@@ -120,7 +263,7 @@ const ActionScreen = ({ staff, nextAction, verificationToken, setScreen, setSucc
             break
 
           default:
-            throw new Error('Invalid attendance action. Please scan your staff card again.')
+            throw new Error('Invalid attendance action.')
         }
       }
 
@@ -143,308 +286,484 @@ const ActionScreen = ({ staff, nextAction, verificationToken, setScreen, setSucc
     }
   }
 
+  // =======================================================
+  // CANCEL
+  // =======================================================
+
   const handleCancel = () => {
     if (loading) return
     setScreen('scan')
   }
 
+  // =======================================================
+  // RENDER
+  // =======================================================
+
   return (
-    <div className="action-screen">
+    <div className="luxury-action-screen">
       <style>{`
-        .action-screen {
+        .luxury-action-screen {
+          --gold: #c6a15b;
+          --gold-light: #e8d4a5;
+          --gold-dark: #94723b;
+          --black: #090909;
+          --panel: #121212;
+          --muted: #a5a5a5;
+
           min-height: 100vh;
           width: 100%;
           box-sizing: border-box;
-          background:
-            radial-gradient(circle at 10% 5%, rgba(99,102,241,.18), transparent 30%),
-            radial-gradient(circle at 90% 95%, rgba(236,72,153,.12), transparent 30%),
-            linear-gradient(135deg, #0b1020 0%, #111827 52%, #0f172a 100%);
           display: flex;
           align-items: center;
           justify-content: center;
-          padding: 28px 16px;
+          padding: 30px 16px;
+
+          background:
+            radial-gradient(circle at 15% 10%, rgba(198,161,91,.13), transparent 32%),
+            radial-gradient(circle at 90% 90%, rgba(198,161,91,.09), transparent 30%),
+            linear-gradient(135deg, #050505, #111111 55%, #080808);
         }
 
-        .action-terminal {
+        .luxury-terminal {
           width: 100%;
-          max-width: 760px;
-          border: 0;
-          border-radius: 24px;
+          max-width: 790px;
           overflow: hidden;
-          box-shadow: 0 28px 80px rgba(0,0,0,.38);
+          border: 1px solid rgba(198,161,91,.48) !important;
+          border-radius: 25px !important;
+          background: var(--panel) !important;
+          box-shadow:
+            0 35px 100px rgba(0,0,0,.65),
+            0 0 35px rgba(198,161,91,.07);
         }
 
-        .action-header {
+        .luxury-header {
           display: flex;
           align-items: center;
           justify-content: space-between;
           gap: 16px;
-          padding: 22px 28px;
-          background: #fff;
-          border-bottom: 1px solid #e5e7eb;
+          padding: 22px 30px;
+          background: linear-gradient(110deg, #111111, #1a1711);
+          border-bottom: 1px solid rgba(198,161,91,.35);
         }
 
-        .action-brand {
+        .luxury-brand {
           display: flex;
           align-items: center;
-          gap: 13px;
+          gap: 14px;
           min-width: 0;
         }
 
-        .action-brand-mark {
-          width: 48px;
-          height: 48px;
-          flex: 0 0 48px;
-          border-radius: 14px;
+        .luxury-brand-mark {
+          width: 51px;
+          height: 51px;
+          flex: 0 0 51px;
           display: grid;
           place-items: center;
-          color: #fff;
-          font-size: 21px;
-          font-weight: 800;
-          background: linear-gradient(135deg, #4f46e5, #7c3aed);
+          border-radius: 15px;
+          color: #111;
+          font-size: 23px;
+          font-weight: 900;
+          background: linear-gradient(145deg, #f1dfb5, #b58a43);
+          box-shadow: 0 5px 22px rgba(198,161,91,.25);
         }
 
-        .action-online {
+        .luxury-brand-name {
+          color: #f6e8c7;
+          font-size: 19px;
+          font-weight: 900;
+          letter-spacing: 1.5px;
+          line-height: 1.3;
+        }
+
+        .luxury-brand-subtitle {
+          color: #a9a08e;
+          font-size: 11px;
+          margin-top: 4px;
+          letter-spacing: 1.1px;
+          text-transform: uppercase;
+        }
+
+        .luxury-online {
           display: flex;
           align-items: center;
           gap: 8px;
           white-space: nowrap;
-          color: #15803d;
-          font-size: 12px;
-          font-weight: 700;
+          color: #b9d9bc;
+          font-size: 11px;
+          font-weight: 800;
+          letter-spacing: .8px;
+          text-transform: uppercase;
         }
 
-        .action-online-dot {
-          width: 8px;
-          height: 8px;
+        .luxury-online-dot {
+          width: 9px;
+          height: 9px;
           border-radius: 50%;
-          background: #22c55e;
-          box-shadow: 0 0 0 4px rgba(34,197,94,.12);
+          background: #36c878;
+          box-shadow: 0 0 12px rgba(54,200,120,.6);
         }
 
-        .action-content {
-          padding: 42px 28px;
-          background: #fff;
+        .luxury-content {
+          padding: 36px 30px 42px;
+          background:
+            radial-gradient(ellipse at top, rgba(198,161,91,.06), transparent 55%),
+            #101010;
           text-align: center;
         }
 
-        .action-avatar {
-          width: 82px;
-          height: 82px;
-          margin: 0 auto 15px;
-          border-radius: 50%;
-          display: grid;
-          place-items: center;
-          color: #fff;
-          font-size: 30px;
-          font-weight: 800;
-          background: linear-gradient(135deg, #4f46e5, #7c3aed);
-          box-shadow: 0 10px 28px rgba(79,70,229,.22);
+        .luxury-identity-label {
+          color: var(--gold);
+          font-size: 11px;
+          font-weight: 900;
+          letter-spacing: 3px;
+          text-transform: uppercase;
+          margin-bottom: 19px;
         }
 
-        .action-panel {
+       .luxury-avatar {
+  width: 112px;
+  height: 112px;
+  margin: 0 auto 20px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  border-radius: 50%;
+  color: #15110a;
+  font-size: 37px;
+  font-weight: 900;
+  background: linear-gradient(145deg, #f4e3bb, #c6a15b 65%, #98713b);
+  border: 4px solid #c6a15b;
+  box-shadow:
+    0 0 0 5px rgba(198,161,91,.16),
+    0 12px 38px rgba(198,161,91,.25);
+}
+
+.luxury-avatar img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: center;
+  border-radius: 50%;
+}
+
+        .luxury-welcome {
+          color: #b4aa98;
+          font-size: 12px;
+          font-weight: 700;
+          letter-spacing: 2px;
+          text-transform: uppercase;
+          margin-bottom: 9px;
+        }
+
+        .luxury-staff-name {
+          color: #ffffff !important;
+          font-size: clamp(30px, 5.5vw, 43px) !important;
+          font-weight: 950 !important;
+          letter-spacing: .5px;
+          line-height: 1.18 !important;
+          margin: 0 auto 12px !important;
+          padding: 0 8px;
+          max-width: 100%;
+          overflow-wrap: anywhere;
+          text-shadow: 0 3px 20px rgba(0,0,0,.7);
+        }
+
+        .luxury-name-divider {
+          width: 90px;
+          height: 3px;
+          margin: 0 auto 13px;
+          border-radius: 5px;
+          background: linear-gradient(90deg, transparent, var(--gold), transparent);
+        }
+
+        .luxury-staff-position {
+          display: inline-block;
+          max-width: 90%;
+          padding: 8px 18px;
+          border: 1px solid rgba(198,161,91,.35);
+          border-radius: 30px;
+          color: #e0c58e;
+          background: rgba(198,161,91,.08);
+          font-size: 12px;
+          font-weight: 800;
+          letter-spacing: 1.3px;
+          text-transform: uppercase;
+          overflow-wrap: anywhere;
+        }
+
+        .luxury-panel {
           width: 100%;
-          max-width: 560px;
-          margin: 28px auto 0;
-          padding: 26px;
-          border: 1px solid #e5e7eb;
-          border-radius: 18px;
-          background: #f8fafc;
+          max-width: 570px;
+          margin: 34px auto 0;
+          padding: 29px;
+          border: 1px solid rgba(198,161,91,.32);
+          border-radius: 20px;
+          background: linear-gradient(145deg, #191919, #111111);
+          box-shadow: 0 18px 45px rgba(0,0,0,.25);
           text-align: left;
         }
 
-        .action-panel-title {
-          color: #111827;
+        .luxury-panel-label {
+          color: var(--gold);
           text-align: center;
-          font-size: 27px;
+          font-size: 10px;
+          font-weight: 900;
+          letter-spacing: 2.8px;
+          margin-bottom: 11px;
+        }
+
+        .luxury-panel-title {
+          color: #f8e9c8;
+          text-align: center;
+          font-size: 29px;
+          font-weight: 950;
+          letter-spacing: 1.4px;
           line-height: 1.2;
-          font-weight: 800;
-          margin-bottom: 8px;
+          margin-bottom: 9px;
         }
 
-        .action-panel-description {
-          color: #64748b;
+        .luxury-panel-description {
+          color: #aaa49a;
           text-align: center;
-          font-size: 14px;
-          margin-bottom: 24px;
-        }
-
-        .action-field-label {
-          display: block;
-          margin-bottom: 7px;
-          color: #374151;
           font-size: 13px;
-          font-weight: 700;
+          line-height: 1.7;
+          margin-bottom: 27px;
         }
 
-        .action-main-button {
-          width: 100%;
-          min-height: 58px;
-          border-radius: 12px;
-          font-size: 16px;
+        .luxury-field-label {
+          display: block;
+          margin-bottom: 9px;
+          color: #e8d6b2;
+          font-size: 12px;
           font-weight: 800;
+          letter-spacing: .5px;
         }
 
-        .action-secondary-button {
-          width: 100%;
-          min-height: 52px;
-          margin-top: 10px;
-          border-radius: 12px;
-          font-weight: 700;
+        .luxury-select {
+          min-height: 51px !important;
+          border: 1px solid rgba(198,161,91,.35) !important;
+          border-radius: 10px !important;
+          background-color: #202020 !important;
+          color: #ffffff !important;
+          box-shadow: none !important;
         }
 
-        .action-emergency-button {
+        .luxury-select:focus {
+          border-color: var(--gold) !important;
+          box-shadow: 0 0 0 3px rgba(198,161,91,.12) !important;
+        }
+
+        .luxury-main-button {
           width: 100%;
-          min-height: 50px;
+          min-height: 59px;
+          margin-top: 8px;
+          border: 1px solid #e4c78f !important;
+          border-radius: 11px !important;
+          color: #15110a !important;
+          background: linear-gradient(110deg, #f0dfb9, #c6a15b, #a77b38) !important;
+          font-size: 15px !important;
+          font-weight: 950 !important;
+          letter-spacing: 1.1px;
+          box-shadow: 0 8px 24px rgba(198,161,91,.15);
+        }
+
+        .luxury-main-button:hover:not(:disabled) {
+          filter: brightness(1.09);
+          transform: translateY(-1px);
+        }
+
+        .luxury-main-button:disabled {
+          opacity: .5;
+        }
+
+        .luxury-secondary-button {
+          width: 100%;
+          min-height: 51px;
+          margin-top: 12px;
+          border: 1px solid #555 !important;
+          border-radius: 11px !important;
+          color: #e8e8e8 !important;
+          background: #252525 !important;
+          font-weight: 800 !important;
+        }
+
+        .luxury-emergency-button {
+          width: 100%;
+          min-height: 51px;
           margin-top: 18px;
-          border-radius: 12px;
-          border-width: 1.5px;
-          font-weight: 800;
+          border-radius: 11px !important;
+          font-weight: 900 !important;
+          letter-spacing: .6px;
         }
 
-        .action-footer {
+        .luxury-emergency-note {
+          color: #9b9284;
+          text-align: center;
+          font-size: 11px;
+          line-height: 1.7;
+          margin-top: 10px;
+        }
+
+        .luxury-error {
+          border-radius: 10px !important;
+        }
+
+        .luxury-footer {
           display: flex;
           justify-content: space-between;
           gap: 12px;
-          padding: 16px 28px;
-          background: #fafafa;
-          border-top: 1px solid #e5e7eb;
-          color: #94a3b8;
-          font-size: 12px;
+          padding: 17px 30px;
+          border-top: 1px solid rgba(198,161,91,.25);
+          background: #0b0b0b;
+          color: #817967;
+          font-size: 10px;
+          letter-spacing: .7px;
+          text-transform: uppercase;
         }
 
         @media (max-width: 575px) {
-          .action-screen {
+          .luxury-action-screen {
             padding: 12px;
-            align-items: flex-start;
           }
 
-          .action-terminal {
-            border-radius: 18px;
-            margin: auto 0;
+          .luxury-terminal {
+            border-radius: 19px !important;
           }
 
-          .action-header {
-            padding: 16px;
+          .luxury-header {
+            padding: 17px;
           }
 
-          .action-brand-mark {
-            width: 42px;
-            height: 42px;
-            flex-basis: 42px;
+          .luxury-brand-mark {
+            width: 43px;
+            height: 43px;
+            flex-basis: 43px;
           }
 
-          .action-content {
-            padding: 30px 16px;
+          .luxury-brand-name {
+            font-size: 15px;
           }
 
-          .action-panel {
-            padding: 20px 16px;
-            margin-top: 22px;
+          .luxury-brand-subtitle {
+            font-size: 9px;
           }
 
-          .action-panel-title {
-            font-size: 24px;
+          .luxury-online {
+            font-size: 9px;
           }
 
-          .action-online {
-            font-size: 11px;
+          .luxury-content {
+            padding: 32px 16px;
           }
 
-          .action-footer {
-            padding: 14px 16px;
+          .luxury-avatar {
+            width: 94px;
+            height: 94px;
+            font-size: 32px;
+          }
+
+          .luxury-staff-name {
+            font-size: clamp(27px, 8vw, 36px) !important;
+          }
+
+          .luxury-panel {
+            padding: 23px 17px;
+            margin-top: 28px;
+          }
+
+          .luxury-panel-title {
+            font-size: 25px;
+          }
+
+          .luxury-footer {
+            padding: 15px 16px;
+            font-size: 9px;
+          }
+        }
+
+        @media (max-width: 370px) {
+          .luxury-online {
+            font-size: 8px;
+          }
+
+          .luxury-brand {
+            gap: 9px;
+          }
+
+          .luxury-brand-name {
+            font-size: 13px;
+          }
+
+          .luxury-footer {
+            flex-direction: column;
+            text-align: center;
           }
         }
       `}</style>
 
-      <CCard className="action-terminal">
-        <div className="action-header">
-          <div className="action-brand">
-            <div className="action-brand-mark">P</div>
+      <CCard className="luxury-terminal">
+        {/* HEADER */}
+
+        <div className="luxury-header">
+          <div className="luxury-brand">
+            <div className="luxury-brand-mark">P</div>
 
             <div>
-              <div
-                style={{
-                  color: '#111827',
-                  fontSize: 18,
-                  fontWeight: 800,
-                }}
-              >
-                PRINCESS SALON
-              </div>
+              <div className="luxury-brand-name">PRINCESS SALON</div>
 
-              <div
-                style={{
-                  color: '#64748b',
-                  fontSize: 12,
-                  marginTop: 2,
-                }}
-              >
-                Staff Attendance Terminal
-              </div>
+              <div className="luxury-brand-subtitle">Staff Attendance Terminal</div>
             </div>
           </div>
 
-          <div className="action-online">
-            <span className="action-online-dot" />
+          <div className="luxury-online">
+            <span className="luxury-online-dot" />
             Kiosk Online
           </div>
         </div>
 
-        <CCardBody className="action-content">
-          <div className="action-avatar">{initials}</div>
+        <CCardBody className="luxury-content">
+          {/* STAFF IDENTITY */}
 
-          <div
-            style={{
-              color: '#64748b',
-              fontSize: 13,
-              marginBottom: 4,
-            }}
-          >
-            Welcome
+          <div className="luxury-identity-label">Verified Staff Identity</div>
+
+          <div className="luxury-avatar">
+            {staffPhoto && !photoError ? (
+              <img
+                src={staffPhoto}
+                alt={`${staffName} profile`}
+                onError={() => setPhotoError(true)}
+              />
+            ) : (
+              initials
+            )}
           </div>
 
-          <h1
-            style={{
-              color: '#111827',
-              fontSize: 'clamp(24px, 4vw, 31px)',
-              lineHeight: 1.2,
-              fontWeight: 800,
-              marginBottom: 5,
-              overflowWrap: 'anywhere',
-            }}
-          >
-            {staffName}
-          </h1>
+          <div className="luxury-welcome">Welcome Back</div>
 
-          <div style={{ color: '#64748b', fontSize: 14 }}>
-            {staff?.position || staff?.role || 'Staff'}
-          </div>
+          <h1 className="luxury-staff-name">{staffName}</h1>
 
-          <div className="action-panel">
-            <div
-              style={{
-                color: '#64748b',
-                textAlign: 'center',
-                fontSize: 11,
-                fontWeight: 800,
-                letterSpacing: 1.2,
-                marginBottom: 8,
-              }}
-            >
-              ATTENDANCE ACTION
-            </div>
+          <div className="luxury-name-divider" />
 
-            <div className="action-panel-title">{action?.title || 'ACTION UNAVAILABLE'}</div>
+          <div className="luxury-staff-position">{staffPosition}</div>
 
-            <div className="action-panel-description">
+          {/* ATTENDANCE PANEL */}
+
+          <div className="luxury-panel">
+            <div className="luxury-panel-label">YOUR NEXT ATTENDANCE ACTION</div>
+
+            <div className="luxury-panel-title">{action?.title || 'ACTION UNAVAILABLE'}</div>
+
+            <div className="luxury-panel-description">
               {action?.description ||
                 'Your next attendance action could not be determined. Please scan your staff card again.'}
             </div>
 
+            {/* GO OUT OPTIONS */}
+
             {nextAction === 'goout' && (
               <div className="mb-4">
-                <label className="action-field-label" htmlFor="goout-reason">
+                <label className="luxury-field-label" htmlFor="goout-reason">
                   Reason for leaving
                 </label>
 
@@ -454,7 +773,7 @@ const ActionScreen = ({ staff, nextAction, verificationToken, setScreen, setSucc
                   onChange={(event) => setReason(event.target.value)}
                   size="lg"
                   disabled={loading}
-                  className="mb-3"
+                  className="luxury-select mb-3"
                 >
                   <option value="restroom">Restroom</option>
                   <option value="buy_material">Buy materials</option>
@@ -464,7 +783,7 @@ const ActionScreen = ({ staff, nextAction, verificationToken, setScreen, setSucc
                   <option value="personal">Personal</option>
                 </CFormSelect>
 
-                <label className="action-field-label" htmlFor="expected-return">
+                <label className="luxury-field-label" htmlFor="expected-return">
                   Expected return
                 </label>
 
@@ -474,6 +793,7 @@ const ActionScreen = ({ staff, nextAction, verificationToken, setScreen, setSucc
                   onChange={(event) => setExpectedReturn(Number(event.target.value))}
                   size="lg"
                   disabled={loading}
+                  className="luxury-select"
                 >
                   <option value={15}>15 minutes</option>
                   <option value={30}>30 minutes</option>
@@ -483,38 +803,51 @@ const ActionScreen = ({ staff, nextAction, verificationToken, setScreen, setSucc
               </div>
             )}
 
+            {/* ERROR */}
+
             {error && (
-              <CAlert color="danger" className="mb-3" dismissible onClose={() => setError('')}>
+              <CAlert
+                color="danger"
+                className="luxury-error mb-3"
+                dismissible
+                onClose={() => setError('')}
+              >
                 {error}
               </CAlert>
             )}
+
+            {/* MAIN ACTION */}
 
             <CButton
               color={action?.color || 'secondary'}
               size="lg"
               disabled={loading || !action || !verificationToken || !staff?.qrCode}
               onClick={() => submitAction()}
-              className="action-main-button"
+              className="luxury-main-button"
             >
               {loading ? (
                 <>
                   <CSpinner size="sm" className="me-2" />
-                  Processing...
+                  PROCESSING...
                 </>
               ) : (
                 action?.title || 'UNAVAILABLE'
               )}
             </CButton>
 
+            {/* CANCEL */}
+
             <CButton
               color="light"
               size="lg"
               disabled={loading}
               onClick={handleCancel}
-              className="action-secondary-button"
+              className="luxury-secondary-button"
             >
-              Cancel
+              CANCEL
             </CButton>
+
+            {/* EMERGENCY CLOCK OUT */}
 
             {canEmergencyClockOut && (
               <>
@@ -524,25 +857,19 @@ const ActionScreen = ({ staff, nextAction, verificationToken, setScreen, setSucc
                   size="lg"
                   disabled={loading || !verificationToken || !staff?.qrCode}
                   onClick={() => submitAction({ emergency: true })}
-                  className="action-emergency-button"
+                  className="luxury-emergency-button"
                 >
                   {loading ? (
                     <>
                       <CSpinner size="sm" className="me-2" />
-                      Processing...
+                      PROCESSING...
                     </>
                   ) : (
                     'EMERGENCY CLOCK OUT'
                   )}
                 </CButton>
 
-                <div
-                  className="small text-body-secondary mt-2"
-                  style={{
-                    textAlign: 'center',
-                    lineHeight: 1.5,
-                  }}
-                >
+                <div className="luxury-emergency-note">
                   Use only when you need to end your attendance before the normal clock-out process.
                 </div>
               </>
@@ -550,7 +877,9 @@ const ActionScreen = ({ staff, nextAction, verificationToken, setScreen, setSucc
           </div>
         </CCardBody>
 
-        <div className="action-footer">
+        {/* FOOTER */}
+
+        <div className="luxury-footer">
           <span>© {new Date().getFullYear()} Princess Salon</span>
           <span>Secure Staff Attendance</span>
         </div>

@@ -4,7 +4,6 @@ import { CAlert, CButton, CCard, CCardBody, CSpinner } from '@coreui/react'
 
 import * as faceapi from '@vladmandic/face-api'
 
-// Explicitly register TensorFlow CPU backend.
 import '@tensorflow/tfjs-backend-cpu'
 
 import { verifyStaffFace } from '../services/kioskApi'
@@ -15,7 +14,6 @@ import { verifyStaffFace } from '../services/kioskApi'
 
 const MODEL_URL = '/models/face-api'
 
-// Shared initialization promises.
 let tensorflowPromise = null
 let faceModelsPromise = null
 
@@ -32,25 +30,18 @@ const initializeTensorFlow = async () => {
         throw new Error('TensorFlow.js is unavailable.')
       }
 
-      // Explicitly select CPU.
-      // This prevents TensorFlow from selecting an
-      // uninitialized WASM backend.
-
       const backendReady = await tf.setBackend('cpu')
 
       if (!backendReady) {
-        throw new Error(
-          'Unable to initialize TensorFlow CPU backend. Check the CPU backend installation.',
-        )
+        throw new Error('Unable to initialize TensorFlow CPU backend.')
       }
 
-      // Wait until TensorFlow finishes initialization.
       await tf.ready()
 
       const activeBackend = tf.getBackend()
 
       if (activeBackend !== 'cpu') {
-        throw new Error(`Unexpected TensorFlow backend: ${activeBackend}. CPU backend is required.`)
+        throw new Error(`Unexpected TensorFlow backend: ${activeBackend}`)
       }
 
       console.log('[TENSORFLOW] Initialized successfully:', activeBackend)
@@ -67,7 +58,6 @@ const initializeTensorFlow = async () => {
 
 // =========================================================
 // STEP 2: LOAD FACE RECOGNITION MODELS
-// Same three models and directory as enrollment.
 // =========================================================
 
 const loadFaceModels = async (onProgress) => {
@@ -82,11 +72,7 @@ const loadFaceModels = async (onProgress) => {
 
   if (!faceModelsPromise) {
     faceModelsPromise = (async () => {
-      // TensorFlow MUST be ready before loading models.
       await initializeTensorFlow()
-
-      // Load the same models used by FaceEnrollmentCapture.
-      // Promise.all also follows the enrollment loading pattern.
 
       onProgress?.('Loading face recognition models...')
 
@@ -96,7 +82,6 @@ const loadFaceModels = async (onProgress) => {
         faceapi.nets.faceRecognitionNet.loadFromUri(MODEL_URL),
       ])
 
-      // Confirm all models loaded.
       if (
         !faceapi.nets.tinyFaceDetector.isLoaded ||
         !faceapi.nets.faceLandmark68TinyNet.isLoaded ||
@@ -105,12 +90,10 @@ const loadFaceModels = async (onProgress) => {
         throw new Error('One or more face recognition models failed to load.')
       }
 
-      console.log('[FACE MODEL] All three models loaded successfully.')
-
-      // Final TensorFlow readiness check.
       await faceapi.tf.ready()
 
-      console.log('[FACE MODEL] Active TensorFlow backend:', faceapi.tf.getBackend())
+      console.log('[FACE MODEL] All models loaded successfully.')
+      console.log('[FACE MODEL] Backend:', faceapi.tf.getBackend())
     })().catch((error) => {
       faceModelsPromise = null
       throw error
@@ -163,26 +146,19 @@ const FaceVerificationScreen = ({ staff, setVerificationToken, setScreen, onCanc
 
   const activeRef = useRef(false)
   const detectingRef = useRef(false)
-
-  const startXRef = useRef(null)
-  const challengePassedRef = useRef(false)
+  const verificationStartedRef = useRef(false)
 
   // =======================================================
   // STATE
   // =======================================================
 
   const [status, setStatus] = useState('Initializing face recognition...')
-
   const [error, setError] = useState('')
   const [busy, setBusy] = useState(true)
-
   const [cameraReady, setCameraReady] = useState(false)
-  const [challengePassed, setChallengePassed] = useState(false)
-
-  const [challenge] = useState(() => (Math.random() > 0.5 ? 'left' : 'right'))
 
   // =======================================================
-  // STOP CAMERA AND DETECTION
+  // STOP CAMERA
   // =======================================================
 
   const stopCamera = useCallback(() => {
@@ -194,10 +170,7 @@ const FaceVerificationScreen = ({ staff, setVerificationToken, setScreen, onCanc
     }
 
     if (streamRef.current) {
-      streamRef.current.getTracks().forEach((track) => {
-        track.stop()
-      })
-
+      streamRef.current.getTracks().forEach((track) => track.stop())
       streamRef.current = null
     }
 
@@ -212,13 +185,88 @@ const FaceVerificationScreen = ({ staff, setVerificationToken, setScreen, onCanc
   }, [])
 
   // =======================================================
-  // START FACE DETECTION
+  // VERIFY DETECTED FACE AUTOMATICALLY
+  // =======================================================
+
+  const verifyDetectedFace = useCallback(
+    async (found) => {
+      if (verificationStartedRef.current || !activeRef.current) {
+        return
+      }
+
+      verificationStartedRef.current = true
+
+      try {
+        setBusy(true)
+        setError('')
+        setStatus('Face detected. Preparing face identity...')
+
+        if (!staff?.id) {
+          throw new Error('Staff identification is missing.')
+        }
+
+        if (!staff?.qrCode) {
+          throw new Error('Staff QR identity is missing. Please scan the staff QR code again.')
+        }
+
+        const descriptor = Array.from(found.descriptor)
+
+        if (descriptor.length !== 128) {
+          throw new Error('Unable to generate a valid face identity.')
+        }
+
+        setStatus('Verifying your identity...')
+
+        const response = await verifyStaffFace({
+          staffId: staff.id,
+          qrCode: staff.qrCode,
+          descriptor,
+        })
+
+        console.log('[FACE VERIFICATION RESPONSE]', response?.data)
+
+        const verificationToken =
+          response?.data?.verificationToken ||
+          response?.data?.data?.verificationToken ||
+          response?.verificationToken
+
+        if (!verificationToken) {
+          throw new Error(response?.data?.message || 'Server did not return a verification token.')
+        }
+
+        setStatus('Identity verified successfully.')
+
+        setVerificationToken(verificationToken)
+
+        stopCamera()
+
+        setScreen('action')
+      } catch (err) {
+        console.error('[FACE VERIFICATION ERROR]', err)
+
+        verificationStartedRef.current = false
+
+        setError(
+          err.response?.data?.message ||
+            err.message ||
+            'Face verification failed. Please try again.',
+        )
+
+        setStatus('Face verification unsuccessful. Please try again.')
+      } finally {
+        setBusy(false)
+      }
+    },
+    [staff, setVerificationToken, setScreen, stopCamera],
+  )
+
+  // =======================================================
+  // START SIMPLE FACE DETECTION
   // =======================================================
 
   const startFaceDetection = useCallback(() => {
     if (intervalRef.current) {
       window.clearInterval(intervalRef.current)
-      intervalRef.current = null
     }
 
     intervalRef.current = window.setInterval(async () => {
@@ -229,7 +277,7 @@ const FaceVerificationScreen = ({ staff, setVerificationToken, setScreen, onCanc
         !video ||
         video.readyState < 2 ||
         detectingRef.current ||
-        challengePassedRef.current
+        verificationStartedRef.current
       ) {
         return
       }
@@ -237,63 +285,46 @@ const FaceVerificationScreen = ({ staff, setVerificationToken, setScreen, onCanc
       detectingRef.current = true
 
       try {
-        const found = await faceapi.detectSingleFace(
-          video,
-          new faceapi.TinyFaceDetectorOptions({
-            inputSize: 320,
-            scoreThreshold: 0.4,
-          }),
-        )
+        await faceapi.tf.ready()
+
+        const found = await faceapi
+          .detectSingleFace(
+            video,
+            new faceapi.TinyFaceDetectorOptions({
+              inputSize: 320,
+              scoreThreshold: 0.4,
+            }),
+          )
+          .withFaceLandmarks(true)
+          .withFaceDescriptor()
 
         if (!activeRef.current) return
 
         if (!found) {
-          setStatus('Position your face clearly inside the camera view.')
+          setStatus('Position your face clearly in front of the camera.')
           return
         }
 
-        // Calculate face position.
-        const faceCenter = found.box.x + found.box.width / 2
+        console.log('[FACE DETECTION] Face detected successfully.')
 
-        const videoCenter = video.videoWidth / 2
-
-        const offset = faceCenter - videoCenter
-
-        // Record initial face position.
-        if (startXRef.current === null) {
-          startXRef.current = offset
-
-          setStatus(`Gently turn your head to the ${challenge}.`)
-
-          return
+        // Stop detection and verify the captured face.
+        if (intervalRef.current) {
+          window.clearInterval(intervalRef.current)
+          intervalRef.current = null
         }
 
-        // Detect head movement.
-        const movementDetected =
-          challenge === 'left' ? offset < startXRef.current - 22 : offset > startXRef.current + 22
-
-        if (movementDetected) {
-          challengePassedRef.current = true
-
-          setChallengePassed(true)
-
-          setStatus('Movement completed. Please face the camera directly and tap Verify My Face.')
-
-          if (intervalRef.current) {
-            window.clearInterval(intervalRef.current)
-            intervalRef.current = null
-          }
-        }
+        await verifyDetectedFace(found)
       } catch (err) {
         console.error('[FACE DETECTION ERROR]', err)
+        setStatus('Unable to detect your face. Please adjust your position.')
       } finally {
         detectingRef.current = false
       }
-    }, 450)
-  }, [challenge])
+    }, 500)
+  }, [verifyDetectedFace])
 
   // =========================================================
-  // INITIALIZE FACE MODELS AND CAMERA
+  // INITIALIZE MODELS AND CAMERA
   // =========================================================
 
   useEffect(() => {
@@ -302,32 +333,28 @@ const FaceVerificationScreen = ({ staff, setVerificationToken, setScreen, onCanc
     const initialize = async () => {
       try {
         activeRef.current = true
+        verificationStartedRef.current = false
 
         setBusy(true)
         setError('')
-
         setStatus('Checking browser compatibility...')
 
-        // Check HTTPS.
         if (!window.isSecureContext) {
           throw new Error('Face verification requires HTTPS or localhost.')
         }
 
-        // Check camera availability.
         if (!navigator.mediaDevices?.getUserMedia) {
           throw new Error('Camera access is unavailable in this browser.')
         }
 
-        // STEP 1: INITIALIZE TENSORFLOW.
-
+        // Initialize TensorFlow.
         setStatus('Initializing TensorFlow CPU engine...')
 
         await initializeTensorFlow()
 
         if (!mounted || !activeRef.current) return
 
-        // STEP 2: LOAD FACE MODELS.
-
+        // Load face models.
         setStatus('Loading face recognition models...')
 
         await loadFaceModels((message) => {
@@ -336,14 +363,9 @@ const FaceVerificationScreen = ({ staff, setVerificationToken, setScreen, onCanc
 
         if (!mounted || !activeRef.current) return
 
-        // STEP 3: CONFIRM BACKEND.
-
         await faceapi.tf.ready()
 
-        console.log('[FACE VERIFICATION] TensorFlow backend:', faceapi.tf.getBackend())
-
-        // STEP 4: START CAMERA.
-
+        // Start camera.
         setStatus('Face models loaded. Starting camera...')
 
         const stream = await navigator.mediaDevices.getUserMedia({
@@ -371,20 +393,16 @@ const FaceVerificationScreen = ({ staff, setVerificationToken, setScreen, onCanc
         video.srcObject = stream
 
         await video.play()
-
         await waitForVideoReady(video)
 
         if (!mounted || !activeRef.current) return
 
-        // STEP 5: CAMERA READY.
-
         setCameraReady(true)
         setBusy(false)
 
-        setStatus(`Look at the camera, then gently turn your head to the ${challenge}.`)
+        setStatus('Camera ready. Looking for your face...')
 
-        // STEP 6: START FACE DETECTION.
-
+        // Begin automatic face detection.
         startFaceDetection()
       } catch (err) {
         console.error('[FACE VERIFICATION INITIALIZATION ERROR]', {
@@ -410,7 +428,6 @@ const FaceVerificationScreen = ({ staff, setVerificationToken, setScreen, onCanc
         }
 
         setError(`Unable to start face verification: ${message}`)
-
         setBusy(false)
 
         stopCamera()
@@ -423,130 +440,25 @@ const FaceVerificationScreen = ({ staff, setVerificationToken, setScreen, onCanc
       mounted = false
       stopCamera()
     }
-  }, [challenge, startFaceDetection, stopCamera])
+  }, [startFaceDetection, stopCamera])
 
   // =========================================================
-  // SUBMIT FACE VERIFICATION
+  // RETRY VERIFICATION
   // =========================================================
 
-  // =========================================================
-  // SUBMIT FACE VERIFICATION - IMPROVED
-  // =========================================================
+  const handleRetry = () => {
+    verificationStartedRef.current = false
+    setError('')
+    setBusy(false)
+    setStatus('Looking for your face...')
 
-  const submitVerification = async () => {
-    if (!challengePassed || !cameraReady || !videoRef.current || busy) {
-      return
-    }
-
-    try {
-      setBusy(true)
-      setError('')
-
-      const video = videoRef.current
-
-      if (video.readyState < 2) {
-        throw new Error('Camera is not ready. Please try again.')
-      }
-
-      if (!staff?.id) {
-        throw new Error('Staff identification is missing.')
-      }
-
-      if (!staff?.qrCode) {
-        throw new Error('Staff QR identity is missing. Please scan the staff QR code again.')
-      }
-
-      setStatus('Please face the camera directly...')
-
-      await faceapi.tf.ready()
-
-      let found = null
-
-      // Give the user time to return to a forward-facing position.
-      await new Promise((resolve) => setTimeout(resolve, 400))
-
-      // Retry detection automatically.
-      for (let attempt = 1; attempt <= 6; attempt++) {
-        if (video.readyState < 2) {
-          await new Promise((resolve) => setTimeout(resolve, 250))
-          continue
-        }
-
-        setStatus(
-          attempt === 1 ? 'Detecting your face...' : `Adjusting face detection... (${attempt}/6)`,
-        )
-
-        found = await faceapi
-          .detectSingleFace(
-            video,
-            new faceapi.TinyFaceDetectorOptions({
-              inputSize: 320,
-              scoreThreshold: 0.35,
-            }),
-          )
-          // IMPORTANT: true selects the tiny landmark model.
-          .withFaceLandmarks(true)
-          .withFaceDescriptor()
-
-        if (found) {
-          break
-        }
-
-        // Allow the camera to capture another frame.
-        await new Promise((resolve) => setTimeout(resolve, 350))
-      }
-
-      if (!found) {
-        throw new Error(
-          'We could not get a clear face image. Please look directly at the camera, move slightly closer and try again.',
-        )
-      }
-
-      const descriptor = Array.from(found.descriptor)
-
-      if (descriptor.length !== 128) {
-        throw new Error('Unable to generate a valid face identity. Please try again.')
-      }
-
-      setStatus('Verifying your identity...')
-
-      const response = await verifyStaffFace({
-        staffId: staff.id,
-        qrCode: staff.qrCode,
-        descriptor,
-      })
-
-      console.log('[FACE VERIFICATION RESPONSE]', response?.data)
-
-      const verificationToken =
-        response?.data?.verificationToken ||
-        response?.data?.data?.verificationToken ||
-        response?.verificationToken
-
-      if (!verificationToken) {
-        throw new Error(response?.data?.message || 'Server did not return a verification token.')
-      }
-
-      setVerificationToken(verificationToken)
-
-      setStatus('Identity verified successfully.')
-
-      stopCamera()
-
-      setScreen('action')
-    } catch (err) {
-      console.error('[FACE VERIFICATION SUBMISSION ERROR]', err)
-
-      setError(
-        err.response?.data?.message || err.message || 'Face verification failed. Please try again.',
-      )
-    } finally {
-      setBusy(false)
+    if (cameraReady) {
+      startFaceDetection()
     }
   }
 
   // =========================================================
-  // CANCEL VERIFICATION
+  // CANCEL
   // =========================================================
 
   const handleCancel = () => {
@@ -588,7 +500,7 @@ const FaceVerificationScreen = ({ staff, setVerificationToken, setScreen, onCanc
             />
           </div>
 
-          {/* LOADING */}
+          {/* STATUS */}
 
           {busy && (
             <div className="my-3">
@@ -601,17 +513,10 @@ const FaceVerificationScreen = ({ staff, setVerificationToken, setScreen, onCanc
 
           {/* CAMERA READY */}
 
-          {cameraReady && !challengePassed && !busy && (
+          {cameraReady && !busy && !error && (
             <CAlert color="info">
-              Please gently turn your head to the <strong>{challenge}</strong>.
-            </CAlert>
-          )}
-
-          {/* MOVEMENT COMPLETED */}
-
-          {challengePassed && (
-            <CAlert color="success">
-              Face movement challenge completed. You can now verify your identity.
+              Keep your face clearly visible in front of the camera. Verification will happen
+              automatically.
             </CAlert>
           )}
 
@@ -626,13 +531,11 @@ const FaceVerificationScreen = ({ staff, setVerificationToken, setScreen, onCanc
               Cancel
             </CButton>
 
-            <CButton
-              color="success"
-              onClick={submitVerification}
-              disabled={busy || !cameraReady || !challengePassed}
-            >
-              {busy ? 'Verifying...' : 'Verify My Face'}
-            </CButton>
+            {error && (
+              <CButton color="success" onClick={handleRetry} disabled={busy || !cameraReady}>
+                Retry Face Verification
+              </CButton>
+            )}
           </div>
 
           <small className="d-block text-body-secondary mt-3">

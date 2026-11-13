@@ -1,3 +1,4 @@
+
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import axios from 'axios'
 
@@ -33,12 +34,21 @@ import {
   cilSpeedometer,
   cilReload,
   cilArrowRight,
+  cilSearch,
 } from '@coreui/icons'
 
-const API_URL = (import.meta.env.VITE_BACKEND_URL || '').replace(/\/?$/, '/')
+// =====================================================
+// CONFIGURATION
+// =====================================================
+
+const API_URL = `${(import.meta.env.VITE_BACKEND_URL || '').replace(/\/+$/, '')}/api/v1`
 
 const TIMEZONE = 'Africa/Lagos'
 const REFRESH_INTERVAL = 30000
+
+// =====================================================
+// RESPONSE HELPERS
+// =====================================================
 
 const getResponseData = (response) => {
   return response?.data?.data ?? response?.data ?? null
@@ -55,9 +65,50 @@ const getStaffName = (staff) => {
   )
 }
 
-const getActivityAction = (activity) => {
-  return String(activity?.action || '').toUpperCase()
+const getStaffPosition = (staff) => {
+  return staff?.position || staff?.Position?.name || '--'
 }
+
+const getActivityAction = (activity) => {
+  return String(activity?.action || '').trim().toUpperCase()
+}
+
+const getAttendanceDateKey = (item) => {
+  const date = item?.attendanceDate
+
+  if (!date) return 'unknown-date'
+
+  // Preserve date-only database values without timezone shifting.
+  if (typeof date === 'string' && /^\d{4}-\d{2}-\d{2}/.test(date)) {
+    return date.slice(0, 10)
+  }
+
+  const parsed = new Date(date)
+
+  if (Number.isNaN(parsed.getTime())) return 'unknown-date'
+
+  return parsed.toLocaleDateString('en-CA', {
+    timeZone: TIMEZONE,
+  })
+}
+
+const getRecordTimestamp = (item) => {
+  const value =
+    item?.updatedAt ||
+    item?.createdAt ||
+    item?.clockIn ||
+    item?.attendanceDate
+
+  if (!value) return 0
+
+  const timestamp = new Date(value).getTime()
+
+  return Number.isNaN(timestamp) ? 0 : timestamp
+}
+
+// =====================================================
+// MAIN COMPONENT
+// =====================================================
 
 const AttendanceDashboard = () => {
   const [kpis, setKpis] = useState(null)
@@ -101,14 +152,13 @@ const AttendanceDashboard = () => {
 
       const headers = {
         Authorization: `Bearer ${token}`,
+        Accept: 'application/json',
       }
 
       const [kpiResponse, attendanceResponse, activityResponse] = await Promise.all([
-        axios.get(`${API_URL}api/v1/attendance/dashboard`, { headers }),
-
-        axios.get(`${API_URL}api/v1/attendance/today`, { headers }),
-
-        axios.get(`${API_URL}api/v1/attendance/activities?limit=50`, { headers }),
+        axios.get(`${API_URL}/attendance/dashboard`, { headers }),
+        axios.get(`${API_URL}/attendance/today`, { headers }),
+        axios.get(`${API_URL}/attendance/activities?limit=50`, { headers }),
       ])
 
       const kpiData = getResponseData(kpiResponse)
@@ -118,14 +168,24 @@ const AttendanceDashboard = () => {
       setKpis(kpiData || {})
 
       setAttendance(
-        Array.isArray(attendanceData) ? attendanceData : attendanceData?.attendance || [],
+        Array.isArray(attendanceData)
+          ? attendanceData
+          : attendanceData?.attendance || [],
       )
 
-      setActivities(Array.isArray(activityData) ? activityData : activityData?.activities || [])
+      setActivities(
+        Array.isArray(activityData)
+          ? activityData
+          : activityData?.activities || [],
+      )
     } catch (err) {
       console.error('ATTENDANCE DASHBOARD ERROR:', err)
 
-      setError(err.response?.data?.message || err.message || 'Unable to load attendance dashboard.')
+      setError(
+        err.response?.data?.message ||
+          err.message ||
+          'Unable to load attendance dashboard.',
+      )
     } finally {
       setLoading(false)
       setRefreshing(false)
@@ -148,32 +208,70 @@ const AttendanceDashboard = () => {
   }, [fetchDashboard])
 
   // =====================================================
-  // FILTER ATTENDANCE
+  // DEDUPLICATE ATTENDANCE
+  // Keep the most recently updated record per staff/date.
   // =====================================================
 
-  const filteredAttendance = useMemo(() => {
-    const searchValue = search.trim().toLowerCase()
+  const uniqueAttendance = useMemo(() => {
+    const records = new Map()
 
-    return attendance.filter((item) => {
-      const fullname = getStaffName(item.Staff).toLowerCase()
+    attendance.forEach((item) => {
+      const staffId =
+        item?.staffId ||
+        item?.Staff?.id ||
+        item?.staff?.id ||
+        item?.StaffId
 
-      const position = (item.Staff?.position || '').toLowerCase()
+      // If there is no staff ID, retain the record using its own ID.
+      const identity = staffId || `record-${item?.id}`
 
-      const email = (item.Staff?.User?.email || '').toLowerCase()
+      const dateKey = getAttendanceDateKey(item)
+      const uniqueKey = `${identity}-${dateKey}`
 
-      const matchesSearch =
-        !searchValue ||
-        fullname.includes(searchValue) ||
-        position.includes(searchValue) ||
-        email.includes(searchValue)
+      const existing = records.get(uniqueKey)
 
-      const status = String(item.status || '').toLowerCase()
-
-      const matchesStatus = statusFilter === 'all' || statusFilter === status
-
-      return matchesSearch && matchesStatus
+      if (
+        !existing ||
+        getRecordTimestamp(item) >= getRecordTimestamp(existing)
+      ) {
+        records.set(uniqueKey, item)
+      }
     })
-  }, [attendance, search, statusFilter])
+
+    return Array.from(records.values())
+  }, [attendance])
+
+  // =====================================================
+  // DEDUPLICATE ACTIVITIES
+  // =====================================================
+
+  const uniqueActivities = useMemo(() => {
+    const seen = new Set()
+
+    return activities.filter((activity) => {
+      if (activity?.id === undefined || activity?.id === null) {
+        return true
+      }
+
+      if (seen.has(activity.id)) return false
+
+      seen.add(activity.id)
+      return true
+    })
+  }, [activities])
+
+  // =====================================================
+  // SORT ACTIVITIES
+  // =====================================================
+
+  const sortedActivities = useMemo(() => {
+    return [...uniqueActivities].sort((a, b) => {
+      const timeA = new Date(a.createdAt || 0).getTime()
+      const timeB = new Date(b.createdAt || 0).getTime()
+
+      return timeB - timeA
+    })
+  }, [uniqueActivities])
 
   // =====================================================
   // FORMAT TIME
@@ -236,109 +334,190 @@ const AttendanceDashboard = () => {
     })
   }
 
+  const today = useMemo(() => formatFullDate(new Date()), [])
+
   // =====================================================
-  // STATUS BADGE
+  // ATTENDANCE STATUS BADGE
   // =====================================================
 
   const getStatusBadge = (status) => {
     switch (String(status || '').toLowerCase()) {
       case 'present':
-        return <CBadge color="success">Present</CBadge>
+        return <CBadge color="success" className="luxury-badge">Present</CBadge>
 
       case 'late':
-        return <CBadge color="warning">Late</CBadge>
+        return <CBadge color="warning" className="luxury-badge">Late</CBadge>
 
       case 'absent':
-        return <CBadge color="danger">Absent</CBadge>
+        return <CBadge color="danger" className="luxury-badge">Absent</CBadge>
 
       default:
-        return <CBadge color="secondary">{status || 'Unknown'}</CBadge>
+        return (
+          <CBadge color="secondary" className="luxury-badge">
+            {status || 'Unknown'}
+          </CBadge>
+        )
     }
   }
 
   // =====================================================
   // LIVE STAFF STATUS
+  // Uses the latest GO_OUT / RETURN activity.
   // =====================================================
 
-  const getLiveStatus = (item) => {
-    if (item.clockOut) {
+  const getLiveStatus = useCallback((item) => {
+    if (item?.clockOut) {
       return {
         label: 'Clocked Out',
         color: 'secondary',
+        key: 'clockedout',
       }
     }
 
-    if (!item.clockIn) {
+    if (!item?.clockIn) {
       return {
         label: 'Not Clocked In',
         color: 'danger',
+        key: 'notclocked',
       }
     }
 
-    // Find the latest GO_OUT or RETURN activity for this
-    // attendance record. Older GO_OUT activities should
-    // not override a more recent return activity.
-
-    const relevantActivities = activities
+    const relevantActivities = uniqueActivities
       .filter((activity) => {
-        const sameRecord = String(activity.recordId) === String(item.id)
+        const sameRecord =
+          String(activity?.recordId) === String(item?.id)
 
         const action = getActivityAction(activity)
 
-        return sameRecord && ['GO_OUT', 'RETURN', 'RETURN_BACK'].includes(action)
+        return (
+          sameRecord &&
+          ['GO_OUT', 'RETURN', 'RETURN_BACK'].includes(action)
+        )
       })
       .sort((a, b) => {
-        return new Date(b.createdAt || 0).getTime() - new Date(a.createdAt || 0).getTime()
+        return (
+          new Date(b.createdAt || 0).getTime() -
+          new Date(a.createdAt || 0).getTime()
+        )
       })
 
-    const latestActivity = relevantActivities[0]
-    const latestAction = getActivityAction(latestActivity)
+    const latestAction = getActivityAction(relevantActivities[0])
 
     if (latestAction === 'GO_OUT') {
       return {
         label: 'Outside',
         color: 'warning',
+        key: 'out',
       }
     }
 
     if (latestAction === 'RETURN' || latestAction === 'RETURN_BACK') {
       return {
-        label: 'Working',
+        label: 'Inside',
         color: 'success',
+        key: 'in',
       }
     }
 
     return {
-      label: 'Working',
+      label: 'Inside',
       color: 'success',
+      key: 'in',
     }
-  }
+  }, [uniqueActivities])
 
   // =====================================================
-  // CURRENT DATE
+  // FILTER OPTIONS
   // =====================================================
 
-  const today = useMemo(() => {
-    return new Date().toLocaleDateString('en-NG', {
-      weekday: 'long',
-      day: '2-digit',
-      month: 'long',
-      year: 'numeric',
-      timeZone: TIMEZONE,
+  const filterOptions = [
+    { value: 'all', label: 'All Staff' },
+    { value: 'late', label: 'Late' },
+    { value: 'present', label: 'Present' },
+    { value: 'absent', label: 'Absent' },
+    { value: 'out', label: 'Out' },
+    { value: 'in', label: 'In' },
+  ]
+
+  // =====================================================
+  // FILTER ATTENDANCE
+  // =====================================================
+
+  const filteredAttendance = useMemo(() => {
+    const searchValue = search.trim().toLowerCase()
+
+    return uniqueAttendance.filter((item) => {
+      const staff = item?.Staff || item?.staff || {}
+
+      const fullname = getStaffName(staff).toLowerCase()
+      const position = getStaffPosition(staff).toLowerCase()
+      const email = (staff?.User?.email || staff?.email || '').toLowerCase()
+
+      const matchesSearch =
+        !searchValue ||
+        fullname.includes(searchValue) ||
+        position.includes(searchValue) ||
+        email.includes(searchValue)
+
+      const attendanceStatus = String(item?.status || '').toLowerCase()
+      const liveStatus = getLiveStatus(item)
+
+      let matchesStatus = true
+
+      switch (statusFilter) {
+        case 'late':
+          matchesStatus = attendanceStatus === 'late'
+          break
+
+        case 'present':
+          matchesStatus = attendanceStatus === 'present'
+          break
+
+        case 'absent':
+          matchesStatus = attendanceStatus === 'absent'
+          break
+
+        case 'out':
+          matchesStatus = liveStatus.key === 'out'
+          break
+
+        case 'in':
+          matchesStatus = liveStatus.key === 'in'
+          break
+
+        default:
+          matchesStatus = true
+      }
+
+      return matchesSearch && matchesStatus
     })
-  }, [])
+  }, [uniqueAttendance, search, statusFilter, getLiveStatus])
 
   // =====================================================
-  // LOADING
+  // LIVE STAFF LIST
+  // =====================================================
+
+  const liveStaff = useMemo(() => {
+    return uniqueAttendance.map((item) => ({
+      ...item,
+      liveStatus: getLiveStatus(item),
+    }))
+  }, [uniqueAttendance, getLiveStatus])
+
+  // =====================================================
+  // LOADING SCREEN
   // =====================================================
 
   if (loading) {
     return (
-      <div className="d-flex justify-content-center align-items-center" style={{ minHeight: 450 }}>
+      <div className="attendance-loading">
         <div className="text-center">
-          <CSpinner color="primary" style={{ width: 45, height: 45 }} />
+          <div className="luxury-loader">
+            <CSpinner />
+          </div>
 
-          <div className="mt-3 text-muted">Loading attendance dashboard...</div>
+          <h6 className="mt-3 fw-bold">Preparing Attendance Dashboard</h6>
+          <small className="text-muted">Please wait...</small>
         </div>
       </div>
     )
@@ -352,124 +531,406 @@ const AttendanceDashboard = () => {
     <div className="attendance-dashboard">
       <style>{`
         .attendance-dashboard {
+          --gold: #c2a36b;
+          --gold-light: #f5efdf;
+          --dark: #1e1c19;
+          --border: #eae5dc;
+          --muted: #89847b;
           padding: 12px 5px 40px;
-          color: #1f2937;
+          color: #292723;
         }
 
-        .attendance-header {
-          display: flex;
-          justify-content: space-between;
-          align-items: center;
-          gap: 20px;
-          flex-wrap: wrap;
+        .attendance-dashboard .luxury-header {
+          background: linear-gradient(115deg, #191816 0%, #302b22 100%);
+          color: #fff;
+          border-radius: 17px;
+          padding: 27px 30px;
           margin-bottom: 25px;
-        }
-
-        .attendance-title {
-          font-size: 25px;
-          font-weight: 800;
-          color: #111827;
-          margin-bottom: 5px;
-        }
-
-        .attendance-subtitle {
-          font-size: 14px;
-          color: #64748b;
-        }
-
-        .attendance-kpi {
-          border: 1px solid #eef0f4 !important;
-          border-radius: 14px !important;
-          transition: transform .2s ease, box-shadow .2s ease;
-        }
-
-        .attendance-kpi:hover {
-          transform: translateY(-3px);
-          box-shadow: 0 10px 25px rgba(15,23,42,.08) !important;
-        }
-
-        .attendance-section {
-          border: 1px solid #eef0f4 !important;
-          border-radius: 14px !important;
+          position: relative;
           overflow: hidden;
         }
 
-        .attendance-section-header {
-          background: #fff !important;
-          border-bottom: 1px solid #f1f5f9 !important;
+        .attendance-dashboard .luxury-header:after {
+          content: '';
+          position: absolute;
+          width: 220px;
+          height: 220px;
+          border: 1px solid rgba(201,171,111,.2);
+          border-radius: 50%;
+          right: -60px;
+          top: -110px;
+          box-shadow: 0 0 0 25px rgba(201,171,111,.035),
+                      0 0 0 50px rgba(201,171,111,.025);
+          pointer-events: none;
         }
 
-        .attendance-filter {
-          display: flex;
-          gap: 10px;
-          min-width: 320px;
-        }
-
-        .attendance-table {
-          min-width: 1050px;
-        }
-
-        .attendance-table th {
-          white-space: nowrap;
-          background: #f8fafc;
-          color: #475569;
-          font-size: 12px;
+        .attendance-dashboard .header-kicker {
+          color: #d2b77e;
+          font-size: 10px;
+          font-weight: 800;
           text-transform: uppercase;
-          letter-spacing: .4px;
+          letter-spacing: 2px;
+          margin-bottom: 7px;
         }
 
-        .attendance-table td {
-          vertical-align: middle;
+        .attendance-dashboard .luxury-header h3 {
+          color: #fff;
+          font-weight: 800;
+          letter-spacing: -.5px;
+          margin-bottom: 5px;
+        }
+
+        .attendance-dashboard .header-subtitle {
+          color: #c8c3b9;
           font-size: 13px;
         }
 
-        .attendance-avatar {
-          width: 40px;
-          height: 40px;
-          flex-shrink: 0;
-          border-radius: 50%;
-          background: #eef2ff;
-          color: #4f46e5;
+        .attendance-dashboard .header-date {
+          color: #d9c69f;
+          font-size: 12px;
+          margin-top: 13px;
+        }
+
+        .attendance-dashboard .luxury-refresh {
+          background: #c3a46a;
+          border: 1px solid #c3a46a;
+          color: #171717;
+          font-weight: 750;
+          border-radius: 9px;
+          padding: 10px 17px;
+          position: relative;
+          z-index: 1;
+        }
+
+        .attendance-dashboard .luxury-refresh:hover {
+          background: #d5ba83;
+          border-color: #d5ba83;
+          color: #171717;
+        }
+
+        .attendance-dashboard .luxury-card {
+          border: 1px solid var(--border) !important;
+          border-radius: 14px !important;
+          box-shadow: 0 4px 18px rgba(25,25,25,.035) !important;
+          background: #fff;
+          height: 100%;
+          transition: transform .2s ease, box-shadow .2s ease;
+        }
+
+        .attendance-dashboard .luxury-card:hover {
+          transform: translateY(-2px);
+          box-shadow: 0 8px 24px rgba(25,25,25,.07) !important;
+        }
+
+        .attendance-dashboard .kpi-icon {
+          width: 49px;
+          height: 49px;
+          min-width: 49px;
+          border-radius: 13px;
           display: flex;
           align-items: center;
           justify-content: center;
-          font-weight: 800;
+          margin-right: 13px;
         }
 
-        .attendance-activity-list {
-          max-height: 420px;
+        .attendance-dashboard .kpi-title {
+          font-size: 10px;
+          font-weight: 800;
+          color: #77736b;
+          text-transform: uppercase;
+          letter-spacing: .65px;
+        }
+
+        .attendance-dashboard .kpi-value {
+          font-size: 26px;
+          line-height: 1.2;
+          font-weight: 850;
+          color: #242424;
+          margin: 3px 0;
+        }
+
+        .attendance-dashboard .kpi-subtitle {
+          font-size: 11px;
+          color: #96918a;
+        }
+
+        .attendance-dashboard .section-card {
+          border: 1px solid var(--border);
+          border-radius: 15px;
+          overflow: hidden;
+          box-shadow: 0 4px 18px rgba(25,25,25,.035);
+          background: #fff;
+        }
+
+        .attendance-dashboard .section-header {
+          padding: 19px 21px;
+          border-bottom: 1px solid #f0ede7;
+          background: #fff;
+        }
+
+        .attendance-dashboard .section-heading {
+          font-size: 16px;
+          font-weight: 850;
+          color: #242424;
+          margin-bottom: 3px;
+        }
+
+        .attendance-dashboard .section-description {
+          font-size: 12px;
+          color: #89847c;
+        }
+
+        .attendance-dashboard .luxury-input {
+          border: 1px solid #e5e0d6;
+          border-radius: 9px;
+          min-height: 41px;
+          font-size: 12px;
+          box-shadow: none !important;
+        }
+
+        .attendance-dashboard .luxury-input:focus {
+          border-color: var(--gold);
+        }
+
+        .attendance-dashboard .filter-strip {
+          display: flex;
+          flex-wrap: wrap;
+          gap: 7px;
+          padding: 14px 20px;
+          background: #fcfbf9;
+          border-bottom: 1px solid #f0ede7;
+        }
+
+        .attendance-dashboard .filter-button {
+          border: 1px solid #e7e2d8;
+          color: #666158;
+          background: #fff;
+          border-radius: 8px;
+          font-size: 11px;
+          font-weight: 750;
+          padding: 7px 13px;
+          transition: all .2s ease;
+        }
+
+        .attendance-dashboard .filter-button:hover {
+          border-color: var(--gold);
+          color: #8e713c;
+        }
+
+        .attendance-dashboard .filter-button.active {
+          background: #24221e;
+          border-color: #24221e;
+          color: #e2c68d;
+        }
+
+        .attendance-dashboard .luxury-table {
+          min-width: 1050px;
+        }
+
+        .attendance-dashboard .luxury-table thead th {
+          background: #f8f7f4;
+          color: #777168;
+          border-bottom: 1px solid #eae6de;
+          font-size: 10px;
+          font-weight: 850;
+          text-transform: uppercase;
+          letter-spacing: .65px;
+          padding: 14px 15px;
+          white-space: nowrap;
+        }
+
+        .attendance-dashboard .luxury-table tbody td {
+          padding: 14px 15px;
+          border-color: #f1eee9;
+          font-size: 12px;
+          color: #514e48;
+          vertical-align: middle;
+        }
+
+        .attendance-dashboard .luxury-table tbody tr:hover {
+          background: #fcfbf8;
+        }
+
+        .attendance-dashboard .staff-avatar {
+          width: 39px;
+          height: 39px;
+          min-width: 39px;
+          border-radius: 11px;
+          background: #24221e;
+          color: #d7bd85;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          font-size: 15px;
+          font-weight: 850;
+          margin-right: 11px;
+        }
+
+        .attendance-dashboard .staff-name {
+          font-size: 12px;
+          font-weight: 850;
+          color: #292929;
+        }
+
+        .attendance-dashboard .staff-secondary {
+          font-size: 10px;
+          color: #96918a;
+          margin-top: 3px;
+        }
+
+        .attendance-dashboard .luxury-badge {
+          font-size: 10px;
+          font-weight: 800;
+          border-radius: 6px;
+          padding: 6px 9px;
+        }
+
+        .attendance-dashboard .view-button {
+          background: #f6f3ec;
+          border: 1px solid #e9e1d0;
+          color: #79613a;
+          font-size: 11px;
+          font-weight: 800;
+          border-radius: 7px;
+        }
+
+        .attendance-dashboard .view-button:hover {
+          background: #eee5d3;
+          color: #604a28;
+        }
+
+        .attendance-dashboard .live-row {
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          gap: 10px;
+          padding: 13px 0;
+          border-bottom: 1px solid #f0ede7;
+        }
+
+        .attendance-dashboard .live-row:last-child {
+          border-bottom: 0;
+        }
+
+        .attendance-dashboard .activity-icon {
+          width: 38px;
+          height: 38px;
+          min-width: 38px;
+          border-radius: 11px;
+          background: #f5f0e5;
+          color: #9a7b43;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          margin-right: 12px;
+        }
+
+        .attendance-dashboard .activity-action {
+          font-size: 12px;
+          font-weight: 850;
+          color: #302e2a;
+        }
+
+        .attendance-dashboard .activity-description {
+          font-size: 11px;
+          color: #8b867d;
+          margin-top: 3px;
+        }
+
+        .attendance-dashboard .empty-state {
+          padding: 45px 15px;
+          text-align: center;
+          color: #96918a;
+          font-size: 13px;
+        }
+
+        .attendance-dashboard .attendance-activity-list {
+          max-height: 430px;
           overflow-y: auto;
         }
 
-        .attendance-activity-list::-webkit-scrollbar {
+        .attendance-dashboard .attendance-activity-list::-webkit-scrollbar {
           width: 5px;
         }
 
-        .attendance-activity-list::-webkit-scrollbar-thumb {
-          background: #cbd5e1;
+        .attendance-dashboard .attendance-activity-list::-webkit-scrollbar-thumb {
+          background: #d6d0c5;
           border-radius: 10px;
         }
 
-        .attendance-modal-overlay {
+        .attendance-dashboard .luxury-modal {
+          background: #fff;
+          border: 1px solid #e9e2d5;
+          border-radius: 17px;
+          overflow: hidden;
+          box-shadow: 0 20px 70px rgba(0,0,0,.25);
+        }
+
+        .attendance-dashboard .modal-header-luxury {
+          background: #22201c;
+          color: #fff;
+          padding: 18px 22px;
+        }
+
+        .attendance-dashboard .modal-header-luxury h5 {
+          color: #fff;
+          margin: 0;
+          font-weight: 850;
+        }
+
+        .attendance-dashboard .modal-gold-avatar {
+          width: 75px;
+          height: 75px;
+          border-radius: 20px;
+          background: #24221e;
+          color: #d7bd85;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          margin: 0 auto 13px;
+          font-size: 27px;
+          font-weight: 850;
+        }
+
+        .attendance-dashboard .attendance-modal-overlay {
           position: fixed;
           inset: 0;
           z-index: 9999;
-          background: rgba(15,23,42,.65);
-          backdrop-filter: blur(3px);
+          background: rgba(15,15,15,.68);
+          backdrop-filter: blur(5px);
           display: flex;
           justify-content: center;
           align-items: center;
-          padding: 16px;
+          padding: 18px;
         }
 
-        .attendance-modal-card {
+        .attendance-dashboard .attendance-modal-card {
           width: 100%;
           max-width: 540px;
           max-height: 90vh;
           overflow-y: auto;
           border: 0;
-          border-radius: 18px;
+          border-radius: 17px;
           box-shadow: 0 25px 70px rgba(0,0,0,.25);
+        }
+
+        .attendance-loading {
+          min-height: 500px;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+        }
+
+        .attendance-loading .luxury-loader {
+          width: 55px;
+          height: 55px;
+          border-radius: 15px;
+          background: #24221e;
+          color: #d5b979;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          margin: auto;
         }
 
         @media (max-width: 767px) {
@@ -477,77 +938,86 @@ const AttendanceDashboard = () => {
             padding: 8px 0 30px;
           }
 
-          .attendance-title {
-            font-size: 21px;
+          .attendance-dashboard .luxury-header {
+            padding: 22px 18px;
           }
 
-          .attendance-filter {
-            min-width: 100%;
-            width: 100%;
+          .attendance-dashboard .header-actions {
+            margin-top: 17px;
           }
 
-          .attendance-filter > * {
-            min-width: 0;
-            flex: 1;
+          .attendance-dashboard .section-header {
+            padding: 16px;
           }
 
-          .attendance-header {
-            align-items: flex-start;
-          }
-        }
-
-        @media (max-width: 420px) {
-          .attendance-filter {
-            flex-direction: column;
-          }
-
-          .attendance-filter > * {
-            width: 100%;
+          .attendance-dashboard .filter-strip {
+            padding: 12px;
           }
         }
       `}</style>
 
-      {/* HEADER */}
+      {/* =====================================================
+          HEADER
+      ===================================================== */}
 
-      <div className="attendance-header">
-        <div>
-          <h3 className="attendance-title">Attendance Overview</h3>
+      <div className="luxury-header">
+        <CRow className="align-items-center">
+          <CCol md={8}>
+            <div className="header-kicker">Workforce Management</div>
 
-          <div className="attendance-subtitle">
-            Monitor staff attendance, working hours and activities.
-          </div>
+            <h3>Attendance Overview</h3>
 
-          <small className="text-muted">
-            <CIcon icon={cilClock} className="me-1" />
-            {today}
-          </small>
-        </div>
+            <div className="header-subtitle">
+              Monitor staff attendance, punctuality and daily activities.
+            </div>
 
-        <div className="d-flex align-items-center gap-2">
-          <CBadge color="success" className="px-3 py-2">
-            Live Monitoring
-          </CBadge>
+            <div className="header-date">
+              <CIcon icon={cilClock} className="me-2" />
+              {today}
+            </div>
+          </CCol>
 
-          <CButton color="light" onClick={() => fetchDashboard(true)} disabled={refreshing}>
-            {refreshing ? (
-              <CSpinner size="sm" className="me-2" />
-            ) : (
-              <CIcon icon={cilReload} className="me-2" />
-            )}
-            Refresh
-          </CButton>
-        </div>
+          <CCol md={4} className="text-md-end header-actions">
+            <div className="d-flex justify-content-md-end align-items-center gap-2 flex-wrap">
+              <CBadge color="success" className="px-3 py-2">
+                Live Monitoring
+              </CBadge>
+
+              <CButton
+                className="luxury-refresh"
+                onClick={() => fetchDashboard(true)}
+                disabled={refreshing}
+              >
+                {refreshing ? (
+                  <CSpinner size="sm" className="me-2" />
+                ) : (
+                  <CIcon icon={cilReload} className="me-2" />
+                )}
+                Refresh Dashboard
+              </CButton>
+            </div>
+          </CCol>
+        </CRow>
       </div>
 
-      {/* ERROR */}
+      {/* =====================================================
+          ERROR
+      ===================================================== */}
 
       {error && (
-        <CAlert color="danger" dismissible onClose={() => setError('')}>
+        <CAlert
+          color="danger"
+          dismissible
+          onClose={() => setError('')}
+          className="mb-4"
+        >
           {error}
         </CAlert>
       )}
 
-      {/* KPI CARDS */}
+      {/* =====================================================
+          KPI CARDS
+      ===================================================== */}
 
       <CRow className="g-3 mb-4">
         <CCol xs={12} sm={6} xl={3}>
@@ -556,7 +1026,8 @@ const AttendanceDashboard = () => {
             value={kpis?.presentToday ?? 0}
             subtitle="Staff clocked in"
             icon={cilUserFollow}
-            color="success"
+            color="#23845b"
+            background="#e9f5ef"
           />
         </CCol>
 
@@ -564,9 +1035,10 @@ const AttendanceDashboard = () => {
           <KpiCard
             title="Late Today"
             value={kpis?.lateToday ?? 0}
-            subtitle="Needs attention"
+            subtitle="Requires attention"
             icon={cilWarning}
-            color="warning"
+            color="#b17b29"
+            background="#faf2e3"
           />
         </CCol>
 
@@ -574,9 +1046,10 @@ const AttendanceDashboard = () => {
           <KpiCard
             title="Absent Today"
             value={kpis?.absentToday ?? 0}
-            subtitle="Not clocked in"
+            subtitle="Not yet clocked in"
             icon={cilUserUnfollow}
-            color="danger"
+            color="#bd4c4c"
+            background="#f9ebeb"
           />
         </CCol>
 
@@ -584,9 +1057,10 @@ const AttendanceDashboard = () => {
           <KpiCard
             title="Currently Outside"
             value={kpis?.currentlyOutside ?? 0}
-            subtitle="Away from salon"
+            subtitle="Away from workplace"
             icon={cilPeople}
-            color="warning"
+            color="#b17b29"
+            background="#faf2e3"
           />
         </CCol>
 
@@ -594,9 +1068,10 @@ const AttendanceDashboard = () => {
           <KpiCard
             title="Clocked Out"
             value={kpis?.clockedOutToday ?? 0}
-            subtitle="Completed today"
+            subtitle="Completed attendance"
             icon={cilUserUnfollow}
-            color="info"
+            color="#547a9b"
+            background="#edf2f7"
           />
         </CCol>
 
@@ -604,9 +1079,10 @@ const AttendanceDashboard = () => {
           <KpiCard
             title="Average Hours"
             value={`${kpis?.averageWorkingHours ?? 0}h`}
-            subtitle="Today's average"
+            subtitle="Average working time"
             icon={cilClock}
-            color="primary"
+            color="#8067a8"
+            background="#f1edf7"
           />
         </CCol>
 
@@ -616,226 +1092,320 @@ const AttendanceDashboard = () => {
             value={`${kpis?.overtimeHours ?? 0}h`}
             subtitle="Total overtime"
             icon={cilSpeedometer}
-            color="dark"
+            color="#4f7186"
+            background="#edf3f5"
           />
         </CCol>
       </CRow>
 
-      {/* ATTENDANCE TABLE */}
+      {/* =====================================================
+          ATTENDANCE TABLE
+      ===================================================== */}
 
-      <CCard className="attendance-section shadow-sm mb-4">
-        <CCardHeader className="attendance-section-header py-3">
-          <div className="d-flex flex-wrap justify-content-between align-items-center gap-3">
-            <div>
-              <h5 className="fw-bold mb-1">Today's Attendance</h5>
+      <div className="section-card mb-4">
+        <div className="section-header">
+          <CRow className="align-items-center g-3">
+            <CCol lg={5}>
+              <div className="section-heading">Today's Attendance</div>
 
-              <small className="text-muted">
-                Showing {filteredAttendance.length} of {attendance.length} records
-              </small>
-            </div>
+              <div className="section-description">
+                Showing {filteredAttendance.length} of {uniqueAttendance.length} unique records
+              </div>
+            </CCol>
 
-            <div className="attendance-filter">
-              <CFormInput
-                placeholder="Search name, email or position..."
-                value={search}
-                onChange={(e) => setSearch(e.target.value)}
-              />
+            <CCol lg={7}>
+              <CRow className="g-2">
+                <CCol sm={7}>
+                  <div className="position-relative">
+                    <CIcon
+                      icon={cilSearch}
+                      className="position-absolute"
+                      style={{
+                        left: 13,
+                        top: 13,
+                        color: '#999',
+                        zIndex: 2,
+                      }}
+                    />
 
-              <CFormSelect value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)}>
-                <option value="all">All Status</option>
-                <option value="present">Present</option>
-                <option value="late">Late</option>
-                <option value="absent">Absent</option>
-              </CFormSelect>
-            </div>
-          </div>
-        </CCardHeader>
+                    <CFormInput
+                      className="luxury-input"
+                      style={{ paddingLeft: 36 }}
+                      placeholder="Search name, email or position..."
+                      value={search}
+                      onChange={(e) => setSearch(e.target.value)}
+                    />
+                  </div>
+                </CCol>
 
-        <CCardBody className="p-0">
-          <div style={{ overflowX: 'auto' }}>
-            <CTable hover responsive className="mb-0 align-middle attendance-table">
-              <CTableHead>
+                <CCol sm={5}>
+                  <CFormSelect
+                    className="luxury-input"
+                    value={statusFilter}
+                    onChange={(e) => setStatusFilter(e.target.value)}
+                  >
+                    <option value="all">All Staff</option>
+                    <option value="late">Late</option>
+                    <option value="present">Present</option>
+                    <option value="absent">Absent</option>
+                    <option value="out">Out - Outside</option>
+                    <option value="in">In - Inside</option>
+                  </CFormSelect>
+                </CCol>
+              </CRow>
+            </CCol>
+          </CRow>
+        </div>
+
+        {/* QUICK FILTER BUTTONS */}
+
+        <div className="filter-strip">
+          {filterOptions.map((option) => (
+            <button
+              key={option.value}
+              type="button"
+              className={`filter-button ${
+                statusFilter === option.value ? 'active' : ''
+              }`}
+              onClick={() => setStatusFilter(option.value)}
+            >
+              {option.label}
+            </button>
+          ))}
+        </div>
+
+        <div style={{ overflowX: 'auto' }}>
+          <CTable hover responsive className="luxury-table mb-0 align-middle">
+            <CTableHead>
+              <CTableRow>
+                <CTableHeaderCell>Staff Member</CTableHeaderCell>
+                <CTableHeaderCell>Position</CTableHeaderCell>
+                <CTableHeaderCell>Date</CTableHeaderCell>
+                <CTableHeaderCell>Clock In</CTableHeaderCell>
+                <CTableHeaderCell>Attendance</CTableHeaderCell>
+                <CTableHeaderCell>Live Status</CTableHeaderCell>
+                <CTableHeaderCell>Clock Out</CTableHeaderCell>
+                <CTableHeaderCell>Working Hours</CTableHeaderCell>
+                <CTableHeaderCell>Overtime</CTableHeaderCell>
+                <CTableHeaderCell>Action</CTableHeaderCell>
+              </CTableRow>
+            </CTableHead>
+
+            <CTableBody>
+              {filteredAttendance.length === 0 ? (
                 <CTableRow>
-                  <CTableHeaderCell>Staff</CTableHeaderCell>
-                  <CTableHeaderCell>Position</CTableHeaderCell>
-                  <CTableHeaderCell>Date</CTableHeaderCell>
-                  <CTableHeaderCell>Clock In</CTableHeaderCell>
-                  <CTableHeaderCell>Status</CTableHeaderCell>
-                  <CTableHeaderCell>Live Status</CTableHeaderCell>
-                  <CTableHeaderCell>Clock Out</CTableHeaderCell>
-                  <CTableHeaderCell>Working Hours</CTableHeaderCell>
-                  <CTableHeaderCell>Overtime</CTableHeaderCell>
-                  <CTableHeaderCell>Action</CTableHeaderCell>
-                </CTableRow>
-              </CTableHead>
+                  <CTableDataCell colSpan={10}>
+                    <div className="empty-state">
+                      <CIcon icon={cilPeople} size="3xl" className="mb-3" />
 
-              <CTableBody>
-                {filteredAttendance.length === 0 ? (
-                  <CTableRow>
-                    <CTableDataCell colSpan={10} className="text-center py-5">
-                      <CIcon icon={cilPeople} size="3xl" className="text-body-secondary mb-2" />
+                      <div className="fw-bold">
+                        No attendance records found
+                      </div>
 
-                      <div className="fw-semibold">No attendance records found.</div>
-
-                      <small className="text-muted">
-                        Try changing your search or status filter.
+                      <small>
+                        Try changing your search or attendance filter.
                       </small>
-                    </CTableDataCell>
-                  </CTableRow>
-                ) : (
-                  filteredAttendance.map((item) => {
-                    const staff = item.Staff
-                    const fullname = getStaffName(staff)
-                    const liveStatus = getLiveStatus(item)
-
-                    return (
-                      <CTableRow key={item.id}>
-                        <CTableDataCell>
-                          <div className="d-flex align-items-center gap-2">
-                            <div className="attendance-avatar">
-                              {fullname.charAt(0).toUpperCase()}
-                            </div>
-
-                            <div>
-                              <div className="fw-semibold">{fullname}</div>
-
-                              <small className="text-muted">{staff?.User?.email || '--'}</small>
-                            </div>
-                          </div>
-                        </CTableDataCell>
-
-                        <CTableDataCell>{staff?.position || '--'}</CTableDataCell>
-
-                        <CTableDataCell>
-                          {item.attendanceDate ? formatFullDate(item.attendanceDate) : '--'}
-                        </CTableDataCell>
-
-                        <CTableDataCell>
-                          <span className="fw-semibold">{formatTime(item.clockIn)}</span>
-                        </CTableDataCell>
-
-                        <CTableDataCell>{getStatusBadge(item.status)}</CTableDataCell>
-
-                        <CTableDataCell>
-                          <CBadge color={liveStatus.color}>{liveStatus.label}</CBadge>
-                        </CTableDataCell>
-
-                        <CTableDataCell>{formatTime(item.clockOut)}</CTableDataCell>
-
-                        <CTableDataCell>
-                          <span className="fw-semibold">
-                            {item.workingHours != null ? `${item.workingHours}h` : '--'}
-                          </span>
-                        </CTableDataCell>
-
-                        <CTableDataCell>
-                          {item.overtime != null ? `${item.overtime}h` : '--'}
-                        </CTableDataCell>
-
-                        <CTableDataCell>
-                          <CButton
-                            color="light"
-                            size="sm"
-                            disabled={!staff}
-                            onClick={() => setSelectedAttendance(item)}
-                          >
-                            View
-                            <CIcon icon={cilArrowRight} className="ms-1" />
-                          </CButton>
-                        </CTableDataCell>
-                      </CTableRow>
-                    )
-                  })
-                )}
-              </CTableBody>
-            </CTable>
-          </div>
-        </CCardBody>
-      </CCard>
-
-      {/* LIVE STAFF STATUS + RECENT ACTIVITIES */}
-
-      <CRow className="g-4 mb-4">
-        <CCol lg={5}>
-          <CCard className="attendance-section shadow-sm h-100">
-            <CCardHeader className="attendance-section-header py-3">
-              <h5 className="fw-bold mb-1">Live Staff Status</h5>
-
-              <small className="text-muted">Current attendance status</small>
-            </CCardHeader>
-
-            <CCardBody>
-              {attendance.length === 0 ? (
-                <div className="text-muted text-center py-4">No staff activity yet.</div>
+                    </div>
+                  </CTableDataCell>
+                </CTableRow>
               ) : (
-                attendance.map((item) => {
-                  const fullname = getStaffName(item.Staff)
+                filteredAttendance.map((item) => {
+                  const staff = item.Staff || item.staff || {}
+                  const fullname = getStaffName(staff)
                   const liveStatus = getLiveStatus(item)
 
                   return (
+                    <CTableRow key={`${item.id}-${getAttendanceDateKey(item)}`}>
+                      <CTableDataCell>
+                        <div className="d-flex align-items-center">
+                          <div className="staff-avatar">
+                            {fullname.charAt(0).toUpperCase()}
+                          </div>
+
+                          <div>
+                            <div className="staff-name">{fullname}</div>
+
+                            <div className="staff-secondary">
+                              {staff?.User?.email || staff?.email || '--'}
+                            </div>
+                          </div>
+                        </div>
+                      </CTableDataCell>
+
+                      <CTableDataCell>
+                        {getStaffPosition(staff)}
+                      </CTableDataCell>
+
+                      <CTableDataCell>
+                        {item.attendanceDate
+                          ? formatFullDate(item.attendanceDate)
+                          : '--'}
+                      </CTableDataCell>
+
+                      <CTableDataCell>
+                        <span className="fw-bold">
+                          {formatTime(item.clockIn)}
+                        </span>
+                      </CTableDataCell>
+
+                      <CTableDataCell>
+                        {getStatusBadge(item.status)}
+                      </CTableDataCell>
+
+                      <CTableDataCell>
+                        <CBadge
+                          color={liveStatus.color}
+                          className="luxury-badge"
+                        >
+                          {liveStatus.label}
+                        </CBadge>
+                      </CTableDataCell>
+
+                      <CTableDataCell>
+                        {formatTime(item.clockOut)}
+                      </CTableDataCell>
+
+                      <CTableDataCell>
+                        <span className="fw-bold">
+                          {item.workingHours != null
+                            ? `${item.workingHours}h`
+                            : '--'}
+                        </span>
+                      </CTableDataCell>
+
+                      <CTableDataCell>
+                        {item.overtime != null
+                          ? `${item.overtime}h`
+                          : '--'}
+                      </CTableDataCell>
+
+                      <CTableDataCell>
+                        <CButton
+                          size="sm"
+                          className="view-button"
+                          disabled={!item.Staff && !item.staff}
+                          onClick={() => setSelectedAttendance(item)}
+                        >
+                          View
+                          <CIcon icon={cilArrowRight} className="ms-1" />
+                        </CButton>
+                      </CTableDataCell>
+                    </CTableRow>
+                  )
+                })
+              )}
+            </CTableBody>
+          </CTable>
+        </div>
+      </div>
+
+      {/* =====================================================
+          LIVE STAFF STATUS + RECENT ACTIVITIES
+      ===================================================== */}
+
+      <CRow className="g-4 mb-4">
+
+        {/* LIVE STAFF STATUS */}
+
+        <CCol lg={5}>
+          <div className="section-card h-100">
+            <div className="section-header">
+              <div className="section-heading">Live Staff Status</div>
+
+              <div className="section-description">
+                Current staff location and attendance state
+              </div>
+            </div>
+
+            <CCardBody style={{ maxHeight: 430, overflowY: 'auto' }}>
+              {liveStaff.length === 0 ? (
+                <div className="empty-state">
+                  No staff attendance records available.
+                </div>
+              ) : (
+                liveStaff.map((item) => {
+                  const staff = item.Staff || item.staff || {}
+                  const fullname = getStaffName(staff)
+                  const liveStatus = item.liveStatus
+
+                  return (
                     <div
-                      key={item.id}
-                      className="d-flex align-items-center justify-content-between gap-2 py-3 border-bottom"
+                      key={`${item.id}-${getAttendanceDateKey(item)}`}
+                      className="live-row"
                     >
-                      <div className="d-flex align-items-center gap-2">
-                        <div className="attendance-avatar">{fullname.charAt(0).toUpperCase()}</div>
+                      <div className="d-flex align-items-center">
+                        <div className="staff-avatar">
+                          {fullname.charAt(0).toUpperCase()}
+                        </div>
 
                         <div>
-                          <div className="fw-semibold">{fullname}</div>
+                          <div className="staff-name">{fullname}</div>
 
-                          <small className="text-muted">{item.Staff?.position || '--'}</small>
+                          <div className="staff-secondary">
+                            {getStaffPosition(staff)}
+                          </div>
                         </div>
                       </div>
 
-                      <CBadge color={liveStatus.color}>{liveStatus.label}</CBadge>
+                      <CBadge
+                        color={liveStatus.color}
+                        className="luxury-badge"
+                      >
+                        {liveStatus.label}
+                      </CBadge>
                     </div>
                   )
                 })
               )}
             </CCardBody>
-          </CCard>
+          </div>
         </CCol>
 
-        <CCol lg={7}>
-          <CCard className="attendance-section shadow-sm h-100">
-            <CCardHeader className="attendance-section-header py-3">
-              <h5 className="fw-bold mb-1">Recent Staff Activities</h5>
+        {/* RECENT ACTIVITIES */}
 
-              <small className="text-muted">Latest kiosk activities</small>
-            </CCardHeader>
+        <CCol lg={7}>
+          <div className="section-card h-100">
+            <div className="section-header">
+              <div className="section-heading">Recent Staff Activities</div>
+
+              <div className="section-description">
+                Latest attendance kiosk transactions
+              </div>
+            </div>
 
             <CCardBody className="p-0">
               <div className="attendance-activity-list">
-                {activities.length === 0 ? (
-                  <div className="text-center text-muted py-5">No activities recorded.</div>
+                {sortedActivities.length === 0 ? (
+                  <div className="empty-state">
+                    No activities have been recorded.
+                  </div>
                 ) : (
-                  activities.map((activity) => (
+                  sortedActivities.map((activity) => (
                     <div
                       key={activity.id}
-                      className="d-flex align-items-center gap-3 px-3 px-md-4 py-3 border-bottom"
+                      className="d-flex align-items-center px-3 px-md-4 py-3 border-bottom"
                     >
-                      <div
-                        className="d-flex align-items-center justify-content-center flex-shrink-0"
-                        style={{
-                          width: 40,
-                          height: 40,
-                          borderRadius: 11,
-                          background: '#eef2ff',
-                          color: '#4f46e5',
-                        }}
-                      >
+                      <div className="activity-icon">
                         <CIcon icon={cilHistory} />
                       </div>
 
-                      <div className="flex-grow-1 min-width-0">
-                        <div className="fw-semibold">{activity.action || 'Activity'}</div>
+                      <div className="flex-grow-1">
+                        <div className="activity-action">
+                          {String(activity.action || 'Activity').replace(/_/g, ' ')}
+                        </div>
 
-                        <small className="text-muted">
+                        <div className="activity-description">
                           {activity.description || 'Attendance activity recorded'}
-                        </small>
+                        </div>
                       </div>
 
-                      <small className="text-muted text-end flex-shrink-0" style={{ fontSize: 11 }}>
+                      <small
+                        className="text-muted text-end ms-2"
+                        style={{
+                          fontSize: 10,
+                          whiteSpace: 'nowrap',
+                        }}
+                      >
                         {formatDateTime(activity.createdAt)}
                       </small>
                     </div>
@@ -843,11 +1413,13 @@ const AttendanceDashboard = () => {
                 )}
               </div>
             </CCardBody>
-          </CCard>
+          </div>
         </CCol>
       </CRow>
 
-      {/* STAFF DETAILS MODAL */}
+      {/* =====================================================
+          STAFF DETAILS MODAL
+      ===================================================== */}
 
       {selectedAttendance && (
         <StaffDetailsModal
@@ -874,49 +1446,33 @@ const AttendanceDashboard = () => {
 // KPI CARD
 // =====================================================
 
-const KpiCard = ({ title, value, subtitle, icon, color }) => {
+const KpiCard = ({
+  title,
+  value,
+  subtitle,
+  icon,
+  color,
+  background,
+}) => {
   return (
-    <CCard className="attendance-kpi shadow-sm h-100">
+    <CCard className="luxury-card">
       <CCardBody className="d-flex align-items-center p-3">
         <div
-          className={`bg-${color} bg-opacity-10`}
+          className="kpi-icon"
           style={{
-            width: 55,
-            height: 55,
-            minWidth: 55,
-            borderRadius: 14,
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            marginRight: 15,
+            background,
+            color,
           }}
         >
-          <CIcon icon={icon} size="xl" className={`text-${color}`} />
+          <CIcon icon={icon} size="xl" />
         </div>
 
-        <div className="min-width-0">
-          <div
-            className="text-muted"
-            style={{
-              fontSize: 13,
-              fontWeight: 600,
-            }}
-          >
-            {title}
-          </div>
+        <div className="min-w-0">
+          <div className="kpi-title">{title}</div>
 
-          <div
-            style={{
-              fontSize: 25,
-              fontWeight: 800,
-              lineHeight: 1.3,
-              color: '#111827',
-            }}
-          >
-            {value}
-          </div>
+          <div className="kpi-value">{value}</div>
 
-          <small className="text-muted">{subtitle}</small>
+          <div className="kpi-subtitle">{subtitle}</div>
         </div>
       </CCardBody>
     </CCard>
@@ -935,24 +1491,24 @@ const StaffDetailsModal = ({
   getStatusBadge,
   getLiveStatus,
 }) => {
-  const staff = attendance?.Staff
-  const user = staff?.User
+  const staff = attendance?.Staff || attendance?.staff
+  const user = staff?.User || staff?.user
 
   const fullname = getStaffName(staff)
   const liveStatus = getLiveStatus(attendance)
 
   const details = [
     {
-      label: 'Email',
-      value: user?.email || '--',
+      label: 'Email Address',
+      value: user?.email || staff?.email || '--',
     },
     {
-      label: 'Phone',
-      value: user?.phone || '--',
+      label: 'Phone Number',
+      value: user?.phone || staff?.phone || '--',
     },
     {
       label: 'Position',
-      value: staff?.position || '--',
+      value: getStaffPosition(staff),
     },
     {
       label: 'Employment Type',
@@ -960,7 +1516,9 @@ const StaffDetailsModal = ({
     },
     {
       label: 'Attendance Date',
-      value: attendance?.attendanceDate ? formatDateTime(attendance.attendanceDate) : '--',
+      value: attendance?.attendanceDate
+        ? formatDateTime(attendance.attendanceDate)
+        : '--',
     },
     {
       label: 'Clock In',
@@ -972,16 +1530,26 @@ const StaffDetailsModal = ({
     },
     {
       label: 'Working Hours',
-      value: attendance?.workingHours != null ? `${attendance.workingHours} hours` : '--',
+      value:
+        attendance?.workingHours != null
+          ? `${attendance.workingHours} hours`
+          : '--',
     },
     {
       label: 'Overtime',
-      value: attendance?.overtime != null ? `${attendance.overtime} hours` : '--',
+      value:
+        attendance?.overtime != null
+          ? `${attendance.overtime} hours`
+          : '--',
     },
   ]
 
   return (
-    <div className="attendance-modal-overlay" role="presentation" onClick={onClose}>
+    <div
+      className="attendance-modal-overlay"
+      role="presentation"
+      onClick={onClose}
+    >
       <CCard
         className="attendance-modal-card"
         role="dialog"
@@ -989,41 +1557,63 @@ const StaffDetailsModal = ({
         aria-labelledby="staff-details-title"
         onClick={(e) => e.stopPropagation()}
       >
-        <CCardHeader className="d-flex justify-content-between align-items-center py-3">
+        <div className="modal-header-luxury d-flex justify-content-between align-items-center">
           <div>
-            <h5 id="staff-details-title" className="fw-bold mb-0">
-              Staff Attendance Details
-            </h5>
+            <div
+              style={{
+                color: '#c8ad76',
+                fontSize: 9,
+                fontWeight: 850,
+                letterSpacing: 1.7,
+                textTransform: 'uppercase',
+                marginBottom: 4,
+              }}
+            >
+              Workforce Profile
+            </div>
 
-            <small className="text-muted">Staff profile and today's attendance</small>
+            <h5 id="staff-details-title">Staff Attendance Details</h5>
           </div>
 
-          <CButton color="light" size="sm" onClick={onClose} aria-label="Close staff details">
-            ✕
-          </CButton>
-        </CCardHeader>
+          <button
+            type="button"
+            onClick={onClose}
+            aria-label="Close staff details"
+            style={{
+              border: '1px solid rgba(255,255,255,.2)',
+              background: 'transparent',
+              color: '#fff',
+              width: 33,
+              height: 33,
+              borderRadius: 8,
+              fontSize: 17,
+            }}
+          >
+            ×
+          </button>
+        </div>
 
         <CCardBody className="p-4">
           <div className="text-center mb-4">
-            <div
-              className="attendance-avatar mx-auto mb-3"
-              style={{
-                width: 75,
-                height: 75,
-                fontSize: 27,
-              }}
-            >
+            <div className="modal-gold-avatar">
               {fullname.charAt(0).toUpperCase()}
             </div>
 
-            <h4 className="fw-bold mb-1">{fullname}</h4>
+            <h5 className="fw-bold mb-1">{fullname}</h5>
 
-            <div className="text-muted mb-2">{staff?.position || 'Staff'}</div>
+            <div className="text-muted mb-3" style={{ fontSize: 12 }}>
+              {getStaffPosition(staff)}
+            </div>
 
             <div className="d-flex justify-content-center gap-2 flex-wrap">
               {getStatusBadge(attendance?.status)}
 
-              <CBadge color={liveStatus.color}>{liveStatus.label}</CBadge>
+              <CBadge
+                color={liveStatus.color}
+                className="luxury-badge"
+              >
+                {liveStatus.label}
+              </CBadge>
             </div>
           </div>
 
@@ -1031,14 +1621,17 @@ const StaffDetailsModal = ({
             {details.map((detail) => (
               <div
                 key={detail.label}
-                className="d-flex justify-content-between align-items-start gap-3 py-2 border-bottom"
+                className="d-flex justify-content-between align-items-start gap-3 py-3 border-bottom"
               >
-                <span className="text-muted">{detail.label}</span>
+                <span className="text-muted" style={{ fontSize: 12 }}>
+                  {detail.label}
+                </span>
 
                 <strong
                   className="text-end"
                   style={{
-                    color: '#1f2937',
+                    color: '#292929',
+                    fontSize: 12,
                     overflowWrap: 'anywhere',
                   }}
                 >
@@ -1048,8 +1641,19 @@ const StaffDetailsModal = ({
             ))}
           </div>
 
-          <CButton color="dark" className="w-100 mt-4" onClick={onClose}>
-            Close
+          <CButton
+            className="w-100 mt-4"
+            style={{
+              background: '#24221e',
+              color: '#d7bd85',
+              border: 'none',
+              borderRadius: 9,
+              fontWeight: 800,
+              padding: 11,
+            }}
+            onClick={onClose}
+          >
+            Close Profile
           </CButton>
         </CCardBody>
       </CCard>
