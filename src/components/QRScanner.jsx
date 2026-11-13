@@ -3,117 +3,105 @@ import { Html5Qrcode } from 'html5-qrcode'
 
 const QRScanner = ({ onSuccess, onCameraStream, active = true }) => {
   const scannerRef = useRef(null)
-  const startedRef = useRef(false)
-  const successRef = useRef(false)
-  const mountedRef = useRef(false)
-
   const onSuccessRef = useRef(onSuccess)
   const onCameraStreamRef = useRef(onCameraStream)
+  const processingRef = useRef(false)
 
   useEffect(() => {
     onSuccessRef.current = onSuccess
-  }, [onSuccess])
-
-  useEffect(() => {
     onCameraStreamRef.current = onCameraStream
-  }, [onCameraStream])
+  }, [onSuccess, onCameraStream])
 
   useEffect(() => {
-    let cancelled = false
+    let mounted = true
 
-    const startScanner = async () => {
-      if (startedRef.current || cancelled) return
+    const html5QrCode = new Html5Qrcode('reader')
+    scannerRef.current = html5QrCode
 
-      try {
-        const scanner = new Html5Qrcode('reader', {
-          verbose: false,
-        })
-
-        scannerRef.current = scanner
-
-        await scanner.start(
-          { facingMode: 'user' },
-          {
-            fps: 5,
-            qrbox: {
-              width: 320,
-              height: 320,
-            },
-            aspectRatio: 1.0,
-          },
-          (decodedText) => {
-            if (successRef.current || !mountedRef.current) return
-
-            successRef.current = true
-
-            // Pause QR decoding without stopping the camera video.
-            try {
-              scanner.pause(false)
-            } catch (error) {
-              console.warn('Unable to pause QR decoding:', error)
-            }
-
-            onSuccessRef.current?.(decodedText)
-          },
-          () => {},
-        )
-
-        startedRef.current = true
-
-        if (cancelled) {
-          await scanner.stop().catch(() => {})
-          await scanner.clear().catch(() => {})
-          return
-        }
-
-        const video = document.querySelector('#reader video')
-
-        if (video?.srcObject) {
-          onCameraStreamRef.current?.(video.srcObject)
-        }
-      } catch (error) {
-        console.error('QR scanner initialization failed:', error)
-      }
+    const config = {
+      fps: 5,
+      qrbox: {
+        width: 320,
+        height: 320,
+      },
+      aspectRatio: 1.0,
     }
 
-    mountedRef.current = true
-    startScanner()
+    html5QrCode
+      .start(
+        { facingMode: 'user' },
+        config,
+        (decodedText) => {
+          if (!mounted || processingRef.current) return
+
+          processingRef.current = true
+
+          // Pause QR decoding, but keep the camera stream running.
+          try {
+            html5QrCode.pause()
+          } catch (error) {
+            console.warn('Unable to pause QR scanner:', error)
+          }
+
+          const video = document.querySelector('#reader video')
+          const stream = video?.srcObject
+
+          if (stream) {
+            onCameraStreamRef.current?.(stream)
+          }
+
+          onSuccessRef.current?.(decodedText, stream)
+        },
+        () => {},
+      )
+      .then(() => {
+        if (!mounted) return
+
+        const video = document.querySelector('#reader video')
+        const stream = video?.srcObject
+
+        if (stream) {
+          onCameraStreamRef.current?.(stream)
+        }
+      })
+      .catch((err) => {
+        console.error('Camera Error:', err)
+      })
 
     return () => {
-      cancelled = true
-      mountedRef.current = false
+      mounted = false
+      processingRef.current = false
 
-      // Stop the camera only when this component is genuinely unmounted.
-      const scanner = scannerRef.current
-
-      if (scanner && startedRef.current) {
-        scanner
-          .stop()
-          .then(() => scanner.clear())
-          .catch((error) => {
-            console.warn('QR scanner cleanup:', error)
-          })
-      }
-
-      scannerRef.current = null
-      startedRef.current = false
+      // Do not stop the scanner here. Kiosk keeps this component mounted.
+      // It will be stopped when the kiosk itself is removed.
     }
   }, [])
 
   useEffect(() => {
     const scanner = scannerRef.current
+    if (!scanner) return
 
-    if (!scanner || !startedRef.current) return
+    if (!active) {
+      try {
+        if (scanner.getState() === 2) {
+          scanner.pause()
+        }
+      } catch (error) {
+        console.warn('Scanner pause:', error)
+      }
+      return
+    }
 
     try {
-      if (!active) {
-        scanner.pause(false)
-      } else {
-        successRef.current = false
+      if (scanner.getState() === 2 && !processingRef.current) {
         scanner.resume()
       }
     } catch (error) {
-      console.warn('QR scanner active-state update:', error)
+      console.warn('Scanner resume:', error)
+    }
+
+    if (active) {
+      processingRef.current = false
     }
   }, [active])
 
